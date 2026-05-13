@@ -17,3 +17,9 @@ build/
 
 # Uploaded assets (not part of source)
 attached_assets/
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
