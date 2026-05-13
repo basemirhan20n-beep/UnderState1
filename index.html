@@ -8,529 +8,153 @@
     <meta name="apple-mobile-web-app-title" content="UNDERSTATE">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#0A1628">
-    <link rel="manifest" href="data:application/json,{%22name%22:%22UNDERSTATE%22,%22short_name%22:%22UNDERSTATE%22,%22display%22:%22standalone%22,%22background_color%22:%22%230A1628%22,%22theme_color%22:%22%230A1628%22}">
-    <title>UNDERSTATE - Şehir & Devlet Simülasyonu</title>
+    <link rel="manifest" href="data:application/json,{%22name%22:%22UNDERSTATE%22,%22short_name%22:%22UNDERSTATE%22,%22display%22:%22standalone%22,%22background_color%22:%22%230A1628%22,%22theme_color%22:%22%23D00000%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23050505'/%3E%3Ctext y='.9em' font-size='80' x='10'%3EU%3C/text%3E%3C/svg%3E%22,%22sizes%22:%22any%22,%22type%22:%22image/svg+xml%22}]}">
+    <title>UNDERSTATE - Şehir &amp; Devlet Simülasyonu</title>
+
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 
-    <!-- ==================== FIREBASE SDK (compat — optimized) ==================== -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
-    <script>
-      const FIREBASE_CONFIG = {
-        apiKey:            "AIzaSyBOfuPVR5fns4c0EFM9uyO0og0ZvlySAe4",
-        authDomain:        "understate-62919.firebaseapp.com",
-        projectId:         "understate-62919",
-        storageBucket:     "understate-62919.firebasestorage.app",
-        messagingSenderId: "1005888565298",
-        appId:             "1:1005888565298:android:30da582e4c434e9652cc2b"
-      };
 
-      window._fbAuthBypass = false;
+    <!-- Firebase Init & Save -->
+    <script src="js/firebase-init.js"></script>
+    <script src="js/firebase-save.js"></script>
 
-      const GAME_ID     = "understate_main_server";
-      const LOCAL_ONLY_KEYS = ["sessionUserId","theme","sidebarCollapsed","positionTasks","examResults","dailyStreak","dailyTasks","gnkVote_"];
-      const REALTIME_KEYS = ["globalChat","cityChats","parliamentMsgs","supportMsgs","liveNews","announcements","activityFeed","users"];
-      const LOG_KEYS      = ["casinoLogs","activityLog","historyLog","liveFeed","socialPosts","newspapers","randomEvents","scandals","netWorthHistory"];
-
-      firebase.initializeApp(FIREBASE_CONFIG);
-      const _db   = firebase.firestore();
-      
-      // Optimized persistence settings
-      _db.enablePersistence({ synchronizeTabs: true }).catch(e => {
-        if (e.code === 'failed-precondition') {
-          console.log("[Firebase] Multiple tabs detected");
-        } else if (e.code === 'unimplemented') {
-          console.log("[Firebase] Browser doesn't support persistence");
-        }
-      });
-      
-      // Optimize Firestore for faster queries
-      _db.settings({
-        cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED
-      });
-      
-      const _auth = firebase.auth();
-
-      window._gameId        = GAME_ID;
-      window._rtKeys        = REALTIME_KEYS;
-      window._logKeys       = LOG_KEYS;
-      window._localOnlyKeys = LOCAL_ONLY_KEYS;
-      window._fbReady       = false;
-      window._activeListeners = [];
-
-      window._fb = {
-        db: _db,
-        setDoc: (ref, data, opts) => opts && opts.merge ? ref.set(data, {merge:true}) : ref.set(data),
-        getDoc: (ref) => ref.get(),
-        doc: (db, ...path) => {
-          let ref = db;
-          for(let i=0; i<path.length; i++) {
-            ref = (i%2===0) ? ref.collection(path[i]) : ref.doc(path[i]);
-          }
-          return ref;
-        },
-        onSnapshot: (ref, cb) => ref.onSnapshot(cb),
-        serverTimestamp: () => firebase.firestore.FieldValue.serverTimestamp()
-      };
-
-      async function initFirebaseData() {
-        try {
-          try {
-            const currentUser = _auth.currentUser;
-            if (currentUser) {
-              window._fbUid = currentUser.uid;
-              console.log("[Firebase] Session restored:", window._fbUid);
-            } else {
-              const anonUser = await _auth.signInAnonymously();
-              window._fbUid = anonUser.user.uid;
-              console.log("[Firebase] Anonymous login successful:", window._fbUid);
-            }
-          } catch(authErr) {
-            window._fbUid = "anon_" + Math.random().toString(36).substr(2, 9);
-            console.warn("[Firebase] Anonymous login failed, continuing:", authErr.message);
-          }
-          
-          console.log("[Firebase] Connecting to Firestore...");
-
-          const gameRef  = _db.collection("games").doc(GAME_ID).collection("state").doc("main");
-          const gameSnap = await gameRef.get();
-
-          if (gameSnap.exists) {
-            const data = gameSnap.data();
-            const syncKeys = [];
-            Object.entries(data).forEach(([k, v]) => {
-              if (k === "_meta") return;
-              if (LOCAL_ONLY_KEYS.some(lk => k === lk || k.startsWith(lk))) return;
-              try { localStorage.setItem("rep_" + k, JSON.stringify(v)); syncKeys.push([k,v]); } catch(e) {}
-            });
-            console.log("[Firebase] Data loaded:", syncKeys.length, "keys");
-            setTimeout(() => {
-              syncKeys.forEach(([k,v]) => {
-                window.dispatchEvent(new CustomEvent("fb-sync", { detail: { key: k, value: v } }));
-              });
-            }, 100); // Reduced delay from 500ms to 100ms
-          } else {
-            console.log("[Firebase] Initial startup — using local data");
-          }
-
-          setupRealtimeListeners();
-
-          window._fbReady = true;
-          window.dispatchEvent(new Event("firebase-ready"));
-
-        } catch(e) {
-          console.warn("[Firebase] Connection error, continuing offline:", e.message);
-          window._fbReady = false;
-          window.dispatchEvent(new Event("firebase-ready"));
-        }
-      }
-
-      function setupRealtimeListeners() {
-        // OPTIMIZED: Multiple fast listeners instead of one slow one
-        const rtRef = _db.collection("games").doc(GAME_ID).collection("realtime").doc("shared");
-        
-        const listener = rtRef.onSnapshot(
-          { includeMetadataChanges: false }, // Disable metadata changes for speed
-          (snap) => {
-            if (!snap.exists) return;
-            const data = snap.data();
-            
-            Object.entries(data).forEach(([k, v]) => {
-              if (!REALTIME_KEYS.includes(k)) return;
-              if (LOCAL_ONLY_KEYS.some(lk => k === lk || k.startsWith(lk))) return;
-              try {
-                const curr     = localStorage.getItem("rep_" + k);
-                const incoming = JSON.stringify(v);
-                if (curr !== incoming) {
-                  localStorage.setItem("rep_" + k, incoming);
-                  // Dispatch event immediately without delay
-                  window.dispatchEvent(new CustomEvent("fb-sync", { detail: { key: k, value: v } }));
-                }
-              } catch(e) {}
-            });
-          },
-          (error) => {
-            console.warn("[Firebase] Listener error:", error.message);
-          }
-        );
-        
-        window._activeListeners.push(listener);
-      }
-
-      initFirebaseData();
-    </script>
-
-    <!-- ==================== FIREBASE SAVE HELPER ==================== -->
-    <script>
-      window._fbPendingWrites = {};
-      window._fbFlushTimer    = null;
-
-      // OPTIMIZED: Reduced debounce from 3s to 1s for faster saves
-      window._fbFlush = function() {
-        if (!window._fb || !window._fbReady) return;
-        const pending = {...window._fbPendingWrites};
-        window._fbPendingWrites = {};
-        if (!Object.keys(pending).length) return;
-
-        const { db, doc, setDoc, serverTimestamp } = window._fb;
-
-        const rtData    = {};
-        const stateData = { _meta: { lastSave: Date.now() } };
-
-        Object.entries(pending).forEach(([k, v]) => {
-          if (window._rtKeys && window._rtKeys.includes(k)) {
-            rtData[k] = v;
-          } else {
-            stateData[k] = v;
-          }
-        });
-
-        if (Object.keys(stateData).length > 1) {
-          setDoc(doc(db, "games", window._gameId, "state", "main"), stateData, { merge: true })
-            .catch(e => console.warn("[Firebase] State write error:", e.message));
-        }
-        if (Object.keys(rtData).length) {
-          setDoc(doc(db, "games", window._gameId, "realtime", "shared"), rtData, { merge: true })
-            .catch(e => console.warn("[Firebase] Realtime write error:", e.message));
-        }
-      };
-
-      window._fbScheduleFlush = function() {
-        if (window._fbFlushTimer) clearTimeout(window._fbFlushTimer);
-        window._fbFlushTimer = setTimeout(window._fbFlush, 1000); // Changed from 3000ms to 1000ms
-      };
-    </script>
-    <style>
-/* ═══════════════════════════════════════════════════
-   UNDERSTATE — NOVA DESIGN SYSTEM v7.0
-   Gece & Gündüz | Modern | Premium | Mobil Öncelikli
-═══════════════════════════════════════════════════ */
-
-/* ── GECE MODU (varsayılan) ──────────────────────── */
-:root {
-  --bg:           #07101F;
-  --bg2:          #0C1A2E;
-  --bg3:          #102038;
-  --bg4:          #152842;
-  --bg5:          #1A314E;
-  --border:       rgba(255,255,255,0.07);
-  --border2:      rgba(255,255,255,0.13);
-  --text:         #EAF0F8;
-  --text-muted:   #4D6A88;
-  --text-dim:     #7A9ABE;
-  --accent:       #4F8AF4;
-  --accent-dark:  #2D68DC;
-  --accent-light: #7EB0FF;
-  --accent-rgb:   79,138,244;
-  --accent-glow:  rgba(79,138,244,0.22);
-  --green:        #10D9A0;
-  --green2:       #0AB88A;
-  --gold:         #FBBA45;
-  --gold2:        #E09A28;
-  --red:          #F25252;
-  --red2:         #D83232;
-  --violet:       #9B6CF8;
-  --pink:         #F472B6;
-  --orange:       #FB8C3A;
-  --teal:         #34D3E0;
-  --card-bg:      rgba(12,26,46,0.95);
-  --card-border:  rgba(255,255,255,0.07);
-  --card-radius:  18px;
-  --shadow-sm:    0 2px 10px rgba(0,0,0,0.3);
-  --shadow-md:    0 6px 24px rgba(0,0,0,0.4);
-  --shadow-lg:    0 16px 48px rgba(0,0,0,0.55);
-  --header-bg:    rgba(7,16,31,0.97);
-  --nav-bg:       rgba(5,12,24,0.99);
-  --sidebar-bg:   rgba(7,16,31,0.88);
-  --input-bg:     rgba(255,255,255,0.05);
-  --input-border: rgba(255,255,255,0.11);
-  --overlay-bg:   rgba(0,0,0,0.8);
-  --body-bg:      #07101F;
-  --border-gold:  rgba(251,186,69,0.25);
-  --red-light:    rgba(242,82,82,0.14);
-}
-
-/* ── GÜNDÜZ MODU ─────────────────────────────────── */
-body.day-mode {
-  --bg:           #F0F4FB;
-  --bg2:          #FFFFFF;
-  --bg3:          #E8EEF8;
-  --bg4:          #D9E3F5;
-  --bg5:          #C8D6F0;
-  --border:       rgba(30,70,160,0.09);
-  --border2:      rgba(30,70,160,0.17);
-  --text:         #0D1C35;
-  --text-muted:   #6B87A8;
-  --text-dim:     #3A567A;
-  --accent:       #2D68DC;
-  --accent-dark:  #1A50C0;
-  --accent-light: #4F8AF4;
-  --accent-rgb:   45,104,220;
-  --accent-glow:  rgba(45,104,220,0.2);
-  --green:        #0BAD79;
-  --green2:       #099660;
-  --gold:         #D97706;
-  --gold2:        #B45309;
-  --red:          #DC2626;
-  --red2:         #B91C1C;
-  --card-bg:      rgba(255,255,255,0.98);
-  --card-border:  rgba(30,70,160,0.09);
-  --shadow-sm:    0 2px 10px rgba(0,30,90,0.07);
-  --shadow-md:    0 6px 24px rgba(0,30,90,0.11);
-  --shadow-lg:    0 16px 48px rgba(0,30,90,0.17);
-  --header-bg:    rgba(255,255,255,0.97);
-  --nav-bg:       rgba(240,244,251,0.99);
-  --sidebar-bg:   rgba(240,244,251,0.92);
-  --input-bg:     rgba(30,70,160,0.04);
-  --input-border: rgba(30,70,160,0.14);
-  --overlay-bg:   rgba(10,30,80,0.65);
-  --body-bg:      #F0F4FB;
-}
-
-/* ── TEMA RENKLERİ ───────────────────────────────── */
-body.theme-gold   {--accent:#FBBA45;--accent-dark:#D97706;--accent-light:#FDE68A;--accent-rgb:251,186,69;--accent-glow:rgba(251,186,69,0.2)}
-body.theme-violet {--accent:#9B6CF8;--accent-dark:#7C3AED;--accent-light:#C4B5FD;--accent-rgb:155,108,248;--accent-glow:rgba(155,108,248,0.2)}
-body.theme-red    {--accent:#F25252;--accent-dark:#D83232;--accent-light:#FCA5A5;--accent-rgb:242,82,82;--accent-glow:rgba(242,82,82,0.2)}
-body.theme-green  {--accent:#10D9A0;--accent-dark:#0AB88A;--accent-light:#6EE7C7;--accent-rgb:16,217,160;--accent-glow:rgba(16,217,160,0.2)}
-
-/* ── RESET ───────────────────────────────────────── */
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
-
-/* ── BODY ────────────────────────────────────────── */
-body{
-  background:var(--body-bg);color:var(--text);
-  font-family:'DM Sans',system-ui,sans-serif;
-  font-size:14px;font-weight:500;line-height:1.65;
-  overflow-x:hidden;min-height:100vh;
-  transition:background 0.35s ease,color 0.35s ease;
-}
-input,select,textarea{font-size:16px!important;font-family:'DM Sans',sans-serif}
-
-/* ── SCROLLBAR ───────────────────────────────────── */
-::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:rgba(var(--accent-rgb),0.25);border-radius:10px}
-::-webkit-scrollbar-thumb:hover{background:rgba(var(--accent-rgb),0.45)}
-
-/* ── ANİMASYONLAR ────────────────────────────────── */
-@keyframes fadeIn    {from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-@keyframes fadeUp    {from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-@keyframes shimmer   {0%{background-position:-200% center}100%{background-position:200% center}}
-@keyframes glow      {0%,100%{box-shadow:0 0 8px var(--accent-glow)}50%{box-shadow:0 0 28px var(--accent-glow),0 0 50px var(--accent-glow)}}
-@keyframes timerPulse{0%,100%{opacity:1}50%{opacity:0.35}}
-@keyframes spin      {to{transform:rotate(360deg)}}
-@keyframes dotPulse  {from{box-shadow:0 0 8px var(--accent),0 0 0 rgba(var(--accent-rgb),0)}to{box-shadow:0 0 22px var(--accent),0 0 44px rgba(var(--accent-rgb),0.3)}}
-@keyframes popupBadge{0%{transform:scale(0) rotate(-20deg)}60%{transform:scale(1.2) rotate(4deg)}100%{transform:scale(1) rotate(0)}}
-@keyframes achievementIn{0%{transform:translateX(110%);opacity:0}15%{transform:translateX(0);opacity:1}80%{transform:translateX(0);opacity:1}100%{transform:translateX(110%);opacity:0}}
-@keyframes materialize{from{opacity:0;transform:scale(0.94) translateY(14px)}to{opacity:1;transform:scale(1) translateY(0)}}
-@keyframes slideUp   {from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
-@keyframes pulse     {0%,100%{opacity:1}50%{opacity:0.55}}
-@keyframes ticker38  {0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-@keyframes countUp   {from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-@keyframes vipFrameRotate{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
-@keyframes vipNameAnim{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-@keyframes rewardShine{0%{background-position:-200% center}100%{background-position:200% center}}
-
-/* ── APP ─────────────────────────────────────────── */
-.app-wrap{min-height:100dvh;animation:fadeIn 0.3s ease;overflow-x:hidden;background:var(--body-bg);transition:background 0.35s}
-
-/* ── HEADER ──────────────────────────────────────── */
-.header{
-  background:var(--header-bg);border-bottom:1px solid var(--border);
-  padding:0.5rem 1rem;display:flex;align-items:center;justify-content:space-between;
-  position:sticky;top:0;z-index:100;
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  transition:background 0.35s,border-color 0.35s;
-}
-.header-left{display:flex;align-items:center;gap:0.65rem}
-.logo-text{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:900;
-  letter-spacing:0.14em;color:var(--accent);text-transform:uppercase;
-  text-shadow:0 0 18px rgba(var(--accent-rgb),0.35)}
-.user-greeting{font-size:0.75rem;color:var(--text-dim);font-weight:500}
-.admin-badge{background:var(--red);color:#fff;font-size:0.55rem;padding:2px 6px;
-  border-radius:4px;font-weight:800;letter-spacing:0.08em;margin-left:4px}
-
-.header-stats{display:flex;gap:0;align-items:center}
-.stat-item{text-align:center;padding:0.25rem 0.65rem;background:rgba(var(--accent-rgb),0.05);
-  border:1px solid var(--border);border-right:none;transition:background 0.2s}
-.stat-item:first-child{border-left:1px solid var(--border);border-radius:10px 0 0 10px}
-.stat-item:last-child{border-right:1px solid var(--border);border-radius:0 10px 10px 0}
-.stat-label{font-size:0.5rem;letter-spacing:0.06em;color:var(--text-muted);text-transform:uppercase;font-weight:700}
-.stat-value{font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;line-height:1.3}
-.stat-green{color:var(--green)}.stat-blue{color:var(--accent)}.stat-gold{color:var(--gold)}.stat-teal{color:var(--teal)}
-
-.header-actions{display:flex;align-items:center;gap:0.35rem}
-.icon-btn{background:var(--input-bg);border:1px solid var(--border2);border-radius:10px;
-  color:var(--text-dim);padding:0.38rem 0.6rem;font-size:0.85rem;cursor:pointer;
-  transition:all 0.2s ease;font-family:inherit}
-.icon-btn:hover{background:rgba(var(--accent-rgb),0.1);border-color:rgba(var(--accent-rgb),0.4);
-  color:var(--accent);transform:translateY(-1px)}
-
-.search-bar{margin:0.45rem 1rem;background:var(--input-bg);border:1px solid var(--border2);
-  border-radius:12px;padding:0.45rem 1rem;display:flex;align-items:center;gap:0.5rem;transition:all 0.2s}
-.search-bar:focus-within{border-color:rgba(var(--accent-rgb),0.5);background:rgba(var(--accent-rgb),0.04);
-  box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.08)}
-.search-bar input{background:none;border:none;outline:none;color:var(--text);flex:1;font-size:0.9rem!important}
-.search-results{margin:0 1rem;background:var(--bg3);border:1px solid var(--border2);
-  border-radius:12px;overflow:hidden;animation:fadeIn 0.15s ease;box-shadow:var(--shadow-lg)}
-
-/* ── SIDEBAR ─────────────────────────────────────── */
-.sidebar-layout{display:flex;min-height:calc(100vh - 60px)}
-.sidebar-nav{width:220px;min-width:220px;background:var(--sidebar-bg);border-right:1px solid var(--border);
-  position:sticky;top:60px;height:calc(100vh - 60px);overflow-y:auto;padding:0.75rem 0.5rem;
-  flex-shrink:0;backdrop-filter:blur(12px);transition:background 0.35s}
-.sidebar-nav::-webkit-scrollbar{width:3px}
-.sidebar-nav::-webkit-scrollbar-thumb{background:rgba(var(--accent-rgb),0.2);border-radius:10px}
-.sidebar-section-label{font-family:'Syne',sans-serif;font-size:0.62rem;color:var(--text-muted);
-  letter-spacing:0.09em;text-transform:uppercase;padding:0.9rem 0.75rem 0.28rem;
-  font-weight:900;display:flex;align-items:center;gap:0.35rem}
-.sidebar-item{display:flex;align-items:center;gap:0.6rem;padding:0.52rem 0.75rem;
-  border-radius:11px;cursor:pointer;transition:all 0.15s ease;color:var(--text-muted);
-  font-size:0.82rem;font-weight:600;margin-bottom:2px;user-select:none;position:relative}
-.sidebar-item:hover{background:rgba(var(--accent-rgb),0.07);color:var(--text)}
-.sidebar-item.active{background:rgba(var(--accent-rgb),0.13);color:var(--accent);
-  font-weight:800;box-shadow:inset 2px 0 0 var(--accent)}
-.sidebar-item .si-icon{font-size:1rem;flex-shrink:0;width:20px;text-align:center}
-.sidebar-item .si-label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sidebar-main{flex:1;min-width:0;overflow-x:hidden;overflow-y:auto;height:calc(100vh - 60px);
-  background:var(--body-bg);transition:background 0.35s}
-
-/* ── İÇERİK ──────────────────────────────────────── */
-.content{padding:1rem 1.25rem}
-.page-content{padding:1rem 1.25rem}
-
-/* ── KARTLAR ─────────────────────────────────────── */
-.card{background:var(--card-bg);border:1px solid var(--card-border);
-  border-radius:var(--card-radius);padding:1.1rem;box-shadow:var(--shadow-sm);
-  transition:all 0.22s ease}
-.card:hover{border-color:rgba(var(--accent-rgb),0.2);box-shadow:var(--shadow-md);transform:translateY(-1px)}
-.card-gold{background:linear-gradient(135deg,rgba(251,186,69,0.07),transparent);border-color:var(--border-gold)}
-.card-title{font-family:'Syne',sans-serif;font-size:0.88rem;font-weight:900;
-  letter-spacing:0.07em;text-transform:uppercase;color:var(--accent);margin-bottom:0.9rem}
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:0.85rem}
-.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.85rem}
-.grid-auto{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0.85rem}
-
-/* ── PROGRESS ────────────────────────────────────── */
-.progress-wrap{background:rgba(var(--accent-rgb),0.1);border-radius:100px;height:7px;overflow:hidden}
-.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-light));
-  border-radius:100px;transition:width 0.5s cubic-bezier(0.4,0,0.2,1)}
-.timer-text{font-family:'JetBrains Mono',monospace;color:var(--gold);
-  animation:timerPulse 1s infinite;font-size:0.85rem;font-weight:700}
-
-/* ── ETIKETLER ───────────────────────────────────── */
-.tag{display:inline-block;padding:3px 9px;border-radius:20px;font-size:0.7rem;font-weight:800;letter-spacing:0.03em}
-.tag-red  {background:rgba(242,82,82,0.12);  color:var(--red);  border:1px solid rgba(242,82,82,0.25)}
-.tag-gold {background:rgba(251,186,69,0.1);  color:var(--gold); border:1px solid rgba(251,186,69,0.25)}
-.tag-green{background:rgba(16,217,160,0.1);  color:var(--green);border:1px solid rgba(16,217,160,0.25)}
-.tag-blue {background:rgba(var(--accent-rgb),0.1);color:var(--accent);border:1px solid rgba(var(--accent-rgb),0.25)}
-.tag-gray {background:var(--input-bg);color:var(--text-dim);border:1px solid var(--border2)}
-
-/* ── BUTONLAR ────────────────────────────────────── */
-.btn{width:100%;padding:0.75rem 1rem;border:none;border-radius:13px;
-  font-family:'DM Sans',sans-serif;font-weight:800;font-size:0.88rem;
-  letter-spacing:0.04em;cursor:pointer;transition:all 0.18s ease;position:relative;overflow:hidden}
-.btn::after{content:'';position:absolute;inset:0;
-  background:linear-gradient(to bottom,rgba(255,255,255,0.06),transparent);
-  pointer-events:none;border-radius:inherit}
-.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent-dark));
-  color:#fff;box-shadow:0 4px 16px rgba(var(--accent-rgb),0.3)}
-.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(var(--accent-rgb),0.4)}
-.btn-primary:active{transform:translateY(0)}
-.btn-white{background:#fff;color:#0D1C35;box-shadow:var(--shadow-sm)}
-.btn-white:hover{background:#f4f6f9;transform:translateY(-1px)}
-.btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#07101F;
-  font-weight:900;box-shadow:0 4px 16px rgba(251,186,69,0.3)}
-.btn-gold:hover{transform:translateY(-2px);filter:brightness(1.08)}
-.btn-green{background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;
-  box-shadow:0 4px 16px rgba(16,217,160,0.3)}
-.btn-green:hover{transform:translateY(-2px);filter:brightness(1.08)}
-.btn-blue{background:linear-gradient(135deg,var(--accent),var(--accent-dark));color:#fff;
-  box-shadow:0 4px 16px rgba(var(--accent-rgb),0.3)}
-.btn-blue:hover{transform:translateY(-2px);filter:brightness(1.08)}
-.btn-red{background:linear-gradient(135deg,var(--red),var(--red2));color:#fff;
-  box-shadow:0 4px 16px rgba(242,82,82,0.3)}
-.btn-red:hover{transform:translateY(-2px);filter:brightness(1.08)}
-.btn-gray{background:var(--input-bg);color:var(--text);border:1px solid var(--border2)}
-.btn-gray:hover{background:rgba(var(--accent-rgb),0.08);border-color:rgba(var(--accent-rgb),0.3)}
-.btn-sm{padding:0.38rem 0.85rem;font-size:0.8rem;width:auto;border-radius:9px;font-weight:700}
-.btn-sm::after{display:none}
-.btn:disabled{opacity:0.45;cursor:not-allowed;transform:none!important}
-
-.oauth-row{display:flex;gap:0.5rem;margin-bottom:1rem}
-.btn-oauth{flex:1;padding:0.65rem;border-radius:10px;border:1px solid var(--border2);
-  background:var(--input-bg);color:var(--text-dim);font-family:'DM Sans',sans-serif;
-  font-size:0.82rem;cursor:pointer;transition:all 0.18s}
-.btn-oauth:hover{background:rgba(var(--accent-rgb),0.08);color:var(--text);border-color:rgba(var(--accent-rgb),0.3)}
-
-/* ── FORMLAR ─────────────────────────────────────── */
-.form-group{margin-bottom:1rem}
-.form-input,.form-select{width:100%;padding:0.75rem 0.9rem;background:var(--input-bg);
-  border:1px solid var(--input-border);border-radius:12px;color:var(--text);
-  font-family:'DM Sans',sans-serif;font-size:0.92rem;transition:all 0.2s;outline:none}
-.form-input:focus{border-color:rgba(var(--accent-rgb),0.6);background:rgba(var(--accent-rgb),0.05);
-  box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.12)}
-.form-input::placeholder{color:var(--text-muted)}
-.form-select{cursor:pointer;-webkit-appearance:none}
-.form-select:focus{border-color:rgba(var(--accent-rgb),0.6);box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.1)}
-.tab-row{display:flex;background:var(--input-bg);border-radius:13px;padding:3px;margin-bottom:1rem;gap:2px;border:1px solid var(--border)}
-.tab-btn{flex:1;padding:0.45rem;border-radius:10px;border:none;cursor:pointer;
-  font-family:'DM Sans',sans-serif;font-weight:800;font-size:0.82rem;
-  transition:all 0.15s ease;letter-spacing:0.02em;background:transparent;color:var(--text-muted)}
-.tab-btn.active{background:rgba(var(--accent-rgb),0.15);color:var(--accent)}
-.tab-btn:not(.active):hover{color:var(--text);background:rgba(var(--accent-rgb),0.06)}
-
-/* ── GİRİŞ SAYFASI ───────────────────────────────── */
-.login-wrap{position:relative;z-index:1;min-height:100dvh;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;padding:1.5rem;background:var(--body-bg);
-  overflow:hidden;transition:background 0.35s}
-.login-wrap::before{content:'';position:absolute;inset:0;
-  background:radial-gradient(ellipse at 50% 30%,rgba(var(--accent-rgb),0.07) 0%,transparent 65%);
-  pointer-events:none;transition:background 0.35s}
-.login-card{width:100%;max-width:420px;background:var(--card-bg);border:1px solid var(--card-border);
-  border-radius:22px;padding:clamp(1.5rem,4vw,2.2rem);box-shadow:var(--shadow-lg)}
-
-/* ── MODAL ───────────────────────────────────────── */
-.modal-overlay{position:fixed;inset:0;background:var(--overlay-bg);z-index:500;
-  display:flex;align-items:center;justify-content:center;padding:1rem;
-  animation:fadeIn 0.2s ease;backdrop-filter:blur(6px)}
-.modal{background:var(--card-bg);border:1px solid var(--card-border);border-radius:22px;
-  padding:1.75rem;width:100%;max-width:430px;box-shadow:var(--shadow-lg);
-  transition:background 0.35s,border-color 0.35s;animation:materialize 0.25s ease}
-.modal-title{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:var(--accent);
-  margin-bottom:1.25rem;letter-spacing:0.06em;text-transform:uppercase}
-.modal-btns{display:flex;gap:0.75rem;margin-top:1.75rem}
-
-/* ── BİLDİRİM ────────────────────────────────────── */
-.notification{position:fixed;top:72px;right:1rem;background:var(--card-bg);
-  border:1px solid rgba(var(--accent-rgb),0.28);border-left:3px solid var(--accent);
-  border-radius:13px;padding:0.8rem 1.2rem;z-index:600;min-width:250px;
-  animation:fadeIn 0.25s ease;font-size:0.9rem;font-weight:700;color:var(--text);
-  box-shadow:var(--shadow-lg),0 0 20px rgba(var(--accent-rgb),0.1);backdrop-filter:blur(20px)}
-
-/* Quick styles for mobile responsiveness */
-@media(max-width:900px){
-  .app-wrap{padding-bottom:68px;overflow-x:hidden}
-  .header{padding:0.5rem 0.85rem}
-  .sidebar-nav{display:none!important}
-  .sidebar-layout{display:block!important}
-  .content{padding:0.65rem 0.7rem;padding-bottom:130px!important}
-}
-    </style>
+    <!-- App Styles -->
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <div class="app-wrap">
-    <div id="root"></div>
-  </div>
 
-  <!-- Loading indicator -->
-  <script>
-    console.log("[Init] Application starting...");
-    window.addEventListener("firebase-ready", () => {
-      console.log("[Init] Firebase ready, app can now interact with backend");
-    });
-  </script>
+<div id="root"></div>
+
+<!-- LOADING SCREEN -->
+<div id="loading-screen" style="position:fixed;inset:0;z-index:9999;background:#050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;font-family:'DM Sans',sans-serif;">
+  <div style="font-family:'Syne',sans-serif;font-size:clamp(1.6rem,5vw,2.5rem);letter-spacing:0.35rem;display:flex;align-items:baseline;">
+    <span style="color:#D00000;font-weight:900;text-shadow:0 0 20px rgba(208,0,0,0.8);">[U</span><span style="color:#fff;font-weight:900;">NDER</span><span style="color:#D00000;font-weight:900;">S</span><span style="color:#fff;font-weight:900;">TATE]</span>
+  </div>
+  <div id="loading-bar-wrap" style="width:200px;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;">
+    <div id="loading-bar" style="height:100%;width:0%;background:#D00000;border-radius:2px;box-shadow:0 0 10px #D00000;transition:width 0.4s ease;"></div>
+  </div>
+  <div id="loading-text" style="color:#555;font-size:0.8rem;letter-spacing:0.1rem;text-transform:uppercase;">Yükleniyor...</div>
+  <div id="loading-error" style="display:none;color:#D00000;font-size:0.85rem;text-align:center;max-width:280px;line-height:1.6;">&#9888;&#65039; Bağlantı sorunu.<br><button onclick="window.location.reload()" style="margin-top:0.75rem;background:#D00000;border:none;color:#fff;padding:0.5rem 1.5rem;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:700;">Yeniden Dene</button></div>
+</div>
+<style>
+  #loading-screen { transition: opacity 0.5s ease; }
+  #loading-screen.fade-out { opacity: 0; pointer-events: none; }
+</style>
+
+<!-- Boot Script -->
+<script>
+// ── Loading helpers ──────────────────────────────────────────────────────────
+var _lb = document.getElementById('loading-bar');
+var _lt = document.getElementById('loading-text');
+function _advanceBar(p, t) { _lb.style.width = p + '%'; if (t) _lt.textContent = t; }
+function _showError(msg) {
+  var el = document.getElementById('loading-error');
+  el.style.display = 'block';
+  if (msg) el.innerHTML = '&#9888;&#65039; ' + msg + '<br><button onclick="window.location.reload()" style="margin-top:0.75rem;background:#D00000;border:none;color:#fff;padding:0.5rem 1.5rem;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:700;">Yeniden Dene</button>';
+  _lt.style.display = 'none';
+}
+function _hideLoading() {
+  var ls = document.getElementById('loading-screen');
+  if (ls) { ls.classList.add('fade-out'); setTimeout(function() { ls.style.display = 'none'; }, 600); }
+}
+_advanceBar(10, 'Başlatılıyor...');
+
+// ── IndexedDB cache (fast reload after first visit) ──────────────────────────
+var IDB_NAME = 'us_cache_v1';
+var IDB_KEY  = 'compiled_v94_external';
+
+function idbGet(key, cb) {
+  try {
+    var req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = function(e) { e.target.result.createObjectStore('kv'); };
+    req.onsuccess = function(e) {
+      var g = e.target.result.transaction('kv', 'readonly').objectStore('kv').get(key);
+      g.onsuccess = function() { cb(g.result || null); };
+      g.onerror   = function() { cb(null); };
+    };
+    req.onerror = function() { cb(null); };
+  } catch(e) { cb(null); }
+}
+
+function idbSet(key, val, cb) {
+  try {
+    var req = indexedDB.open(IDB_NAME, 1);
+    req.onsuccess = function(e) {
+      var tx = e.target.result.transaction('kv', 'readwrite');
+      tx.objectStore('kv').put(val, key);
+      tx.oncomplete = cb || function(){};
+      tx.onerror    = cb || function(){};
+    };
+    req.onerror = cb || function(){};
+  } catch(e) { if (cb) cb(); }
+}
+
+function execCode(code) {
+  try {
+    var s = document.createElement('script');
+    s.textContent = code;
+    document.body.appendChild(s);
+  } catch(e) { _showError('Kod çalıştırılamadı: ' + e.message); }
+}
+
+// Fetch src/app.js (pre-compiled), cache in IDB
+function compileAndRun() {
+  _advanceBar(82, 'Oyun yükleniyor...');
+  fetch('src/app.js?v=' + IDB_KEY)
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text();
+    })
+    .then(function(compiled) {
+      _advanceBar(94, 'Önbelleğe kaydediliyor...');
+      idbSet(IDB_KEY, compiled, function() {
+        _advanceBar(98, 'Başlatılıyor...');
+        execCode(compiled);
+      });
+    })
+    .catch(function(err) { _showError('app.js yüklenemedi: ' + err.message); });
+}
+
+function boot() {
+  _advanceBar(70, 'Önbellek kontrol ediliyor...');
+  var bootDone = false;
+  var bootTimeout = setTimeout(function() {
+    if (!bootDone) { bootDone = true; compileAndRun(); }
+  }, 2500);
+  idbGet(IDB_KEY, function(cached) {
+    if (bootDone) return;
+    bootDone = true;
+    clearTimeout(bootTimeout);
+    if (cached) {
+      _advanceBar(95, '⚡ Önbellekten yükleniyor...');
+      setTimeout(function() { execCode(cached); }, 30);
+    } else {
+      _advanceBar(78, '⏳ İlk açılış yükleniyor...');
+      compileAndRun();
+    }
+  });
+}
+</script>
+
+<!-- React 18 -->
+<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"
+  crossorigin="anonymous"
+  onerror="_showError('React CDN yüklenemedi')"
+  onload="_advanceBar(40,'React ✓')"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"
+  crossorigin="anonymous"
+  onerror="_showError('ReactDOM CDN yüklenemedi')"
+  onload="_advanceBar(55,'ReactDOM ✓'); if(document.readyState==='complete'||document.readyState==='interactive'){boot();}else{document.addEventListener('DOMContentLoaded',boot);}"></script>
+
+<!-- Background Music -->
+<script>
+window._US_AUDIO_SRC = "audio/background.mp3";
+</script>
+
 </body>
 </html>

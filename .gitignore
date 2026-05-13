@@ -9,3 +9,11 @@ yarn-error.log*
 .env.*.local
 dist/
 build/
+
+# Replit internals
+.replit
+.cache/
+.local/
+
+# Uploaded assets (not part of source)
+attached_assets/
