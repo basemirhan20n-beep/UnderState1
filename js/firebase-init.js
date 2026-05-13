@@ -4,147 +4,57 @@
         projectId:         "understate-62919",
         storageBucket:     "understate-62919.firebasestorage.app",
         messagingSenderId: "1005888565298",
-        appId:             "1:1005888565298:android:30da582e4c434e9652cc2b"
+        appId:             "1:1005888565298:android:30da582e4c434e9652cc2b",
+        databaseURL:       "https://understate-62919-default-rtdb.europe-west1.firebasedatabase.app"
       };
 
-      // WebView'da signInAnonymously yerine Firestore'u direkt kullan (auth bypass)
       window._fbAuthBypass = true;
 
-      const GAME_ID     = "understate_main_server";
+      const GAME_ID       = "understate_main_server";
       const REALTIME_KEYS = ["globalChat","cityChats","parliamentMsgs","supportMsgs","liveNews","announcements","activityFeed"];
       const LOG_KEYS      = ["casinoLogs","activityLog","historyLog","liveFeed","socialPosts","newspapers","randomEvents","scandals","netWorthHistory"];
-      const CHAT_COLLECTIONS = {
-        globalChat: { path: "messages/globalChat/messages", limit: 50 },
-        cityChats: { path: "messages/cityChats/messages", limit: 100 },
-        parliamentMsgs: { path: "messages/parliamentMsgs/messages", limit: 50 },
-        supportMsgs: { path: "messages/supportMsgs/messages", limit: 50 },
-        liveNews: { path: "data/liveNews/items", limit: 30 },
-        announcements: { path: "data/announcements/items", limit: 20 },
-        activityFeed: { path: "data/activityFeed/items", limit: 100 }
-      };
 
       firebase.initializeApp(FIREBASE_CONFIG);
       const _db   = firebase.firestore();
+      const _rtdb = firebase.database();
       const _auth = firebase.auth();
 
       window._gameId  = GAME_ID;
       window._rtKeys  = REALTIME_KEYS;
       window._logKeys = LOG_KEYS;
       window._fbReady = false;
-      window._fbListeners = []; // Listeners'ı takip et
 
-      // Compat API'yi window._fb'ye bağla (S objesiyle uyumlu)
       window._fb = {
-        db: _db,
-        setDoc: (ref, data, opts) => opts && opts.merge ? ref.set(data, {merge:true}) : ref.set(data),
-        getDoc: (ref) => ref.get(),
+        db:              _db,
+        rtdb:            _rtdb,
+        setDoc:          (ref, data, opts) => opts && opts.merge ? ref.set(data, {merge:true}) : ref.set(data),
+        getDoc:          (ref) => ref.get(),
         doc: (db, ...path) => {
           let ref = db;
-          for(let i=0; i<path.length; i++) {
-            ref = (i%2===0) ? ref.collection(path[i]) : ref.doc(path[i]);
+          for (let i = 0; i < path.length; i++) {
+            ref = (i % 2 === 0) ? ref.collection(path[i]) : ref.doc(path[i]);
           }
           return ref;
         },
-        onSnapshot: (ref, cb) => ref.onSnapshot(cb),
+        onSnapshot:      (ref, cb) => ref.onSnapshot(cb),
         serverTimestamp: () => firebase.firestore.FieldValue.serverTimestamp(),
-        addDoc: (ref, data) => firebase.firestore().collection(ref._path.segments.join('/')).add(data),
-        query: (ref, ...constraints) => {
-          let q = ref;
-          for(let c of constraints) q = c(q);
-          return q;
-        },
-        orderBy: (field, dir = 'asc') => (q) => q.orderBy(field, dir),
-        limit: (n) => (q) => q.limit(n),
-        getDocs: (ref) => ref.get()
+        rtdbRef:         (path) => _rtdb.ref(path),
+        rtdbSet:         (ref, data) => ref.set(data),
+        rtdbUpdate:      (ref, data) => ref.update(data),
+        rtdbServerTime:  () => firebase.database.ServerValue.TIMESTAMP
       };
 
-      async function initFirebaseData() {
-        try {
-          // WebView'da anonymous auth sorun çıkarıyor — direkt Firestore'a bağlan
-          window._fbUid = "webview_" + Math.random().toString(36).substr(2, 9);
-          console.log("[Firebase] Firestore bağlanıyor...");
+      // ─── ADIM 1: RTDB dinleyicisini hemen kur (Firestore'dan bağımsız) ───
+      function setupRTDBListener() {
+        const rtdbPath = "games/" + GAME_ID + "/realtime";
+        const rtdbRef  = _rtdb.ref(rtdbPath);
 
-          const gameRef  = _db.collection("games").doc(GAME_ID).collection("state").doc("main");
-          const gameSnap = await gameRef.get();
-
-          if (gameSnap.exists) {
-            const data = gameSnap.data();
+        rtdbRef.on("value",
+          (snap) => {
+            if (!snap.exists()) return;
+            const data = snap.val();
             Object.entries(data).forEach(([k, v]) => {
-              if (k === "_meta") return;
-              try { localStorage.setItem("rep_" + k, JSON.stringify(v)); } catch(e) {}
-            });
-            console.log("[Firebase] Veri yüklendi:", Object.keys(data).length, "anahtar");
-          } else {
-            console.log("[Firebase] İlk başlatma — yerel veri kullanılıyor");
-          }
-
-          setupRealtimeListeners();
-
-          window._fbReady = true;
-          window.dispatchEvent(new Event("firebase-ready"));
-
-        } catch(e) {
-          console.warn("[Firebase] Bağlantı hatası, offline modda devam:", e.message);
-          window._fbReady = false;
-          window.dispatchEvent(new Event("firebase-ready"));
-        }
-      }
-
-      function setupRealtimeListeners() {
-        // Tüm chat collections'ları dinle
-        Object.entries(CHAT_COLLECTIONS).forEach(([key, config]) => {
-          try {
-            const pathParts = config.path.split('/');
-            let ref = _db;
-            
-            // Path oluştur (collection/doc/collection formatında)
-            for(let i = 0; i < pathParts.length; i++) {
-              if (i % 2 === 0) {
-                ref = ref.collection(pathParts[i]);
-              } else {
-                ref = ref.doc(pathParts[i]);
-              }
-            }
-
-            // Listener ekle
-            const unsubscribe = ref
-              .orderBy("timestamp", "desc")
-              .limit(config.limit)
-              .onSnapshot((snap) => {
-                const items = [];
-                snap.forEach((doc) => {
-                  items.push({ id: doc.id, ...doc.data() });
-                });
-                
-                // Reverse to show oldest first
-                items.reverse();
-                
-                localStorage.setItem("rep_" + key, JSON.stringify(items));
-                window.dispatchEvent(new CustomEvent("fb-sync", { 
-                  detail: { key: key, value: items } 
-                }));
-                
-                console.log(`[Firebase] ${key} güncellendi: ${items.length} öğe`);
-              }, (error) => {
-                console.warn(`[Firebase] ${key} listener hatası:`, error.message);
-              });
-
-            // Listener'ı sakla (daha sonra cleanup için)
-            window._fbListeners.push(unsubscribe);
-            
-          } catch(e) {
-            console.warn(`[Firebase] ${key} setup hatası:`, e.message);
-          }
-        });
-
-        // Eski "shared" document listener'ını da tut (geriye uyumluluk için)
-        try {
-          const rtRef = _db.collection("games").doc(GAME_ID).collection("realtime").doc("shared");
-          const unsubscribe = rtRef.onSnapshot((snap) => {
-            if (!snap.exists) return;
-            const data = snap.data();
-            Object.entries(data).forEach(([k, v]) => {
-              if (!REALTIME_KEYS.includes(k) || CHAT_COLLECTIONS[k]) return; // Chat'ler zaten dinleniyor
+              if (!REALTIME_KEYS.includes(k)) return;
               try {
                 const curr     = localStorage.getItem("rep_" + k);
                 const incoming = JSON.stringify(v);
@@ -154,20 +64,97 @@
                 }
               } catch(e) {}
             });
-          });
-          window._fbListeners.push(unsubscribe);
+          },
+          (err) => {
+            console.warn("[RTDB] Dinleyici hatası (" + err.code + ") — Firestore fallback'e geçiyor");
+            // RTDB başarısız → Firestore onSnapshot ile devam et
+            setupFirestoreFallbackListener();
+          }
+        );
+
+        console.log("[RTDB] Dinleyici kuruldu ✓ (" + rtdbPath + ")");
+      }
+
+      // ─── ADIM 2: RTDB başarısız olursa Firestore fallback ───
+      function setupFirestoreFallbackListener() {
+        const rtRef = _db.collection("games").doc(GAME_ID).collection("realtime").doc("shared");
+        rtRef.onSnapshot(
+          (snap) => {
+            if (!snap.exists) return;
+            const data = snap.data();
+            Object.entries(data).forEach(([k, v]) => {
+              if (!REALTIME_KEYS.includes(k)) return;
+              try {
+                const curr     = localStorage.getItem("rep_" + k);
+                const incoming = JSON.stringify(v);
+                if (curr !== incoming) {
+                  localStorage.setItem("rep_" + k, incoming);
+                  window.dispatchEvent(new CustomEvent("fb-sync", { detail: { key: k, value: v } }));
+                }
+              } catch(e) {}
+            });
+          },
+          (err) => {
+            console.warn("[Firestore] Fallback da başarısız:", err.message);
+          }
+        );
+        console.log("[Firestore] Fallback dinleyici kuruldu ✓");
+      }
+
+      // ─── ADIM 3: Oyun state'ini Firestore'dan yükle (opsiyonel, hata olsa bile devam) ───
+      async function loadGameState() {
+        try {
+          const gameRef  = _db.collection("games").doc(GAME_ID).collection("state").doc("main");
+          const gameSnap = await gameRef.get();
+
+          if (gameSnap.exists) {
+            const data = gameSnap.data();
+            Object.entries(data).forEach(([k, v]) => {
+              if (k === "_meta") return;
+              try { localStorage.setItem("rep_" + k, JSON.stringify(v)); } catch(e) {}
+            });
+            console.log("[Firestore] State yüklendi:", Object.keys(data).length, "anahtar");
+          } else {
+            console.log("[Firestore] Yeni oyun — yerel veri kullanılıyor");
+          }
         } catch(e) {
-          console.warn("[Firebase] Shared listener setup hatası:", e.message);
+          console.warn("[Firestore] State yüklenemedi (izin hatası?), yerel ile devam:", e.message);
         }
       }
 
-      // Cleanup function
-      window._fbCleanup = function() {
-        window._fbListeners.forEach(unsub => {
-          try { unsub(); } catch(e) {}
-        });
-        window._fbListeners = [];
-        console.log("[Firebase] Tüm listeners temizlendi");
-      };
+      // ─── ADIM 4: RTDB'den mevcut realtime veriyi bir kez çek ───
+      async function loadRealtimeSnapshot() {
+        try {
+          const snap = await _rtdb.ref("games/" + GAME_ID + "/realtime").get();
+          if (snap.exists()) {
+            const data = snap.val();
+            Object.entries(data).forEach(([k, v]) => {
+              if (!REALTIME_KEYS.includes(k)) return;
+              try { localStorage.setItem("rep_" + k, JSON.stringify(v)); } catch(e) {}
+            });
+            console.log("[RTDB] Anlık snapshot yüklendi:", Object.keys(data).length, "anahtar");
+          }
+        } catch(e) {
+          console.warn("[RTDB] Snapshot yüklenemedi:", e.message);
+        }
+      }
+
+      async function initFirebaseData() {
+        window._fbUid = "webview_" + Math.random().toString(36).substr(2, 9);
+        console.log("[Firebase] Başlatılıyor...");
+
+        // Dinleyicileri HEMEN kur — Firestore/RTDB hatasından bağımsız
+        setupRTDBListener();
+
+        // Mevcut veriyi çek (hata olsa bile devam)
+        await Promise.allSettled([
+          loadGameState(),
+          loadRealtimeSnapshot()
+        ]);
+
+        window._fbReady = true;
+        window.dispatchEvent(new Event("firebase-ready"));
+        console.log("[Firebase] Hazır ✓");
+      }
 
       initFirebaseData();
