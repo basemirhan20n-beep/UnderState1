@@ -1934,6 +1934,57 @@ function App() {
     window._fbSyncCallbacks["announcements"] = (v) => {
       if (Array.isArray(v)) setAnnouncements(v);
     };
+    window._fbSyncCallbacks["economy"] = (v) => {
+      if (v && typeof v === "object") setEconomy((prev) => ({ ...prev, ...v }));
+    };
+    window._fbSyncCallbacks["stockMarket"] = (v) => {
+      if (Array.isArray(v)) setStockMarket(v);
+    };
+    window._fbSyncCallbacks["marketDemand"] = (v) => {
+      if (v && typeof v === "object") setMarketDemand(v);
+    };
+    window._fbSyncCallbacks["cityStats"] = (v) => {
+      if (v && typeof v === "object") setCityMap((prev) => ({ ...prev, ...v }));
+    };
+    window._fbSyncCallbacks["cityWelfare"] = (v) => {
+      if (v && typeof v === "object") setCityWelfare((prev) => ({ ...prev, ...v }));
+    };
+    window._fbSyncCallbacks["marketCrisis"] = (v) => {
+      if (v && typeof v === "object") setMarketCrisis((prev) => ({ ...prev, ...v }));
+    };
+    window._fbSyncCallbacks["energyMarket"] = (v) => {
+      if (Array.isArray(v)) setEnergyMarket(v);
+    };
+    window._fbSyncCallbacks["laws"] = (v) => {
+      if (Array.isArray(v)) setLaws(v);
+    };
+    window._fbSyncCallbacks["lawProposals"] = (v) => {
+      if (Array.isArray(v)) setLawProposals(v);
+    };
+    window._fbSyncCallbacks["cabinet"] = (v) => {
+      if (v && typeof v === "object") setCabinet((prev) => ({ ...prev, ...v }));
+    };
+    window._fbSyncCallbacks["ohal"] = (v) => {
+      if (v && typeof v === "object") setOhal((prev) => ({ ...prev, ...v }));
+    };
+    window._fbSyncCallbacks["elections"] = (v) => {
+      if (v && typeof v === "object") setElections((prev) => ({ ...prev, ...normalizeElections(v) }));
+    };
+    window._fbSyncCallbacks["electionState"] = (v) => {
+      if (v && typeof v === "object") setElectionState((prev) => ({ ...prev, ...v }));
+    };
+    window._fbSyncCallbacks["taxSystem"] = (v) => {
+      if (v && typeof v === "object") setTaxSystem((prev) => ({ ...prev, ...v }));
+    };
+    window._fbSyncCallbacks["coupSystem"] = (v) => {
+      if (v && typeof v === "object") setCoupSystem((prev) => ({ ...prev, ...v }));
+    };
+    window._fbSyncCallbacks["cityMap"] = (v) => {
+      if (v && typeof v === "object") setCityMap((prev) => ({ ...prev, ...v }));
+    };
+    window._fbSyncCallbacks["gameEvents"] = (v) => {
+      if (Array.isArray(v)) setGameEvents(v);
+    };
     const handleAdReward = (e) => {
       const { type } = e.detail;
       if (type === "daily_double") {
@@ -1963,7 +2014,11 @@ function App() {
     };
     window.addEventListener("admob-reward", handleAdReward);
     return () => {
-      ["globalChat", "cityChats", "parliamentMsgs", "supportMsgs", "liveNews", "announcements"].forEach((k) => delete window._fbSyncCallbacks[k]);
+      [
+        "globalChat","cityChats","parliamentMsgs","supportMsgs","liveNews","announcements",
+        "economy","stockMarket","marketDemand","cityStats","cityWelfare","marketCrisis","energyMarket",
+        "laws","lawProposals","cabinet","ohal","elections","electionState","taxSystem","coupSystem","cityMap","gameEvents"
+      ].forEach((k) => delete window._fbSyncCallbacks[k]);
       window.removeEventListener("admob-reward", handleAdReward);
     };
   }, [dailyStreak]);
@@ -4719,6 +4774,37 @@ function App() {
     }
     return () => {
       if (typeof cleanup === "function") cleanup();
+    };
+  }, [cu?.id]);
+  useEffect(() => {
+    if (!cu?.id) return;
+    if (window._startPresenceHeartbeat) {
+      window._startPresenceHeartbeat(cu.id, cu.username || "Oyuncu");
+    }
+    if (window._setupUserListener) {
+      window._setupUserListener(cu.id);
+    }
+    const balanceKey = "userBalance_" + cu.id;
+    window._fbSyncCallbacks[balanceKey] = (payload) => {
+      if (!payload || typeof payload !== "object") return;
+      setAllUsers((prev) => (Array.isArray(prev) ? prev : []).map((u) =>
+        u.id === cu.id ? { ...u, ...payload, lastUpdate: Date.now() } : u
+      ));
+      const parts = [];
+      if (payload.money !== undefined) parts.push(`\u20BA${(payload.money || 0).toLocaleString()}`);
+      if (payload.underCoin !== undefined) parts.push(`${payload.underCoin} UC`);
+      if (parts.length) notify(`\uD83D\uDCB0 Bakiye g\xFCncellendi: ${parts.join(", ")}`);
+    };
+    return () => {
+      delete window._fbSyncCallbacks[balanceKey];
+      if (window._userListenerUnsub) {
+        try { window._userListenerUnsub(); } catch (e) {}
+        window._userListenerUnsub = null;
+      }
+      if (window._heartbeatTimer) {
+        clearInterval(window._heartbeatTimer);
+        window._heartbeatTimer = null;
+      }
     };
   }, [cu?.id]);
   useEffect(() => {

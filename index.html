@@ -185,11 +185,98 @@
         }
       }
 
+      /* === Global Koleksiyon Dinleyicileri: market + government anlık güncelleme === */
+      function setupGlobalStateListeners() {
+        const db     = window._fb.db;
+        const gameId = window._gameId;
+
+        /* Market koleksiyonu: economy, stockMarket, commodities vb. */
+        db.collection("games").doc(gameId).collection("global").doc("market")
+          .onSnapshot((snap) => {
+            if (!snap.exists) return;
+            const data = snap.data();
+            const GLOBAL_KEYS = ["economy","stockMarket","marketDemand","commodities","stockTicker","energyMarket","marketCrisis","cityStats","cityWelfare"];
+            GLOBAL_KEYS.forEach(k => {
+              if (data[k] === undefined) return;
+              try {
+                const incoming = JSON.stringify(data[k]);
+                if (localStorage.getItem("rep_"+k) === incoming) return;
+                localStorage.setItem("rep_"+k, incoming);
+                window.dispatchEvent(new CustomEvent("fb-sync", { detail: { key: k, value: data[k] } }));
+                console.log("[Market] Anlık güncelleme →", k);
+              } catch(e) {}
+            });
+          }, (err) => console.warn("[Market] Listener hatası:", err.message));
+
+        /* Government koleksiyonu: laws, cabinet, ohal, elections vb. */
+        db.collection("games").doc(gameId).collection("global").doc("government")
+          .onSnapshot((snap) => {
+            if (!snap.exists) return;
+            const data = snap.data();
+            const GOV_KEYS = ["laws","lawProposals","cabinet","ohal","elections","electionState","referandumlar","taxSystem","cityMap","announcements","gameEvents","coupSystem"];
+            GOV_KEYS.forEach(k => {
+              if (data[k] === undefined) return;
+              try {
+                const incoming = JSON.stringify(data[k]);
+                if (localStorage.getItem("rep_"+k) === incoming) return;
+                localStorage.setItem("rep_"+k, incoming);
+                window.dispatchEvent(new CustomEvent("fb-sync", { detail: { key: k, value: data[k] } }));
+                console.log("[Gov] Anlık güncelleme →", k);
+              } catch(e) {}
+            });
+          }, (err) => console.warn("[Gov] Listener hatası:", err.message));
+
+        console.log("[GlobalListeners] Market + Government dinleyicileri aktif ✓");
+      }
+
+      /* === Kullanıcıya özel bakiye / ceza / hediye anlık listener === */
+      window._setupUserListener = function(userId) {
+        if (!userId || window._userListenerUnsub) return;
+        const db     = window._fb.db;
+        const gameId = window._gameId;
+        window._userListenerUnsub = db.collection("games").doc(gameId)
+          .collection("userUpdates").doc(userId)
+          .onSnapshot((snap) => {
+            if (!snap.exists) return;
+            const data = snap.data();
+            if (!data || !data.payload) return;
+            /* payload: { money, underCoin, meritPoints, ... } — anlık bakiye güncellemesi */
+            window.dispatchEvent(new CustomEvent("fb-sync", { detail: { key: "userBalance_"+userId, value: data.payload } }));
+            console.log("[UserSync] Bakiye güncellendi →", userId, data.payload);
+          }, (err) => console.warn("[UserSync] Listener hatası:", err.message));
+      };
+
+      /* === Presence Heartbeat: her 2 dakikada lastSeen güncelle === */
+      window._startPresenceHeartbeat = function(userId, username) {
+        if (!userId || window._heartbeatTimer) return;
+        const rtdb   = window._fb.rtdb;
+        const gameId = window._gameId;
+
+        const updatePresence = () => {
+          rtdb.ref(`games/${gameId}/presence/${userId}`)
+            .set({ username, at: Date.now(), lastSeen: Date.now() })
+            .catch(() => {});
+        };
+
+        updatePresence();
+        window._heartbeatTimer = setInterval(updatePresence, 120000);
+
+        /* Sekme kapanınca lastSeen'i kaydet */
+        window.addEventListener("beforeunload", () => {
+          clearInterval(window._heartbeatTimer);
+          window._heartbeatTimer = null;
+          rtdb.ref(`games/${gameId}/presence/${userId}`).remove().catch(() => {});
+        }, { once: true });
+
+        console.log("[Heartbeat] Presence heartbeat başladı ✓", userId);
+      };
+
       async function initFirebaseData() {
         window._fbUid = "webview_" + Math.random().toString(36).substr(2, 9);
         console.log("[Firebase] Başlatılıyor... (v6-inline)");
         setupRTDBListener();
         await Promise.allSettled([loadGameState(), loadRealtimeOnce()]);
+        setupGlobalStateListeners();
         window._fbReady = true;
         window.dispatchEvent(new Event("firebase-ready"));
         console.log("[Firebase] Hazır ✓");
@@ -205,27 +292,42 @@
       window._fbFlushTimer    = null;
       window._fbRtFlushTimer  = null;
 
+      /* === Koleksiyon yönlendirme: hangi anahtarlar hangi alt-koleksiyona gider === */
+      const MARKET_KEYS = ["economy","stockMarket","stockPortfolio","marketDemand","commodities","stockTicker","energyMarket","importExport","marketCrisis","cityStats","cityBudgets","factories","factoryOrders","factoryInventory","restaurants","insurances","lotteryState","shortPositions","farms","realEstate","privateSchools","luxuryAssets","cityProjects","cityWelfare"];
+      const GOVERNMENT_KEYS = ["laws","lawProposals","cabinet","ohal","elections","electionState","referandumlar","electionCandidates","electionHistory","taxSystem","taxDeclarations","referendums","campaignDonations","partyApplications","partyAlliances","alliances","courtCases","spyReports","assassinations","prisonList","crimeRecords","coupSystem","armyFunds","polls","hiredMercs","mediaEmpires","cityMap","announcements","gameEvents","cityWars","municipalServices"];
+
       window._fbFlush = async function(rtOnly) {
         if (!window._fb || !window._fbReady) return;
         const pending = {...window._fbPendingWrites};
         if (!rtOnly) window._fbPendingWrites = {};
 
         const { db, rtdb, doc, setDoc } = window._fb;
-        const rtData    = {};
-        // _meta dakika bazında değişir → onSnapshot'ı gereksiz tetiklememek için
-        const stateData = { _meta: { lastSave: Math.floor(Date.now() / 60000) } };
+        const rtData      = {};
+        const stateData   = { _meta: { lastSave: Math.floor(Date.now() / 60000) } };
+        const marketData  = {};
+        const govData     = {};
 
         Object.entries(pending).forEach(([k, v]) => {
           if (window._rtKeys && window._rtKeys.includes(k)) {
             rtData[k] = v;
           } else if (!rtOnly) {
             stateData[k] = v;
+            if (MARKET_KEYS.includes(k)) marketData[k] = v;
+            else if (GOVERNMENT_KEYS.includes(k)) govData[k] = v;
           }
         });
 
         if (!rtOnly && Object.keys(stateData).length > 1) {
           setDoc(doc(db, "games", window._gameId, "state", "main"), stateData, { merge: true })
             .catch(e => console.warn("[Firestore] State yazma hatası:", e.message));
+        }
+        if (!rtOnly && Object.keys(marketData).length) {
+          setDoc(doc(db, "games", window._gameId, "global", "market"), marketData, { merge: true })
+            .catch(e => console.warn("[Firestore] Market yazma hatası:", e.message));
+        }
+        if (!rtOnly && Object.keys(govData).length) {
+          setDoc(doc(db, "games", window._gameId, "global", "government"), govData, { merge: true })
+            .catch(e => console.warn("[Firestore] Government yazma hatası:", e.message));
         }
 
         if (Object.keys(rtData).length && rtdb) {

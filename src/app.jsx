@@ -1769,6 +1769,61 @@ function App() {
       if (Array.isArray(v)) setAnnouncements(v);
     };
 
+    // ── Global State: Market koleksiyonu anlık güncellemeleri ──
+    window._fbSyncCallbacks["economy"] = (v) => {
+      if (v && typeof v === "object") setEconomy(prev => ({ ...prev, ...v }));
+    };
+    window._fbSyncCallbacks["stockMarket"] = (v) => {
+      if (Array.isArray(v)) setStockMarket(v);
+    };
+    window._fbSyncCallbacks["marketDemand"] = (v) => {
+      if (v && typeof v === "object") setMarketDemand(v);
+    };
+    window._fbSyncCallbacks["cityStats"] = (v) => {
+      if (v && typeof v === "object") setCityMap(prev => ({ ...prev, ...v }));
+    };
+    window._fbSyncCallbacks["cityWelfare"] = (v) => {
+      if (v && typeof v === "object") setCityWelfare(prev => ({ ...prev, ...v }));
+    };
+    window._fbSyncCallbacks["marketCrisis"] = (v) => {
+      if (v && typeof v === "object") setMarketCrisis(prev => ({ ...prev, ...v }));
+    };
+    window._fbSyncCallbacks["energyMarket"] = (v) => {
+      if (Array.isArray(v)) setEnergyMarket(v);
+    };
+
+    // ── Global State: Government koleksiyonu anlık güncellemeleri ──
+    window._fbSyncCallbacks["laws"] = (v) => {
+      if (Array.isArray(v)) setLaws(v);
+    };
+    window._fbSyncCallbacks["lawProposals"] = (v) => {
+      if (Array.isArray(v)) setLawProposals(v);
+    };
+    window._fbSyncCallbacks["cabinet"] = (v) => {
+      if (v && typeof v === "object") setCabinet(prev => ({ ...prev, ...v }));
+    };
+    window._fbSyncCallbacks["ohal"] = (v) => {
+      if (v && typeof v === "object") setOhal(prev => ({ ...prev, ...v }));
+    };
+    window._fbSyncCallbacks["elections"] = (v) => {
+      if (v && typeof v === "object") setElections(prev => ({ ...prev, ...normalizeElections(v) }));
+    };
+    window._fbSyncCallbacks["electionState"] = (v) => {
+      if (v && typeof v === "object") setElectionState(prev => ({ ...prev, ...v }));
+    };
+    window._fbSyncCallbacks["taxSystem"] = (v) => {
+      if (v && typeof v === "object") setTaxSystem(prev => ({ ...prev, ...v }));
+    };
+    window._fbSyncCallbacks["coupSystem"] = (v) => {
+      if (v && typeof v === "object") setCoupSystem(prev => ({ ...prev, ...v }));
+    };
+    window._fbSyncCallbacks["cityMap"] = (v) => {
+      if (v && typeof v === "object") setCityMap(prev => ({ ...prev, ...v }));
+    };
+    window._fbSyncCallbacks["gameEvents"] = (v) => {
+      if (Array.isArray(v)) setGameEvents(v);
+    };
+
     // ── AdMob Rewarded Ad: Reklam izleyerek 2x günlük ödül ──
     const handleAdReward = (e) => {
       const { type } = e.detail;
@@ -1797,8 +1852,11 @@ function App() {
     window.addEventListener("admob-reward", handleAdReward);
 
     return () => {
-      ["globalChat","cityChats","parliamentMsgs","supportMsgs","liveNews","announcements"]
-        .forEach(k => delete window._fbSyncCallbacks[k]);
+      [
+        "globalChat","cityChats","parliamentMsgs","supportMsgs","liveNews","announcements",
+        "economy","stockMarket","marketDemand","cityStats","cityWelfare","marketCrisis","energyMarket",
+        "laws","lawProposals","cabinet","ohal","elections","electionState","taxSystem","coupSystem","cityMap","gameEvents"
+      ].forEach(k => delete window._fbSyncCallbacks[k]);
       window.removeEventListener("admob-reward", handleAdReward);
     };
   }, [dailyStreak]); // eslint-disable-line
@@ -3666,6 +3724,45 @@ function App() {
     }
     return () => { if (typeof cleanup === 'function') cleanup(); };
   }, [cu?.id]);
+
+  // ==================== KULLANICIYA ÖZEL ANLИК BAKIYE SYNC ====================
+  useEffect(() => {
+    if (!cu?.id) return;
+    // Heartbeat: 2 dakikada bir presence güncelle
+    if (window._startPresenceHeartbeat) {
+      window._startPresenceHeartbeat(cu.id, cu.username || "Oyuncu");
+    }
+    // Kullanıcıya özel Firestore listener (ceza, hediye, bakiye güncellemesi)
+    if (window._setupUserListener) {
+      window._setupUserListener(cu.id);
+    }
+    // userBalance fb-sync callback
+    const balanceKey = "userBalance_" + cu.id;
+    window._fbSyncCallbacks[balanceKey] = (payload) => {
+      if (!payload || typeof payload !== "object") return;
+      setAllUsers(prev => (Array.isArray(prev) ? prev : []).map(u =>
+        u.id === cu.id ? { ...u, ...payload, lastUpdate: Date.now() } : u
+      ));
+      const keys = Object.keys(payload);
+      if (keys.length) {
+        const parts = [];
+        if (payload.money !== undefined) parts.push(`₺${(payload.money||0).toLocaleString()}`);
+        if (payload.underCoin !== undefined) parts.push(`${payload.underCoin} UC`);
+        if (parts.length) notify(`💰 Bakiye güncellendi: ${parts.join(", ")}`);
+      }
+    };
+    return () => {
+      delete window._fbSyncCallbacks[balanceKey];
+      if (window._userListenerUnsub) {
+        try { window._userListenerUnsub(); } catch(e) {}
+        window._userListenerUnsub = null;
+      }
+      if (window._heartbeatTimer) {
+        clearInterval(window._heartbeatTimer);
+        window._heartbeatTimer = null;
+      }
+    };
+  }, [cu?.id]); // eslint-disable-line
 
   // Real-time message sync - poll localStorage every 2s for new messages
   useEffect(() => {
