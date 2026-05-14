@@ -40,7 +40,19 @@
       window._fbAuthBypass = true;
 
       const GAME_ID       = "understate_main_server";
-      const REALTIME_KEYS = ["globalChat","cityChats","parliamentMsgs","supportMsgs","liveNews","announcements","activityFeed"];
+      /* Firestore izin hatası verdiği için TÜM kritik veriler RTDB üzerinden gidiyor */
+      const REALTIME_KEYS = [
+        /* Mesajlar (zaten RTDB'deydi) */
+        "globalChat","cityChats","parliamentMsgs","supportMsgs","liveNews","announcements","activityFeed",
+        /* Oyun state (Firestore yerine RTDB) */
+        "users","economy","stockMarket","parties","gangs","holdings",
+        "laws","lawProposals","cabinet","ohal","elections","electionState",
+        "taxSystem","coupSystem","cityMap","gameEvents","prisonList",
+        "auctionItems","courtCases","realEstate","alliances","referendums",
+        "marketDemand","commodities","energyMarket","marketCrisis","cityStats","cityWelfare"
+      ];
+      /* Sadece mesaj dizileri monotonic transaction kullanır, diğerleri direkt set */
+      const MSG_KEYS = ["globalChat","cityChats","parliamentMsgs","supportMsgs","liveNews","announcements","activityFeed"];
 
       firebase.initializeApp(FIREBASE_CONFIG);
       const _db   = firebase.firestore();
