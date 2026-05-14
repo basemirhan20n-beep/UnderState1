@@ -212,7 +212,8 @@
 
         const { db, rtdb, doc, setDoc } = window._fb;
         const rtData    = {};
-        const stateData = { _meta: { lastSave: Date.now() } };
+        // _meta dakika bazında değişir → onSnapshot'ı gereksiz tetiklememek için
+        const stateData = { _meta: { lastSave: Math.floor(Date.now() / 60000) } };
 
         Object.entries(pending).forEach(([k, v]) => {
           if (window._rtKeys && window._rtKeys.includes(k)) {
