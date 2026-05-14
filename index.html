@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-title" content="UNDERSTATE">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#0A1628">
-    <link rel="manifest" href="data:application/json,{%22name%22:%22UNDERSTATE%22,%22short_name%22:%22UNDERSTATE%22,%22display%22:%22standalone%22,%22background_color%22:%22%230A1628%22,%22theme_color%22:%22%23D00000%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23050505'/%3E%3Ctext y='.9em' font-size='80' x='10'%3EU%3C/text%3E%3C/svg%3E%22,%22sizes%22:%22any%22,%22type%22:%22image/svg+xml%22}]}">
+    <link rel="manifest" href="data:application/json,{%22name%22:%22UNDERSTATE%22,%22short_name%22:%22UNDERSTATE%22,%22display%22:%22standalone%22,%22background_color%22:%22%230A1628%22,%22theme_color%22:%22%230A1628%22}">
     <title>UNDERSTATE - Şehir &amp; Devlet Simülasyonu</title>
 
     <!-- Google Fonts -->
@@ -104,9 +104,7 @@
                 const incoming = JSON.stringify(v);
                 if (currStr === incoming) return;
 
-                /* DÖNGÜ ÖNLEMESİ (okuma tarafı):
-                   Gelen array mevcut olandan kısaysa reddet.
-                   Yazma tarafında da transaction var (firebase-save v6). */
+                /* DÖNGÜ ÖNLEMESİ (okuma tarafı) */
                 if (Array.isArray(v) && currStr) {
                   try {
                     const currArr = JSON.parse(currStr);
@@ -293,8 +291,8 @@
       window._fbRtFlushTimer  = null;
 
       /* === Koleksiyon yönlendirme: hangi anahtarlar hangi alt-koleksiyona gider === */
-      const MARKET_KEYS = ["economy","stockMarket","stockPortfolio","marketDemand","commodities","stockTicker","energyMarket","importExport","marketCrisis","cityStats","cityBudgets","factories","factoryOrders","factoryInventory","restaurants","insurances","lotteryState","shortPositions","farms","realEstate","privateSchools","luxuryAssets","cityProjects","cityWelfare"];
-      const GOVERNMENT_KEYS = ["laws","lawProposals","cabinet","ohal","elections","electionState","referandumlar","electionCandidates","electionHistory","taxSystem","taxDeclarations","referendums","campaignDonations","partyApplications","partyAlliances","alliances","courtCases","spyReports","assassinations","prisonList","crimeRecords","coupSystem","armyFunds","polls","hiredMercs","mediaEmpires","cityMap","announcements","gameEvents","cityWars","municipalServices"];
+      const MARKET_KEYS = ["economy","stockMarket","stockPortfolio","marketDemand","commodities","stockTicker","energyMarket","importExport","marketCrisis","cityStats","cityBudgets","factories","researchProgress"];
+      const GOVERNMENT_KEYS = ["laws","lawProposals","cabinet","ohal","elections","electionState","referandumlar","electionCandidates","electionHistory","taxSystem","taxDeclarations","referendums","achievements"];
 
       window._fbFlush = async function(rtOnly) {
         if (!window._fb || !window._fbReady) return;
@@ -342,8 +340,7 @@
             baseRef.update(sd).catch(e => console.warn("[RTDB] Scalar yazma hatası:", e.message));
           }
 
-          /* Array değerler → TRANSACTION (monotonic büyüme)
-             Sunucu: yeni array esksinden kısaysa YAZ İPTAL. */
+          /* Array değerler → TRANSACTION (monotonic büyüme) */
           const txPromises = arrKeys.map(k => {
             const newArr = rtData[k];
             return baseRef.child(k).transaction(
@@ -380,6 +377,9 @@
     })();
     </script>
 
+    <!-- Firebase v7 Real-time Sync Modülü -->
+    <script src="js/firebase-realtime-v7.js"></script>
+
     <!-- App Styles -->
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -390,13 +390,13 @@
 <!-- LOADING SCREEN -->
 <div id="loading-screen" style="position:fixed;inset:0;z-index:9999;background:#050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;font-family:'DM Sans',sans-serif;">
   <div style="font-family:'Syne',sans-serif;font-size:clamp(1.6rem,5vw,2.5rem);letter-spacing:0.35rem;display:flex;align-items:baseline;">
-    <span style="color:#D00000;font-weight:900;text-shadow:0 0 20px rgba(208,0,0,0.8);">[U</span><span style="color:#fff;font-weight:900;">NDER</span><span style="color:#D00000;font-weight:900;">S</span><span style="color:#fff;font-weight:900;">TATE]</span>
+    <span style="color:#D00000;font-weight:900;text-shadow:0 0 20px rgba(208,0,0,0.8);">[U</span><span style="color:#fff;font-weight:900;">NDER</span><span style="color:#D00000;font-weight:900;">]</span>
   </div>
   <div id="loading-bar-wrap" style="width:200px;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;">
     <div id="loading-bar" style="height:100%;width:0%;background:#D00000;border-radius:2px;box-shadow:0 0 10px #D00000;transition:width 0.4s ease;"></div>
   </div>
   <div id="loading-text" style="color:#555;font-size:0.8rem;letter-spacing:0.1rem;text-transform:uppercase;">Yükleniyor...</div>
-  <div id="loading-error" style="display:none;color:#D00000;font-size:0.85rem;text-align:center;max-width:280px;line-height:1.6;">&#9888;&#65039; Bağlantı sorunu.<br><button onclick="window.location.reload()" style="margin-top:0.75rem;background:#D00000;border:none;color:#fff;padding:0.5rem 1.5rem;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:700;">Yeniden Dene</button></div>
+  <div id="loading-error" style="display:none;color:#D00000;font-size:0.85rem;text-align:center;max-width:280px;line-height:1.6;"></div>
 </div>
 <style>
   #loading-screen { transition: opacity 0.5s ease; }
@@ -405,14 +405,14 @@
 
 <!-- Boot Script -->
 <script>
-// ── Loading helpers ──────────────────────────────────────────────────────────
+// ── Loading helpers ────────────────────────────────────────────────────────
 var _lb = document.getElementById('loading-bar');
 var _lt = document.getElementById('loading-text');
 function _advanceBar(p, t) { _lb.style.width = p + '%'; if (t) _lt.textContent = t; }
 function _showError(msg) {
   var el = document.getElementById('loading-error');
   el.style.display = 'block';
-  if (msg) el.innerHTML = '&#9888;&#65039; ' + msg + '<br><button onclick="window.location.reload()" style="margin-top:0.75rem;background:#D00000;border:none;color:#fff;padding:0.5rem 1.5rem;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:700;">Yeniden Dene</button>';
+  if (msg) el.innerHTML = '&#9888;&#65039; ' + msg + '<br><button onclick="window.location.reload()" style="margin-top:0.75rem;background:#D00000;border:none;color:#fff;padding:0.5rem 1.5rem;border-radius:4px;cursor:pointer;">Yenile</button>';
   _lt.style.display = 'none';
 }
 function _hideLoading() {
