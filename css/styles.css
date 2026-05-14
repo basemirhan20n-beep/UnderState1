@@ -1050,3 +1050,87 @@
     .vip-chat-av { position:relative;width:34px;height:34px;flex-shrink:0; }
     .vip-chat-av .spin { position:absolute;inset:0;border-radius:50%;animation:vipFrameRotate 2s linear infinite; }
     .vip-chat-av .inner { position:absolute;inset:2px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem; }
+
+    /* ═══════════════════════════════════════════════════════
+       MOBİL GİRİŞ / KAYIT EKRANI DÜZELTMELERİ
+       ─────────────────────────────────────────────────────── */
+    @media (max-width: 600px) {
+        .login-wrap {
+            justify-content: flex-start !important;
+            padding: 0.75rem 0.85rem !important;
+            padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)) !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            -webkit-overflow-scrolling: touch !important;
+            min-height: 100dvh;
+            height: auto !important;
+            position: relative !important;
+        }
+        .login-card {
+            max-width: 100% !important;
+            border-radius: 14px !important;
+            padding: 1rem 0.9rem !important;
+        }
+        .tab-row { margin-bottom: 0.75rem !important; }
+        .tab-btn { padding: 0.45rem 0.3rem !important; font-size: 0.78rem !important; }
+        .form-group { margin-bottom: 0.55rem !important; }
+        .form-input, .form-select {
+            padding: 0.6rem 0.75rem !important;
+            font-size: 16px !important;
+            border-radius: 10px !important;
+        }
+        .btn.btn-primary, .btn.btn-white {
+            padding: 0.75rem 1rem !important;
+            font-size: 0.88rem !important;
+            min-height: 46px !important;
+            margin-top: 0.4rem !important;
+        }
+        .oauth-row { gap: 0.4rem !important; margin-bottom: 0.6rem !important; }
+        .btn-oauth { padding: 0.5rem 0.4rem !important; font-size: 0.76rem !important; }
+        .music-btn { top: 0.5rem !important; right: 0.5rem !important; width: 38px !important; height: 38px !important; }
+        .modal { max-width: 100% !important; border-radius: 16px !important; padding: 1.25rem 1rem !important; }
+        .modal-overlay { padding: 0.6rem !important; align-items: flex-end !important; }
+        .notification {
+            top: auto !important;
+            bottom: calc(72px + env(safe-area-inset-bottom)) !important;
+            right: 0.6rem !important; left: 0.6rem !important;
+            min-width: unset !important; width: calc(100% - 1.2rem) !important;
+            font-size: 0.84rem !important;
+        }
+        .achievement-popup {
+            top: auto !important;
+            bottom: calc(80px + env(safe-area-inset-bottom)) !important;
+            right: 0.6rem !important; left: 0.6rem !important;
+            min-width: unset !important; max-width: 100% !important;
+        }
+        .stat-grid { grid-template-columns: 1fr 1fr !important; gap: 0.45rem !important; }
+    }
+    @media (max-width: 380px) {
+        .login-wrap { padding: 0.5rem 0.65rem !important; }
+        .login-card { padding: 0.85rem 0.75rem !important; }
+        .form-group { margin-bottom: 0.45rem !important; }
+        .form-input, .form-select { padding: 0.5rem 0.65rem !important; }
+    }
+    @media (max-height: 680px) {
+        .login-wrap { justify-content: flex-start !important; overflow-y: auto !important; }
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       ONLİNE OYUNCU GÖSTERGESİ
+       ─────────────────────────────────────────────────────── */
+    .online-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        background: rgba(16,185,129,0.12);
+        border: 1px solid rgba(16,185,129,0.3);
+        border-radius: 20px; padding: 3px 9px;
+        font-size: 0.7rem; font-weight: 700; color: #10B981;
+        cursor: default; white-space: nowrap;
+    }
+    .online-badge .dot {
+        width: 6px; height: 6px; border-radius: 50%;
+        background: #10B981; animation: onlinePulse 2s infinite; flex-shrink: 0;
+    }
+    @keyframes onlinePulse {
+        0%,100% { opacity:1; box-shadow: 0 0 0 0 rgba(16,185,129,0.5); }
+        50% { opacity:0.7; box-shadow: 0 0 0 4px rgba(16,185,129,0); }
+    }
