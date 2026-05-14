@@ -14,41 +14,18 @@
     <link rel="manifest" href="data:application/json,{%22name%22:%22UNDERSTATE%22,%22short_name%22:%22UNDERSTATE%22,%22display%22:%22standalone%22,%22background_color%22:%22%230A1628%22,%22theme_color%22:%22%230A1628%22}">
     <title>UNDERSTATE - Şehir &amp; Devlet Simülasyonu</title>
 
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-database-compat.js"></script>
 
-    <link rel="stylesheet" href="css/styles.css">
-    <style>
-        /* MOBİL KAYIT VE TAM EKRAN FIX */
-        html, body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background: #0A1628;
-        }
-        #root {
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-        }
-        /* Kayıt sayfası ve formların mobilde klavye açılınca kaybolmaması için */
-        .auth-container, .register-page {
-            height: 100vh;
-            overflow-y: auto !important;
-            -webkit-overflow-scrolling: touch;
-            padding-bottom: 80px;
-        }
-        input, select, textarea {
-            font-size: 16px !important; /* iOS otomatik zoom engelleme */
-        }
-    </style>
-
+    <!-- Firebase Init & Save (inline — önbellek sorununu önler) -->
     <script>
+    /* === firebase-init v6 === */
     (function(){
       const FIREBASE_CONFIG = {
         apiKey:            "AIzaSyBOfuPVR5fns4c0EFM9uyO0og0ZvlySAe4",
@@ -61,7 +38,8 @@
       };
 
       window._fbAuthBypass = true;
-      const GAME_ID       = "understate_main_server"; // Cihazlar arası senkronizasyon için sabit ID
+
+      const GAME_ID       = "understate_main_server";
       const REALTIME_KEYS = ["globalChat","cityChats","parliamentMsgs","supportMsgs","liveNews","announcements","activityFeed"];
 
       firebase.initializeApp(FIREBASE_CONFIG);
@@ -91,82 +69,462 @@
         rtdbServerTime:  () => firebase.database.ServerValue.TIMESTAMP
       };
 
-      /* RTDB Dönüşümü */
+      /* RTDB {"0":a,"1":b,...} → JS array dönüşümü */
       function rtdbToJS(val) {
         if (val === null || val === undefined) return val;
-        if (typeof val !== 'object' || Array.isArray(val)) return val;
+        if (typeof val !== 'object' || Array.isArray(val)) {
+          return Array.isArray(val) ? val.map(rtdbToJS) : val;
+        }
         const keys = Object.keys(val);
+        if (keys.length === 0) return val;
         const allNumeric = keys.every(k => /^\d+$/.test(k));
         if (allNumeric) {
+          const maxIdx = Math.max(...keys.map(Number));
+          if (maxIdx === keys.length - 1) {
             return keys.sort((a,b) => Number(a)-Number(b)).map(k => rtdbToJS(val[k]));
+          }
         }
         const out = {};
         keys.forEach(k => { out[k] = rtdbToJS(val[k]); });
         return out;
       }
 
-      /* SOHBET DİNLEYİCİSİ (Anlık Mesajlar İçin) */
-      function setupChatListener() {
-        const db = window._fb.db;
-        // Mesajları tarihe göre azalan sırada dinle (Son 50 mesaj)
-        db.collection("games").doc(GAME_ID).collection("messages")
-          .orderBy("timestamp", "desc")
-          .limit(50)
-          .onSnapshot((snap) => {
-            const msgs = [];
-            snap.forEach(doc => msgs.push({id: doc.id, ...doc.data()}));
-            localStorage.setItem("rep_messages", JSON.stringify(msgs.reverse()));
-            window.dispatchEvent(new Event("chat-updated"));
-            console.log("[Chat] Yeni mesajlar senkronize edildi ✓");
-          }, (err) => console.warn("[Chat] Hata:", err.message));
+      /* Tek dinleyici: SADECE RTDB */
+      function setupRTDBListener() {
+        const rtdbRef = _rtdb.ref("games/" + GAME_ID + "/realtime");
+        rtdbRef.on("value",
+          (snap) => {
+            if (!snap.exists()) return;
+            const raw = snap.val();
+            Object.entries(raw).forEach(([k, rawVal]) => {
+              if (!REALTIME_KEYS.includes(k)) return;
+              try {
+                const v       = rtdbToJS(rawVal);
+                const currStr = localStorage.getItem("rep_" + k);
+                const incoming = JSON.stringify(v);
+                if (currStr === incoming) return;
+
+                /* DÖNGÜ ÖNLEMESİ (okuma tarafı) */
+                if (Array.isArray(v) && currStr) {
+                  try {
+                    const currArr = JSON.parse(currStr);
+                    if (Array.isArray(currArr) && v.length < currArr.length) {
+                      console.log("[RTDB] Kısa array reddedildi:", k, v.length, "<", currArr.length);
+                      return;
+                    }
+                  } catch(e) {}
+                }
+
+                localStorage.setItem("rep_" + k, incoming);
+                console.log("[RTDB] Anlık güncelleme →", k, Array.isArray(v) ? v.length+" item" : "object");
+                window.dispatchEvent(new CustomEvent("fb-sync", { detail: { key: k, value: v } }));
+              } catch(e) {}
+            });
+          },
+          (err) => {
+            console.warn("[RTDB] Bağlantı hatası:", err.code);
+          }
+        );
+        console.log("[RTDB] Dinleyici aktif ✓ (v6-inline)");
       }
 
-      /* Global Durum Dinleyicileri */
+      async function loadRealtimeOnce() {
+        try {
+          const rtSnap = await _rtdb.ref("games/" + GAME_ID + "/realtime").get();
+          if (rtSnap.exists()) {
+            const raw = rtSnap.val();
+            Object.entries(raw).forEach(([k, rawVal]) => {
+              if (!REALTIME_KEYS.includes(k)) return;
+              try {
+                const v = rtdbToJS(rawVal);
+                const currStr = localStorage.getItem("rep_" + k);
+                if (currStr) {
+                  try {
+                    const currArr = JSON.parse(currStr);
+                    if (Array.isArray(currArr) && Array.isArray(v) && v.length < currArr.length) return;
+                  } catch(e) {}
+                }
+                localStorage.setItem("rep_" + k, JSON.stringify(v));
+              } catch(e) {}
+            });
+            console.log("[RTDB] Mevcut mesajlar yüklendi ✓");
+            return;
+          }
+          const fsSnap = await _db
+            .collection("games").doc(GAME_ID)
+            .collection("realtime").doc("shared").get();
+          if (fsSnap.exists) {
+            Object.entries(fsSnap.data()).forEach(([k, v]) => {
+              if (!REALTIME_KEYS.includes(k)) return;
+              try { localStorage.setItem("rep_" + k, JSON.stringify(v)); } catch(e) {}
+            });
+            console.log("[Firestore] Geçmiş mesajlar yüklendi ✓");
+          }
+        } catch(e) {
+          console.warn("[Realtime] İlk yükleme hatası:", e.message);
+        }
+      }
+
+      async function loadGameState() {
+        try {
+          const snap = await _db
+            .collection("games").doc(GAME_ID)
+            .collection("state").doc("main").get();
+          if (snap.exists) {
+            const data = snap.data();
+            Object.entries(data).forEach(([k, v]) => {
+              if (k === "_meta") return;
+              try {
+                localStorage.setItem("rep_" + k, JSON.stringify(v));
+                window.dispatchEvent(new CustomEvent("fb-sync", { detail: { key: k, value: v } }));
+              } catch(e) {}
+            });
+            console.log("[Firestore] State yüklendi (Firebase öncelikli):", Object.keys(data).length, "anahtar");
+          }
+        } catch(e) {
+          console.warn("[Firestore] State yüklenemedi:", e.message);
+        }
+      }
+
+      /* === Global Koleksiyon Dinleyicileri: market + government anlık güncelleme === */
       function setupGlobalStateListeners() {
-        const db = window._fb.db;
-        db.collection("games").doc(GAME_ID).collection("global").doc("market")
-          .onSnapshot((snap) => {
-            if (!snap.exists) return;
-            const data = snap.data();
-            Object.entries(data).forEach(([k, v]) => {
-                localStorage.setItem("rep_"+k, JSON.stringify(v));
-                window.dispatchEvent(new CustomEvent("fb-sync", { detail: { key: k, value: v } }));
-            });
-          });
+        const db     = window._fb.db;
+        const gameId = window._gameId;
 
-        db.collection("games").doc(GAME_ID).collection("global").doc("government")
+        /* Market koleksiyonu: economy, stockMarket, commodities vb. */
+        db.collection("games").doc(gameId).collection("global").doc("market")
           .onSnapshot((snap) => {
             if (!snap.exists) return;
             const data = snap.data();
-            Object.entries(data).forEach(([k, v]) => {
-                localStorage.setItem("rep_"+k, JSON.stringify(v));
-                window.dispatchEvent(new CustomEvent("fb-sync", { detail: { key: k, value: v } }));
+            const GLOBAL_KEYS = ["economy","stockMarket","marketDemand","commodities","stockTicker","energyMarket","marketCrisis","cityStats","cityWelfare"];
+            GLOBAL_KEYS.forEach(k => {
+              if (data[k] === undefined) return;
+              try {
+                const incoming = JSON.stringify(data[k]);
+                if (localStorage.getItem("rep_"+k) === incoming) return;
+                localStorage.setItem("rep_"+k, incoming);
+                window.dispatchEvent(new CustomEvent("fb-sync", { detail: { key: k, value: data[k] } }));
+                console.log("[Market] Anlık güncelleme →", k);
+              } catch(e) {}
             });
-          });
+          }, (err) => console.warn("[Market] Listener hatası:", err.message));
+
+        /* Government koleksiyonu: laws, cabinet, ohal, elections vb. */
+        db.collection("games").doc(gameId).collection("global").doc("government")
+          .onSnapshot((snap) => {
+            if (!snap.exists) return;
+            const data = snap.data();
+            const GOV_KEYS = ["laws","lawProposals","cabinet","ohal","elections","electionState","referandumlar","taxSystem","cityMap","announcements","gameEvents","coupSystem"];
+            GOV_KEYS.forEach(k => {
+              if (data[k] === undefined) return;
+              try {
+                const incoming = JSON.stringify(data[k]);
+                if (localStorage.getItem("rep_"+k) === incoming) return;
+                localStorage.setItem("rep_"+k, incoming);
+                window.dispatchEvent(new CustomEvent("fb-sync", { detail: { key: k, value: data[k] } }));
+                console.log("[Gov] Anlık güncelleme →", k);
+              } catch(e) {}
+            });
+          }, (err) => console.warn("[Gov] Listener hatası:", err.message));
+
+        console.log("[GlobalListeners] Market + Government dinleyicileri aktif ✓");
       }
 
-      /* Başlatma */
-      async function initFirebaseData() {
-        // Cihaz bazlı anonim ID veya mevcut Auth ID
-        window._fbUid = localStorage.getItem("us_uid") || "u_" + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem("us_uid", window._fbUid);
+      /* === Presence Listener: tüm cihazlara online listesi yayınla === */
+      function setupPresenceListener() {
+        const rtdb   = window._fb.rtdb;
+        const gameId = window._gameId;
+        rtdb.ref(`games/${gameId}/presence`).on("value", (snap) => {
+          try {
+            const now     = Date.now();
+            const TIMEOUT = 90000; /* 90 sn içinde görünmeyenler offline sayılır */
+            const raw     = snap.val() || {};
+            const active  = Object.entries(raw).filter(([, d]) =>
+              d && d.lastSeen && (now - d.lastSeen) < TIMEOUT
+            );
+            const count   = active.length;
+            localStorage.setItem("rep_onlineCount", JSON.stringify(count));
+            localStorage.setItem("rep_onlinePlayers", JSON.stringify(active));
+            window.dispatchEvent(new CustomEvent("presence-updated", {
+              detail: { count, players: active }
+            }));
+            window.dispatchEvent(new CustomEvent("fb-sync", {
+              detail: { key: "onlineCount", value: count }
+            }));
+          } catch(e) {}
+        }, (err) => console.warn("[Presence] Listener hatası:", err.message));
+        console.log("[Presence] Online dinleyici aktif ✓");
+      }
 
+      /* === Presence Heartbeat: her 30 saniyede lastSeen güncelle === */
+      window._startPresenceHeartbeat = function(userId, username) {
+        if (!userId || window._heartbeatTimer) return;
+        const rtdb   = window._fb.rtdb;
+        const gameId = window._gameId;
+
+        const presenceRef = rtdb.ref(`games/${gameId}/presence/${userId}`);
+
+        const updatePresence = () => {
+          presenceRef.set({ username, at: Date.now(), lastSeen: Date.now() })
+            .catch(() => {});
+        };
+
+        /* Bağlantı kesilince otomatik sil (RTDB onDisconnect) */
+        presenceRef.onDisconnect().remove().catch(() => {});
+
+        updatePresence();
+        window._heartbeatTimer = setInterval(updatePresence, 30000); /* 30 sn */
+
+        /* Sekme kapanınca hemen sil */
+        window.addEventListener("beforeunload", () => {
+          clearInterval(window._heartbeatTimer);
+          window._heartbeatTimer = null;
+          presenceRef.remove().catch(() => {});
+        }, { once: true });
+
+        console.log("[Heartbeat] Presence heartbeat başladı ✓ (30s)", userId);
+      };
+
+      /* === Kullanıcıya özel Firestore + userUpdates listener === */
+      window._setupUserListener = function(userId) {
+        if (!userId || window._userListenerUnsub) return;
+        const db     = window._fb.db;
+        const gameId = window._gameId;
+
+        /* userUpdates: bakiye ceza/hediye push'ları */
+        window._userListenerUnsub = db.collection("games").doc(gameId)
+          .collection("userUpdates").doc(userId)
+          .onSnapshot((snap) => {
+            if (!snap.exists) return;
+            const data = snap.data();
+            if (!data) return;
+            if (data.payload) {
+              /* Payload varsa localStorage'a da yaz ki anlık görünsün */
+              try {
+                const profile = JSON.parse(localStorage.getItem("rep_userProfile") || "{}");
+                const merged  = { ...profile, ...data.payload };
+                localStorage.setItem("rep_userProfile", JSON.stringify(merged));
+              } catch(e) {}
+              window.dispatchEvent(new CustomEvent("fb-sync", {
+                detail: { key: "userBalance_" + userId, value: data.payload }
+              }));
+              window.dispatchEvent(new CustomEvent("user-profile-updated"));
+              console.log("[UserSync] Bakiye güncellendi →", userId, data.payload);
+            }
+          }, (err) => console.warn("[UserSync] Listener hatası:", err.message));
+
+        /* Kullanıcı ana profili: para/envanter/tarım anlık takibi */
+        db.collection("games").doc(gameId)
+          .collection("users").doc(userId)
+          .onSnapshot((snap) => {
+            if (!snap.exists) return;
+            const data = snap.data();
+            if (!data) return;
+            const USER_KEYS = ["userProfile","userInventory","userFarms","userFinances",
+                               "stockPortfolio","userAchievements","userStats"];
+            USER_KEYS.forEach(k => {
+              if (data[k] === undefined) return;
+              try {
+                const incoming = JSON.stringify(data[k]);
+                if (localStorage.getItem("rep_" + k) === incoming) return;
+                localStorage.setItem("rep_" + k, incoming);
+                window.dispatchEvent(new CustomEvent("fb-sync", { detail: { key: k, value: data[k] } }));
+                window.dispatchEvent(new CustomEvent(
+                  k === "userProfile"   ? "user-profile-updated"   :
+                  k === "userFarms"     ? "user-farms-updated"     :
+                  k === "userInventory" ? "user-inventory-updated" :
+                  k === "userFinances"  ? "user-finances-updated"  : "fb-sync"
+                ));
+                console.log("[UserDoc] Anlık güncelleme →", k);
+              } catch(e) {}
+            });
+          }, (err) => console.warn("[UserDoc] Listener hatası:", err.message));
+
+        console.log("[UserListener] Kullanıcı dinleyicileri aktif ✓", userId);
+      };
+
+      /* userId zaten localStorage'da varsa otomatik başlat */
+      function autoSetupUserListener() {
+        const trySetup = () => {
+          const userId = localStorage.getItem("userId") || localStorage.getItem("rep_userId");
+          if (userId && window._fbReady) {
+            window._setupUserListener(userId);
+          }
+        };
+        trySetup();
+        /* Giriş sonrası tetiklenmesi için dinle */
+        window.addEventListener("firebase-ready", trySetup);
+        window.addEventListener("user-logged-in", (e) => {
+          if (e.detail && e.detail.userId) {
+            window._userListenerUnsub = null; /* reset */
+            window._setupUserListener(e.detail.userId);
+          }
+        });
+      }
+
+      /* === state/main Gerçek Zamanlı Listener (users dahil tüm oyun verisi) === */
+      function setupStateMainListener() {
+        const db     = window._fb.db;
+        const gameId = window._gameId;
+        db.collection("games").doc(gameId).collection("state").doc("main")
+          .onSnapshot((snap) => {
+            if (!snap.exists) return;
+            const data = snap.data();
+            if (!data) return;
+            /* Tüm anahtarları localStorage'a yaz ve fb-sync eventi gönder */
+            Object.entries(data).forEach(([k, v]) => {
+              if (k === "_meta") return;
+              try {
+                const incoming = JSON.stringify(v);
+                if (localStorage.getItem("rep_" + k) === incoming) return;
+                localStorage.setItem("rep_" + k, incoming);
+                window.dispatchEvent(new CustomEvent("fb-sync", { detail: { key: k, value: v } }));
+              } catch(e) {}
+            });
+            console.log("[StateMain] Anlık güncelleme ✓ →", Object.keys(data).filter(k=>k!=="meta").length, "anahtar");
+          }, (err) => console.warn("[StateMain] Listener hatası:", err.message));
+        console.log("[StateMain] state/main dinleyici aktif ✓");
+      }
+
+      async function initFirebaseData() {
+        window._fbUid = "webview_" + Math.random().toString(36).substr(2, 9);
+        console.log("[Firebase] Başlatılıyor... (v7-fixed)");
+        setupRTDBListener();
+        setupPresenceListener(); /* ← Presence dinleyici eklendi */
+        await Promise.allSettled([loadGameState(), loadRealtimeOnce()]);
         setupGlobalStateListeners();
-        setupChatListener(); // Sohbeti başlat
-        
+        setupStateMainListener();  /* ← state/main (users, parties, gangs...) anlık dinleme */
+        autoSetupUserListener();  /* ← Kullanıcı dinleyici oto-başlatma */
         window._fbReady = true;
         window.dispatchEvent(new Event("firebase-ready"));
-        console.log("[UNDERSTATE] Real-time sistem hazır ✓");
+        console.log("[Firebase] Hazır ✓ (v7-fixed)");
       }
 
       initFirebaseData();
     })();
     </script>
+    <script>
+    /* === firebase-save v6 (transaction-based) === */
+    (function(){
+      window._fbPendingWrites = {};
+      window._fbFlushTimer    = null;
+      window._fbRtFlushTimer  = null;
+
+      /* === Koleksiyon yönlendirme: hangi anahtarlar hangi alt-koleksiyona gider === */
+      const MARKET_KEYS = ["economy","stockMarket","stockPortfolio","marketDemand","commodities","stockTicker","energyMarket","importExport","marketCrisis","cityStats","cityBudgets","factories","researchProgress"];
+      const GOVERNMENT_KEYS = ["laws","lawProposals","cabinet","ohal","elections","electionState","referandumlar","electionCandidates","electionHistory","taxSystem","taxDeclarations","referendums","achievements"];
+
+      window._fbFlush = async function(rtOnly) {
+        if (!window._fb || !window._fbReady) return;
+        const pending = {...window._fbPendingWrites};
+        if (!rtOnly) window._fbPendingWrites = {};
+
+        const { db, rtdb, doc, setDoc } = window._fb;
+        const rtData      = {};
+        const stateData   = { _meta: { lastSave: Math.floor(Date.now() / 60000) } };
+        const marketData  = {};
+        const govData     = {};
+
+        Object.entries(pending).forEach(([k, v]) => {
+          if (window._rtKeys && window._rtKeys.includes(k)) {
+            rtData[k] = v;
+          } else if (!rtOnly) {
+            stateData[k] = v;
+            if (MARKET_KEYS.includes(k)) marketData[k] = v;
+            else if (GOVERNMENT_KEYS.includes(k)) govData[k] = v;
+          }
+        });
+
+        if (!rtOnly && Object.keys(stateData).length > 1) {
+          setDoc(doc(db, "games", window._gameId, "state", "main"), stateData, { merge: true })
+            .catch(e => console.warn("[Firestore] State yazma hatası:", e.message));
+        }
+        if (!rtOnly && Object.keys(marketData).length) {
+          setDoc(doc(db, "games", window._gameId, "global", "market"), marketData, { merge: true })
+            .catch(e => console.warn("[Firestore] Market yazma hatası:", e.message));
+        }
+        if (!rtOnly && Object.keys(govData).length) {
+          setDoc(doc(db, "games", window._gameId, "global", "government"), govData, { merge: true })
+            .catch(e => console.warn("[Firestore] Government yazma hatası:", e.message));
+        }
+
+        if (Object.keys(rtData).length && rtdb) {
+          const baseRef  = rtdb.ref("games/" + window._gameId + "/realtime");
+          const arrKeys  = Object.keys(rtData).filter(k => Array.isArray(rtData[k]));
+          const scalarKeys = Object.keys(rtData).filter(k => !Array.isArray(rtData[k]));
+
+          /* Scalar değerler → normal update */
+          if (scalarKeys.length) {
+            const sd = {};
+            scalarKeys.forEach(k => { sd[k] = rtData[k]; });
+            baseRef.update(sd).catch(e => console.warn("[RTDB] Scalar yazma hatası:", e.message));
+          }
+
+          /* Array değerler → TRANSACTION (monotonic büyüme) */
+          const txPromises = arrKeys.map(k => {
+            const newArr = rtData[k];
+            return baseRef.child(k).transaction(
+              (current) => {
+                if (current === null) return newArr;
+                const currLen = Array.isArray(current)
+                  ? current.length
+                  : Object.keys(current || {}).length;
+                if (newArr.length > currLen) return newArr;
+                return; /* undefined = abort */
+              },
+              null,
+              false /* applyLocally=false */
+            ).then(result => {
+              if (result.committed) console.log("[RTDB] Yazıldı ✓", k, newArr.length+"item");
+              else console.log("[RTDB] Transaction iptal (kısa array):", k, newArr.length);
+            }).catch(e => console.warn("[RTDB] Transaction hatası:", k, e.message));
+          });
+
+          await Promise.allSettled(txPromises);
+        }
+      };
+
+      window._fbScheduleFlush = function(key) {
+        const isRealtime = key && window._rtKeys && window._rtKeys.includes(key);
+        if (isRealtime) {
+          if (window._fbRtFlushTimer) clearTimeout(window._fbRtFlushTimer);
+          window._fbRtFlushTimer = setTimeout(() => window._fbFlush(true), 150);
+        } else {
+          if (window._fbFlushTimer) clearTimeout(window._fbFlushTimer);
+          window._fbFlushTimer = setTimeout(() => window._fbFlush(false), 3000);
+        }
+      };
+    })();
+    </script>
+
+    <!-- Firebase v7 Real-time Sync Şim (external dosya yoksa fallback) -->
+    <script>
+    /* firebase-realtime-v7 shim — js/firebase-realtime-v7.js yüklenemezse devreye girer */
+    (function() {
+      window._realtimeSync = window._realtimeSync || {
+        init: async function(userId) {
+          if (window._fbReady) {
+            window._setupUserListener && window._setupUserListener(userId);
+          } else {
+            window.addEventListener("firebase-ready", () => {
+              window._setupUserListener && window._setupUserListener(userId);
+            }, { once: true });
+          }
+          console.log("[RealtimeSync v7-shim] init çağrıldı, userId:", userId);
+        }
+      };
+    })();
+    </script>
+    <script src="js/firebase-realtime-v7.js" onerror="console.warn('[firebase-realtime-v7.js] Dosya bulunamadı, shim aktif.')"></script>
+
+    <!-- App Styles -->
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 
 <div id="root"></div>
 
+<!-- LOADING SCREEN -->
 <div id="loading-screen" style="position:fixed;inset:0;z-index:9999;background:#050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;font-family:'DM Sans',sans-serif;">
   <div style="font-family:'Syne',sans-serif;font-size:clamp(1.6rem,5vw,2.5rem);letter-spacing:0.35rem;display:flex;align-items:baseline;">
     <span style="color:#D00000;font-weight:900;text-shadow:0 0 20px rgba(208,0,0,0.8);">[U</span><span style="color:#fff;font-weight:900;">NDER</span><span style="color:#D00000;font-weight:900;">]</span>
@@ -174,33 +532,123 @@
   <div id="loading-bar-wrap" style="width:200px;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;">
     <div id="loading-bar" style="height:100%;width:0%;background:#D00000;border-radius:2px;box-shadow:0 0 10px #D00000;transition:width 0.4s ease;"></div>
   </div>
-  <div id="loading-text" style="color:#555;font-size:0.8rem;letter-spacing:0.1rem;text-transform:uppercase;">Sistemler Eşitleniyor...</div>
+  <div id="loading-text" style="color:#555;font-size:0.8rem;letter-spacing:0.1rem;text-transform:uppercase;">Yükleniyor...</div>
   <div id="loading-error" style="display:none;color:#D00000;font-size:0.85rem;text-align:center;max-width:280px;line-height:1.6;"></div>
 </div>
+<style>
+  #loading-screen { transition: opacity 0.5s ease; }
+  #loading-screen.fade-out { opacity: 0; pointer-events: none; }
+</style>
 
+<!-- Boot Script -->
 <script>
-// ── Boot Script ────────────────────────────────────────────────────────
+// ── Loading helpers ────────────────────────────────────────────────────────
 var _lb = document.getElementById('loading-bar');
 var _lt = document.getElementById('loading-text');
-function _advanceBar(p, t) { if(_lb) _lb.style.width = p + '%'; if (t && _lt) _lt.textContent = t; }
+function _advanceBar(p, t) { _lb.style.width = p + '%'; if (t) _lt.textContent = t; }
+function _showError(msg) {
+  var el = document.getElementById('loading-error');
+  el.style.display = 'block';
+  if (msg) el.innerHTML = '&#9888;&#65039; ' + msg + '<br><button onclick="window.location.reload()" style="margin-top:0.75rem;background:#D00000;border:none;color:#fff;padding:0.5rem 1.5rem;border-radius:4px;cursor:pointer;">Yenile</button>';
+  _lt.style.display = 'none';
+}
+function _hideLoading() {
+  var ls = document.getElementById('loading-screen');
+  if (ls) { ls.classList.add('fade-out'); setTimeout(function() { ls.style.display = 'none'; }, 600); }
+}
+_advanceBar(10, 'Başlatılıyor...');
 
-function boot() {
-  _advanceBar(80, 'Oyun Başlatılıyor...');
-  // Buradaki mantık src/app.js dosyanı yükleyip çalıştıracaktır
-  // Mevcut boot fonksiyonunla devam edebilirsin.
-  _advanceBar(100, 'Hazır');
-  setTimeout(() => {
-    const ls = document.getElementById('loading-screen');
-    if(ls) ls.style.display = 'none';
-  }, 500);
+// ── IndexedDB cache (fast reload after first visit) ──────────────────────────
+var IDB_NAME = 'us_cache_v1';
+var IDB_KEY  = 'compiled_v96_rtdb';
+
+function idbGet(key, cb) {
+  try {
+    var req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = function(e) { e.target.result.createObjectStore('kv'); };
+    req.onsuccess = function(e) {
+      var g = e.target.result.transaction('kv', 'readonly').objectStore('kv').get(key);
+      g.onsuccess = function() { cb(g.result || null); };
+      g.onerror   = function() { cb(null); };
+    };
+    req.onerror = function() { cb(null); };
+  } catch(e) { cb(null); }
 }
 
-// React ve ReactDOM yüklendikten sonra boot'u çağır
-window.addEventListener('load', boot);
+function idbSet(key, val, cb) {
+  try {
+    var req = indexedDB.open(IDB_NAME, 1);
+    req.onsuccess = function(e) {
+      var tx = e.target.result.transaction('kv', 'readwrite');
+      tx.objectStore('kv').put(val, key);
+      tx.oncomplete = cb || function(){};
+      tx.onerror    = cb || function(){};
+    };
+    req.onerror = cb || function(){};
+  } catch(e) { if (cb) cb(); }
+}
+
+function execCode(code) {
+  try {
+    var s = document.createElement('script');
+    s.textContent = code;
+    document.body.appendChild(s);
+  } catch(e) { _showError('Kod çalıştırılamadı: ' + e.message); }
+}
+
+// Fetch src/app.js (pre-compiled), cache in IDB
+function compileAndRun() {
+  _advanceBar(82, 'Oyun yükleniyor...');
+  fetch('src/app.js?v=' + IDB_KEY)
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text();
+    })
+    .then(function(compiled) {
+      _advanceBar(94, 'Önbelleğe kaydediliyor...');
+      idbSet(IDB_KEY, compiled, function() {
+        _advanceBar(98, 'Başlatılıyor...');
+        execCode(compiled);
+      });
+    })
+    .catch(function(err) { _showError('app.js yüklenemedi: ' + err.message); });
+}
+
+function boot() {
+  _advanceBar(70, 'Önbellek kontrol ediliyor...');
+  var bootDone = false;
+  var bootTimeout = setTimeout(function() {
+    if (!bootDone) { bootDone = true; compileAndRun(); }
+  }, 2500);
+  idbGet(IDB_KEY, function(cached) {
+    if (bootDone) return;
+    bootDone = true;
+    clearTimeout(bootTimeout);
+    if (cached) {
+      _advanceBar(95, '⚡ Önbellekten yükleniyor...');
+      setTimeout(function() { execCode(cached); }, 30);
+    } else {
+      _advanceBar(78, '⏳ İlk açılış yükleniyor...');
+      compileAndRun();
+    }
+  });
+}
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+<!-- React 18 -->
+<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"
+  crossorigin="anonymous"
+  onerror="_showError('React CDN yüklenemedi')"
+  onload="_advanceBar(40,'React ✓')"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"
+  crossorigin="anonymous"
+  onerror="_showError('ReactDOM CDN yüklenemedi')"
+  onload="_advanceBar(55,'ReactDOM ✓'); if(document.readyState==='complete'||document.readyState==='interactive'){boot();}else{document.addEventListener('DOMContentLoaded',boot);}"></script>
+
+<!-- Background Music -->
+<script>
+window._US_AUDIO_SRC = "audio/background.mp3";
+</script>
 
 </body>
 </html>
