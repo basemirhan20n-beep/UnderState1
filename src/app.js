@@ -1985,6 +1985,50 @@ function App() {
     window._fbSyncCallbacks["gameEvents"] = (v) => {
       if (Array.isArray(v)) setGameEvents(v);
     };
+    /* === EKSİK OLAN SYNC CALLBACK'LER (v7-fix) === */
+    window._fbSyncCallbacks["users"] = (v) => {
+      if (!Array.isArray(v) || v.length === 0) return;
+      setAllUsers((prev) => {
+        /* Firebase'den gelen users ile mevcut state'i merge et:
+           Firebase her zaman öncelikli, ama local-only alanları koru */
+        const fbMap = {};
+        v.forEach((u) => { if (u && u.id) fbMap[u.id] = u; });
+        const prevMap = {};
+        (Array.isArray(prev) ? prev : []).forEach((u) => { if (u && u.id) prevMap[u.id] = u; });
+        /* Yeni kullanıcıları ekle, mevcutları güncelle */
+        const merged = Object.values({ ...prevMap, ...fbMap })
+          .filter((u) => !u.isBot && u.role !== "bot" && !(u.username || "").includes("[Bot]"));
+        return merged;
+      });
+    };
+    window._fbSyncCallbacks["parties"] = (v) => {
+      if (Array.isArray(v)) setParties(v);
+    };
+    window._fbSyncCallbacks["gangs"] = (v) => {
+      if (Array.isArray(v)) setGangs(v.map(normalizeGang));
+    };
+    window._fbSyncCallbacks["holdings"] = (v) => {
+      if (Array.isArray(v)) setHoldings(v);
+    };
+    window._fbSyncCallbacks["referendums"] = (v) => {
+      if (Array.isArray(v)) setReferendums(v);
+    };
+    window._fbSyncCallbacks["auctionItems"] = (v) => {
+      if (Array.isArray(v)) setAuctionItems(v);
+    };
+    window._fbSyncCallbacks["prisonList"] = (v) => {
+      if (Array.isArray(v)) setPrisonList(v);
+    };
+    window._fbSyncCallbacks["activityFeed"] = (v) => {
+      if (Array.isArray(v)) setActivityFeed(v);
+    };
+    window._fbSyncCallbacks["realEstate"] = (v) => {
+      if (Array.isArray(v)) setRealEstate(v);
+    };
+    window._fbSyncCallbacks["courtCases"] = (v) => {
+      if (Array.isArray(v)) setCourtCases(v);
+    };
+    /* === / EKSİK CALLBACK'LER === */
     const handleAdReward = (e) => {
       const { type } = e.detail;
       if (type === "daily_double") {
