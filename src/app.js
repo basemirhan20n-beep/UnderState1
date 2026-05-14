@@ -33,6 +33,10 @@ const S = {
         }
       }
     }
+    if (window._fbServerSyncedKeys && window._fbServerSyncedKeys.has(k)) {
+      window._fbServerSyncedKeys.delete(k);
+      return;
+    }
     if (window._logKeys && window._logKeys.includes(k)) {
       window._fbPendingWrites[k] = v;
       if (!window._fbLogTimer) {
@@ -4542,6 +4546,86 @@ function App() {
         unsub = window._fb.onSnapshot(ref, (snap) => {
           if (!snap.exists) return;
           const data = snap.data();
+          if (!data) return;
+          window._fbServerSyncedKeys = window._fbServerSyncedKeys || /* @__PURE__ */ new Set();
+          [
+            "users",
+            "economy",
+            "bank",
+            "parties",
+            "families",
+            "gangs",
+            "holdings",
+            "holdingApps",
+            "loanApps",
+            "legalTezgah",
+            "illegalTezgah",
+            "randomEvents",
+            "laws",
+            "lawProposals",
+            "spyReports",
+            "assassinations",
+            "courtCases",
+            "historyLog",
+            "dailyTasks",
+            "realEstate",
+            "energyMarket",
+            "privateSchools",
+            "alliances",
+            "partyApplications",
+            "partyAlliances",
+            "newspapers",
+            "stockMarket",
+            "stockPortfolio",
+            "casinoLogs",
+            "armyFunds",
+            "coupSystem",
+            "cityMap",
+            "announcements",
+            "gameEvents",
+            "ohal",
+            "cabinet",
+            "referendums",
+            "commodities",
+            "activityLog",
+            "socialPosts",
+            "cryptoPrice",
+            "cryptoEvents",
+            "luxuryAssets",
+            "mediaEmpires",
+            "restaurants",
+            "insurances",
+            "lotteryState",
+            "scandals",
+            "hiredMercs",
+            "polls",
+            "shortPositions",
+            "cooldowns",
+            "factories",
+            "factoryOrders",
+            "factoryInventory",
+            "cityProjects",
+            "cityStats",
+            "qolSettings",
+            "favoritePages",
+            "netWorthHistory",
+            "sessionStats",
+            "collabRequests",
+            "farms",
+            "cityWars",
+            "municipalServices",
+            "xpLog",
+            "electionState",
+            "taxSystem",
+            "campaignDonations",
+            "elections",
+            "partyInvites",
+            "cityBudgets",
+            "importExport",
+            "supportMsgs",
+            "parliamentMsgs",
+            "polls"
+          ].forEach((k) => window._fbServerSyncedKeys.add(k));
           if (Array.isArray(data.users) && data.users.length > 0) {
             setAllUsers((prev) => {
               const localById = {};
