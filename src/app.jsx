@@ -1460,12 +1460,17 @@ function OrtakliIslerPage({cu, allUsers, setAllUsers, collabRequests, setCollabR
     const reward=req.earn,tp=req.tradePoint;
     setTimeout(()=>{
       setCollabRequests(prev=>prev.map(r=>r.id===req.id?{...r,status:"completed"}:r));
-      setAllUsers(prev=>prev.map(u=>{
-        if(u.username===req.from||u.username===req.to){
-          return {...u,money:(u.money||0)+reward,tradePoints:(u.tradePoints||0)+tp};
-        }
-        return u;
-      }));
+      setAllUsers(prev=>{
+        const updated=prev.map(u=>{
+          if(u.username===req.from||u.username===req.to){
+            return {...u,money:(u.money||0)+reward,tradePoints:(u.tradePoints||0)+tp,lastUpdate:Date.now()};
+          }
+          return u;
+        });
+        S.save("users",updated);
+        if(window._fbFlush) setTimeout(()=>window._fbFlush(false),200);
+        return updated;
+      });
       const fromCdKey=`collab_cd_${req.from}_${req.jobId}`;
       const toCdKey=`collab_cd_${req.to}_${req.jobId}`;
       setCooldowns(prev=>{const upd={...prev,[fromCdKey]:Date.now(),[toCdKey]:Date.now()};S.save("cooldowns",upd);return upd;});
@@ -2145,6 +2150,10 @@ function App() {
   const [privateSchools, setPrivateSchools] = useState(()=>S.load("privateSchools",[]));
   // 14. İttifaklar
   const [alliances, setAlliances] = useState(()=>S.load("alliances",[]));
+  // 14b. Parti Üst Yönetim Başvuruları
+  const [partyApplications, setPartyApplications] = useState(()=>S.load("partyApplications",[]));
+  // 14c. Parti-Parti İttifakları
+  const [partyAlliances, setPartyAlliances] = useState(()=>S.load("partyAlliances",[]));
   // 15. Gazete / Haberler
   const [newspapers, setNewspapers] = useState(()=>S.load("newspapers",[]));
   // 16. Borsa
@@ -3535,6 +3544,63 @@ function App() {
     return () => clearInterval(t);
   }, []);
 
+  // ==================== FIREBASE REALTIME SYNC ====================
+  // Firestore onSnapshot → diğer oyuncuların değişikliklerini anlık al
+  useEffect(() => {
+    let unsub = null;
+    const setup = () => {
+      if (!window._fb || !window._gameId) return;
+      try {
+        const ref = window._fb.doc(window._fb.db, "games", window._gameId, "state", "main");
+        unsub = window._fb.onSnapshot(ref, (snap) => {
+          if (!snap.exists) return;
+          const data = snap.data();
+          if (Array.isArray(data.users) && data.users.length > 0) {
+            setAllUsers(prev => {
+              const localById = {};
+              (Array.isArray(prev)?prev:[]).forEach(u => { localById[u.id] = u; });
+              const serverById = {};
+              data.users.forEach(u => { serverById[u.id] = u; });
+              // Merge: local kullanıcının kendi verisi öncelikli, diğerleri serverdan
+              const merged = data.users.map(u => {
+                if (u.id === localById[u.id]?.id) {
+                  const local = localById[u.id];
+                  // Lokal sürüm daha güncel mi kontrol et
+                  if ((local.lastUpdate||0) >= (u.lastUpdate||0)) return local;
+                }
+                return u;
+              });
+              // Localde var ama serverde yok olanları ekle
+              (Array.isArray(prev)?prev:[]).forEach(u => {
+                if (!serverById[u.id]) merged.push(u);
+              });
+              return merged;
+            });
+          }
+          if (Array.isArray(data.parties)) setParties(data.parties);
+          if (data.elections && typeof data.elections === 'object') {
+            setElections(prev => ({...prev, ...normalizeElections(data.elections)}));
+          }
+          if (data.electionState && typeof data.electionState === 'object') {
+            setElectionState(prev => ({...prev, ...data.electionState}));
+          }
+          if (Array.isArray(data.alliances)) setAlliances(data.alliances);
+          if (Array.isArray(data.partyApplications)) setPartyApplications(data.partyApplications);
+          if (Array.isArray(data.partyAlliances)) setPartyAlliances(data.partyAlliances);
+        });
+      } catch(e) { console.warn("[onSnapshot] Hata:", e.message); }
+    };
+    if (window._fbReady) {
+      setup();
+    } else {
+      window.addEventListener('firebase-ready', setup, {once:true});
+    }
+    return () => {
+      window.removeEventListener('firebase-ready', setup);
+      if (unsub) { try { unsub(); } catch(e) {} }
+    };
+  }, []);
+
   // Real-time message sync - poll localStorage every 2s for new messages
   useEffect(() => {
     const syncMsgs = () => {
@@ -3602,6 +3668,8 @@ function App() {
     S.save("energyMarket", energyMarket);
     S.save("privateSchools", privateSchools);
     S.save("alliances", alliances);
+    S.save("partyApplications", partyApplications);
+    S.save("partyAlliances", partyAlliances);
     S.save("newspapers", newspapers);
     S.save("stockMarket", stockMarket);
     S.save("stockPortfolio", stockPortfolio);
@@ -3649,7 +3717,7 @@ function App() {
     S.save("electionState", electionState);
     S.save("taxSystem", taxSystem);
     S.save("campaignDonations", campaignDonations);
-  }, [allUsers, economy, bank, parties, families, gangs, holdings, holdingApps, loanApps, legalTezgah, illegalTezgah, supportMsgs, parliamentMsgs, randomEvents, laws, lawProposals, spyReports, assassinations, courtCases, historyLog, dailyTasks, realEstate, energyMarket, privateSchools, alliances, newspapers, stockMarket, stockPortfolio, casinoLogs, armyFunds, coupSystem, cityMap, announcements, gameEvents, ohal, cabinet, referendums, commodities, activityLog, socialPosts, cryptoPrice, cryptoEvents, luxuryAssets, mediaEmpires, restaurants, insurances, lotteryState, scandals, hiredMercs, polls, shortPositions, cooldowns, factories, factoryOrders, factoryInventory, cityProjects, cityStats, qolSettings, favoritePages, netWorthHistory, sessionStats, collabRequests, farms, cityWars, municipalServices, xpLog, electionState, taxSystem, campaignDonations]);
+  }, [allUsers, economy, bank, parties, families, gangs, holdings, holdingApps, loanApps, legalTezgah, illegalTezgah, supportMsgs, parliamentMsgs, randomEvents, laws, lawProposals, spyReports, assassinations, courtCases, historyLog, dailyTasks, realEstate, energyMarket, privateSchools, alliances, partyApplications, partyAlliances, newspapers, stockMarket, stockPortfolio, casinoLogs, armyFunds, coupSystem, cityMap, announcements, gameEvents, ohal, cabinet, referendums, commodities, activityLog, socialPosts, cryptoPrice, cryptoEvents, luxuryAssets, mediaEmpires, restaurants, insurances, lotteryState, scandals, hiredMercs, polls, shortPositions, cooldowns, factories, factoryOrders, factoryInventory, cityProjects, cityStats, qolSettings, favoritePages, netWorthHistory, sessionStats, collabRequests, farms, cityWars, municipalServices, xpLog, electionState, taxSystem, campaignDonations]);
 
   // ==================== v4: OTOMATİK SİSTEM EFFECTLERİ ====================
   // Güç puanı hesaplama (parti/çete/aile değişince)
@@ -5431,7 +5499,7 @@ function App() {
     "factoryInventory","cityProjects","cityStats","farms","cityWars","municipalServices",
     "xpLog","taxSystem","collabRequests","historyLog","randomEvents","laws","lawProposals",
     "spyReports","assassinations","courtCases","dailyTasks","qolSettings","campaigns",
-    "campaignDonations","campaignPosters",
+    "campaignDonations","campaignPosters","partyApplications","partyAlliances",
   ];
 
   const getSaveSlots = () => {
@@ -7546,8 +7614,15 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
           };
           const boardApplication = async() => {
             if(!myP) return notify("❌ Bir partiye üye değilsiniz!");
+            if(isLeader) return notify("❌ Lider olarak başvuru yapamazsınız!");
+            const alreadyPending = (partyApplications||[]).some(a=>a.from===cu.username&&a.partyId===myP.id&&a.status==="pending");
+            if(alreadyPending) return notify("⏳ Zaten bekleyen bir başvurunuz var!");
             const msg = await gPrompt("📋 Yönetim Kurulu Başvurusu","Başvuru gerekçenizi yazın:","Gerekçe");
             if(!msg) return;
+            const app = {id:Date.now(), partyId:myP.id, partyName:myP.name, from:cu.username, msg:msg.trim(), status:"pending", date:new Date().toLocaleDateString("tr-TR")};
+            const updated = [...(partyApplications||[]), app];
+            setPartyApplications(updated);
+            S.save("partyApplications", updated);
             addHistory(`⚑ "${myP.name}": ${cu.username} yönetim kuruluna başvurdu. Gerekçe: ${msg}`);
             notify("✅ Başvurunuz lider tarafından değerlendirilecek!");
           };
@@ -7647,7 +7722,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
 
               {/* ── Tab seçici ── */}
               <div style={{display:"flex",gap:"0.35rem",marginBottom:"1rem",overflowX:"auto",scrollbarWidth:"none"}}>
-                {[{k:"panel",l:"🏠 Panelim"},{k:"list",l:"🗂️ Tüm Partiler"},{k:"members",l:"👥 Üye Dağılımı"},{k:"create",l:"➕ Parti Kur"}].map(t=>{
+                {[{k:"panel",l:"🏠 Panelim"},{k:"list",l:"🗂️ Tüm Partiler"},{k:"members",l:"👥 Üye Dağılımı"},{k:"ittifak",l:"🤝 İttifak"},{k:"create",l:"➕ Parti Kur"}].map(t=>{
                   const tColor = t.k==="panel"&&myP ? (myP.color||"#A78BFA") : "#A78BFA";
                   return (
                     <button key={t.k} onClick={()=>setPTab(t.k)}
@@ -7734,6 +7809,42 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                           </button>
                         ))}
                       </div>
+
+                      {/* Lider: Yönetim Kurulu Başvuruları */}
+                      {isLeader&&(()=>{
+                        const myPendingApps = (partyApplications||[]).filter(a=>a.partyId===myP.id&&a.status==="pending");
+                        if(myPendingApps.length===0) return null;
+                        return (
+                          <div style={{background:"rgba(15,28,50,0.9)",border:"1px solid rgba(96,165,250,0.3)",borderRadius:14,padding:"0.85rem",marginBottom:"0.6rem"}}>
+                            <div style={{fontSize:"0.72rem",color:"#60A5FA",fontWeight:800,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:"0.55rem"}}>📋 Yönetim Kurulu Başvuruları ({myPendingApps.length})</div>
+                            {myPendingApps.map(app=>(
+                              <div key={app.id} style={{background:"rgba(96,165,250,0.06)",border:"1px solid rgba(96,165,250,0.15)",borderRadius:10,padding:"0.65rem",marginBottom:"0.4rem"}}>
+                                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"0.4rem"}}>
+                                  <div>
+                                    <div style={{fontWeight:700,color:"#ddd",fontSize:"0.85rem"}}>👤 {app.from}</div>
+                                    <div style={{fontSize:"0.68rem",color:"#666"}}>{app.date}</div>
+                                  </div>
+                                </div>
+                                <div style={{fontSize:"0.78rem",color:"#aaa",marginBottom:"0.5rem",lineHeight:1.5}}>"{app.msg}"</div>
+                                <div style={{display:"flex",gap:"0.4rem"}}>
+                                  <button className="btn btn-sm btn-green" style={{flex:1,fontSize:"0.72rem"}} onClick={()=>{
+                                    const upd=(partyApplications||[]).map(a=>a.id===app.id?{...a,status:"accepted"}:a);
+                                    setPartyApplications(upd); S.save("partyApplications",upd);
+                                    setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.username===app.from?{...u,partyRole:"Yönetim Kurulu"}:u));
+                                    notify(`✅ ${app.from} yönetim kuruluna atandı!`);
+                                    addHistory(`⚑ "${myP.name}": ${app.from} yönetim kuruluna kabul edildi.`);
+                                  }}>✅ Kabul Et</button>
+                                  <button className="btn btn-sm btn-gray" style={{flex:1,fontSize:"0.72rem"}} onClick={()=>{
+                                    const upd=(partyApplications||[]).map(a=>a.id===app.id?{...a,status:"rejected"}:a);
+                                    setPartyApplications(upd); S.save("partyApplications",upd);
+                                    notify(`❌ ${app.from} başvurusu reddedildi.`);
+                                  }}>❌ Reddet</button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
 
                       {/* Kasaya para ekle input */}
                       {isLeader&&(
@@ -7936,8 +8047,127 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
               )}
 
               {/* ══════════════════════════════════════
-                  TAB: PARTİ KUR
+                  TAB: PARTİ İTTİFAKLARI
                   ══════════════════════════════════════ */}
+              {pTab==="ittifak"&&(
+                <div>
+                  <div style={{background:"rgba(96,165,250,0.06)",border:"1px solid rgba(96,165,250,0.2)",borderRadius:14,padding:"0.85rem",marginBottom:"1rem"}}>
+                    <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,color:"#60A5FA",fontSize:"0.88rem",marginBottom:"0.35rem"}}>🤝 Parti İttifak Sistemi</div>
+                    <div style={{fontSize:"0.78rem",color:"#888",lineHeight:1.6}}>Parti liderleri diğer partilerle stratejik ittifak kurabilir. İttifaklar seçimlerde koordinasyonu artırır ve ortak açıklamalar yapılmasını sağlar.</div>
+                  </div>
+
+                  {/* Bekleyen ittifak teklifleri */}
+                  {myP&&isLeader&&(()=>{
+                    const incoming = (partyAlliances||[]).filter(a=>a.toPartyId===myP.id&&a.status==="pending");
+                    if(!incoming.length) return null;
+                    return (
+                      <div style={{background:"rgba(96,165,250,0.06)",border:"1px solid rgba(96,165,250,0.3)",borderRadius:14,padding:"0.85rem",marginBottom:"1rem"}}>
+                        <div style={{fontSize:"0.72rem",color:"#60A5FA",fontWeight:800,marginBottom:"0.55rem"}}>📨 Gelen İttifak Teklifleri</div>
+                        {incoming.map(a=>(
+                          <div key={a.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,padding:"0.65rem",marginBottom:"0.4rem"}}>
+                            <div style={{fontWeight:700,color:"#ddd",fontSize:"0.85rem",marginBottom:"0.25rem"}}>⚑ {a.fromPartyName}</div>
+                            <div style={{fontSize:"0.72rem",color:"#888",marginBottom:"0.4rem"}}>Lider: {a.fromLeader} • {a.date}</div>
+                            {a.msg&&<div style={{fontSize:"0.75rem",color:"#aaa",marginBottom:"0.5rem"}}>"{a.msg}"</div>}
+                            <div style={{display:"flex",gap:"0.4rem"}}>
+                              <button className="btn btn-sm btn-green" style={{flex:1,fontSize:"0.72rem"}} onClick={()=>{
+                                const upd=(partyAlliances||[]).map(x=>x.id===a.id?{...x,status:"active"}:x);
+                                setPartyAlliances(upd); S.save("partyAlliances",upd);
+                                addHistory(`🤝 "${a.fromPartyName}" ve "${myP.name}" arasında ittifak kuruldu.`);
+                                notify(`✅ "${a.fromPartyName}" ile ittifak kuruldu!`);
+                              }}>✅ Kabul Et</button>
+                              <button className="btn btn-sm btn-gray" style={{flex:1,fontSize:"0.72rem"}} onClick={()=>{
+                                const upd=(partyAlliances||[]).map(x=>x.id===a.id?{...x,status:"rejected"}:x);
+                                setPartyAlliances(upd); S.save("partyAlliances",upd);
+                                notify(`❌ İttifak teklifi reddedildi.`);
+                              }}>❌ Reddet</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Aktif ittifaklar */}
+                  {(()=>{
+                    const active = (partyAlliances||[]).filter(a=>a.status==="active");
+                    if(!active.length) return <div className="card" style={{textAlign:"center",color:"#555",padding:"1.5rem"}}>Henüz aktif parti ittifakı yok.</div>;
+                    return (
+                      <div style={{marginBottom:"1rem"}}>
+                        <div style={{fontSize:"0.72rem",color:"#60A5FA",fontWeight:800,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:"0.55rem"}}>🤝 Aktif İttifaklar</div>
+                        {active.map(a=>{
+                          const pc1 = (parties||[]).find(p=>p.id===a.fromPartyId)?.color||"#60A5FA";
+                          const pc2 = (parties||[]).find(p=>p.id===a.toPartyId)?.color||"#A78BFA";
+                          const canBreak = myP&&isLeader&&(a.fromPartyId===myP.id||a.toPartyId===myP.id);
+                          return (
+                            <div key={a.id} style={{background:"rgba(15,28,50,0.9)",border:"1px solid rgba(96,165,250,0.2)",borderRadius:12,padding:"0.85rem",marginBottom:"0.5rem"}}>
+                              <div style={{display:"flex",alignItems:"center",gap:"0.6rem",marginBottom:"0.35rem"}}>
+                                <span style={{fontWeight:800,color:pc1,fontSize:"0.88rem"}}>⚑ {a.fromPartyName}</span>
+                                <span style={{color:"#555",fontSize:"0.8rem"}}>×</span>
+                                <span style={{fontWeight:800,color:pc2,fontSize:"0.88rem"}}>⚑ {a.toPartyName}</span>
+                              </div>
+                              <div style={{fontSize:"0.68rem",color:"#555"}}>{a.date} · İttifak aktif</div>
+                              {canBreak&&(
+                                <button className="btn btn-sm btn-gray" style={{marginTop:"0.4rem",fontSize:"0.68rem"}} onClick={()=>{
+                                  const upd=(partyAlliances||[]).map(x=>x.id===a.id?{...x,status:"broken"}:x);
+                                  setPartyAlliances(upd); S.save("partyAlliances",upd);
+                                  notify("🔴 İttifak bozuldu.");
+                                }}>İttifakı Boz</button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Lider: İttifak teklif et */}
+                  {myP&&isLeader&&(
+                    <div style={{background:"rgba(15,28,50,0.9)",border:"1px solid rgba(96,165,250,0.15)",borderRadius:14,padding:"0.85rem"}}>
+                      <div style={{fontSize:"0.72rem",color:"#60A5FA",fontWeight:800,marginBottom:"0.55rem"}}>➕ İttifak Teklif Et</div>
+                      {parties.filter(p=>p.id!==myP.id).length===0?(
+                        <div style={{color:"#555",fontSize:"0.78rem"}}>Başka parti bulunamadı.</div>
+                      ):(
+                        <div style={{display:"flex",flexDirection:"column",gap:"0.35rem"}}>
+                          {parties.filter(p=>p.id!==myP.id).map(p=>{
+                            const existingAlliance = (partyAlliances||[]).find(a=>(a.fromPartyId===myP.id&&a.toPartyId===p.id)||(a.fromPartyId===p.id&&a.toPartyId===myP.id));
+                            const allianceStatus = existingAlliance?.status;
+                            const pc = p.color||"#A78BFA";
+                            return (
+                              <div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"0.55rem 0.65rem",background:"rgba(255,255,255,0.02)",borderRadius:10,border:`1px solid ${pc}22`}}>
+                                <div style={{display:"flex",alignItems:"center",gap:"0.5rem"}}>
+                                  <div style={{width:32,height:32,borderRadius:8,background:`${pc}22`,border:`1.5px solid ${pc}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.1rem",overflow:"hidden",flexShrink:0}}>
+                                    {p.logo?<img src={p.logo} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span>⚑</span>}
+                                  </div>
+                                  <div>
+                                    <div style={{fontWeight:700,color:pc,fontSize:"0.82rem"}}>{p.name}</div>
+                                    <div style={{fontSize:"0.65rem",color:"#666"}}>{p.leader} · {(p.members||[]).length} üye</div>
+                                  </div>
+                                </div>
+                                {allianceStatus==="active"?(
+                                  <span style={{fontSize:"0.65rem",color:"#10B981",fontWeight:700,background:"rgba(16,185,129,0.1)",padding:"2px 7px",borderRadius:4}}>✓ İttifak</span>
+                                ):allianceStatus==="pending"?(
+                                  <span style={{fontSize:"0.65rem",color:"#F5C842",fontWeight:700,background:"rgba(245,200,66,0.1)",padding:"2px 7px",borderRadius:4}}>⏳ Bekliyor</span>
+                                ):(
+                                  <button className="btn btn-sm" style={{fontSize:"0.7rem",background:`${pc}15`,color:pc,border:`1px solid ${pc}33`,whiteSpace:"nowrap"}} onClick={async()=>{
+                                    const msg = await gPrompt("🤝 İttifak Teklifi",`${p.name} partisine ittifak teklifinizi yazın:","İttifak mesajı (isteğe bağlı)`);
+                                    if(msg===null||msg===undefined) return;
+                                    const alliance = {id:Date.now(),fromPartyId:myP.id,fromPartyName:myP.name,fromLeader:cu.username,toPartyId:p.id,toPartyName:p.name,toLeader:p.leader,msg:msg.trim(),status:"pending",date:new Date().toLocaleDateString("tr-TR")};
+                                    const upd = [...(partyAlliances||[]), alliance];
+                                    setPartyAlliances(upd); S.save("partyAlliances",upd);
+                                    addHistory(`🤝 "${myP.name}" → "${p.name}" ittifak teklif etti.`);
+                                    notify(`✅ "${p.name}" partisine ittifak teklif edildi!`);
+                                  }}>🤝 Teklif Et</button>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {pTab==="create"&&(
                 <div className="card">
                   <div className="card-title" style={{color:"#A78BFA"}}>⚑ Yeni Parti Kur</div>
@@ -9259,26 +9489,10 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 </div>
               </div>
 
-              {/* Admin: faz geçişi */}
-              {cu.role==="admin"&&(
-                <div style={{display:"flex",gap:"0.5rem",marginBottom:"1rem",flexWrap:"wrap"}}>
-                  <button className="btn btn-sm btn-gold" onClick={()=>{
-                    const now2=Date.now();
-                    const upd={...electionState,phase:"campaign",startTime:now2,campaignEndTime:now2+2*24*60*60*1000,candidates:[]};
-                    setElectionState(upd);S.save("electionState",upd);
-                    notify("📢 Admin: Kampanya başlatıldı!");
-                  }}>📣 Kampanya Başlat</button>
-                  <button className="btn btn-sm btn-primary" onClick={()=>{
-                    const upd={...electionState,phase:"voting",votingEndTime:Date.now()+24*60*60*1000};
-                    setElectionState(upd);S.save("electionState",upd);
-                    notify("🗳️ Admin: Oylama başlatıldı!");
-                  }}>🗳️ Oylamayı Başlat</button>
-                  <button className="btn btn-sm btn-green" onClick={finalizeElection}>🏆 Seçimi Sonuçlandır</button>
-                  <button className="btn btn-sm btn-gray" onClick={()=>{
-                    const upd={...electionState,phase:"idle",nextElection:Date.now()+7*24*60*60*1000,candidates:[],results:null};
-                    setElectionState(upd);S.save("electionState",upd);
-                    notify("🔄 Seçim sıfırlandı.");
-                  }}>↺ Sıfırla</button>
+              {/* Admin kontrolleri admin panelinde — burada yalnızca bilgi gösterilir */}
+              {cu.role==="admin"&&phase==="idle"&&(
+                <div style={{background:"rgba(255,184,0,0.06)",border:"1px solid rgba(255,184,0,0.2)",borderRadius:10,padding:"0.65rem",marginBottom:"1rem",fontSize:"0.75rem",color:"#FFB800"}}>
+                  ⚙️ Admin: Seçim yönetimini <strong>Admin Paneli → Seçimler</strong> sekmesinden yapabilirsiniz.
                 </div>
               )}
 
