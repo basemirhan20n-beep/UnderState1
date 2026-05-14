@@ -22,7 +22,12 @@ const S = {
         } catch(e3) {}
       }
     }
-    // 2. Firebase kuyruğuna ekle (büyük loglar hariç sık sync)
+    // 2. Sunucudan gelen güncellemeyse döngüyü önle: Firebase'e geri yazma
+    if (window._fbServerSyncedKeys && window._fbServerSyncedKeys.has(k)) {
+      window._fbServerSyncedKeys.delete(k); // tek seferlik - sil ve çık
+      return;
+    }
+    // 3. Firebase kuyruğuna ekle (büyük loglar hariç sık sync)
     if (window._logKeys && window._logKeys.includes(k)) {
       // Log verileri 30 sn'de bir sync (bant genişliği tasarrufu)
       window._fbPendingWrites[k] = v;
@@ -3555,6 +3560,25 @@ function App() {
         unsub = window._fb.onSnapshot(ref, (snap) => {
           if (!snap.exists) return;
           const data = snap.data();
+          if (!data) return;
+          // Tüm save effect anahtarlarını sunucu-sync olarak işaretle
+          // → save effect çalışınca S.save bu anahtarları Firebase'e GERİ YAZMAZ (döngü önleme)
+          window._fbServerSyncedKeys = window._fbServerSyncedKeys || new Set();
+          [
+            'users','economy','bank','parties','families','gangs','holdings','holdingApps',
+            'loanApps','legalTezgah','illegalTezgah','randomEvents','laws','lawProposals',
+            'spyReports','assassinations','courtCases','historyLog','dailyTasks','realEstate',
+            'energyMarket','privateSchools','alliances','partyApplications','partyAlliances',
+            'newspapers','stockMarket','stockPortfolio','casinoLogs','armyFunds','coupSystem',
+            'cityMap','announcements','gameEvents','ohal','cabinet','referendums','commodities',
+            'activityLog','socialPosts','cryptoPrice','cryptoEvents','luxuryAssets','mediaEmpires',
+            'restaurants','insurances','lotteryState','scandals','hiredMercs','polls',
+            'shortPositions','cooldowns','factories','factoryOrders','factoryInventory',
+            'cityProjects','cityStats','qolSettings','favoritePages','netWorthHistory',
+            'sessionStats','collabRequests','farms','cityWars','municipalServices','xpLog',
+            'electionState','taxSystem','campaignDonations','elections','partyInvites',
+            'cityBudgets','importExport','supportMsgs','parliamentMsgs','polls'
+          ].forEach(k => window._fbServerSyncedKeys.add(k));
           if (Array.isArray(data.users) && data.users.length > 0) {
             setAllUsers(prev => {
               const localById = {};
