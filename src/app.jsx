@@ -2159,6 +2159,7 @@ function App() {
   const [partyApplications, setPartyApplications] = useState(()=>S.load("partyApplications",[]));
   // 14c. Parti-Parti İttifakları
   const [partyAlliances, setPartyAlliances] = useState(()=>S.load("partyAlliances",[]));
+  const [onlinePlayers, setOnlinePlayers] = useState(0);
   // 15. Gazete / Haberler
   const [newspapers, setNewspapers] = useState(()=>S.load("newspapers",[]));
   // 16. Borsa
@@ -3624,6 +3625,47 @@ function App() {
       if (unsub) { try { unsub(); } catch(e) {} }
     };
   }, []);
+
+  // ==================== ONLİNE OYUNCU TAKIBI (RTDB Presence) ====================
+  useEffect(() => {
+    if (!cu) return;
+    const setup = () => {
+      if (!window._fb?.rtdb) return;
+      const rtdb = window._fb.rtdb;
+      const gameId = window._gameId || 'default';
+      const presenceRef = rtdb.ref(`games/${gameId}/presence/${cu.id}`);
+      const allPresenceRef = rtdb.ref(`games/${gameId}/presence`);
+      const connRef = rtdb.ref('.info/connected');
+
+      connRef.on('value', (snap) => {
+        if (!snap.val()) return;
+        presenceRef.onDisconnect().remove();
+        presenceRef.set({ username: cu.username, at: Date.now() });
+      });
+
+      allPresenceRef.on('value', (snap) => {
+        const val = snap.val();
+        const now = Date.now();
+        const count = val ? Object.values(val).filter(p => p && (now - (p.at||0)) < 120000).length : 1;
+        setOnlinePlayers(count);
+      });
+
+      return () => {
+        presenceRef.remove().catch(()=>{});
+        connRef.off();
+        allPresenceRef.off();
+      };
+    };
+    let cleanup = null;
+    if (window._fbReady) {
+      cleanup = setup();
+    } else {
+      const h = () => { cleanup = setup(); };
+      window.addEventListener('firebase-ready', h, {once:true});
+      return () => window.removeEventListener('firebase-ready', h);
+    }
+    return () => { if (typeof cleanup === 'function') cleanup(); };
+  }, [cu?.id]);
 
   // Real-time message sync - poll localStorage every 2s for new messages
   useEffect(() => {
@@ -6469,7 +6511,10 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
         <div className="header-left">
           <div>
             <div className="logo-text">UNDERSTATE</div>
-            <div className="user-greeting">Hoş geldin, {cu?.username||"..."} {cu?.role==="admin"&&<span className="admin-badge">ADMIN</span>}</div>
+            <div className="user-greeting" style={{display:"flex",alignItems:"center",gap:"0.5rem",flexWrap:"wrap"}}>
+              Hoş geldin, {cu?.username||"..."} {cu?.role==="admin"&&<span className="admin-badge">ADMIN</span>}
+              {onlinePlayers>0&&<span className="online-badge"><span className="dot"/>{onlinePlayers} çevrimiçi</span>}
+            </div>
           </div>
         </div>
         <div className="header-stats">
