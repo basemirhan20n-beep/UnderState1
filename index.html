@@ -393,13 +393,26 @@
         /* === Anonim Auth: Firestore izin hatası ve App Check uyarısını çözer === */
         try {
           const auth = firebase.auth();
-          if (!auth.currentUser) {
-            await auth.signInAnonymously();
-            console.log("[Auth] Anonim giriş başarılı ✓ uid:", auth.currentUser?.uid);
+          /* signInAnonymously + auth state confirm (race condition fix) */
+          await new Promise(async (resolve) => {
+            const unsub = auth.onAuthStateChanged((user) => {
+              if (user) { unsub(); resolve(user); }
+            });
+            if (!auth.currentUser) {
+              await auth.signInAnonymously().catch((e) => {
+                console.warn("[Auth] signInAnonymously hatası:", e.message);
+                unsub(); resolve(null);
+              });
+            } else {
+              resolve(auth.currentUser);
+            }
+          });
+          if (auth.currentUser) {
+            window._fbUid = auth.currentUser.uid;
+            console.log("[Auth] Anonim giriş başarılı ✓ uid:", auth.currentUser.uid);
           }
-          window._fbUid = auth.currentUser?.uid || window._fbUid;
         } catch(authErr) {
-          console.warn("[Auth] Anonim giriş hatası (devam ediliyor):", authErr.message);
+          console.warn("[Auth] Auth hatası (devam ediliyor):", authErr.message);
         }
 
         setupRTDBListener();
