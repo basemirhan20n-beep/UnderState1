@@ -2341,6 +2341,7 @@ function App() {
   const [alliances, setAlliances] = useState(() => S.load("alliances", []));
   const [partyApplications, setPartyApplications] = useState(() => S.load("partyApplications", []));
   const [partyAlliances, setPartyAlliances] = useState(() => S.load("partyAlliances", []));
+  const [onlinePlayers, setOnlinePlayers] = useState(0);
   const [newspapers, setNewspapers] = useState(() => S.load("newspapers", []));
   const [stockMarket, setStockMarket] = useState(() => {
     const v = S.load("stockMarket", []);
@@ -4679,6 +4680,47 @@ function App() {
       }
     };
   }, []);
+  useEffect(() => {
+    if (!cu) return;
+    const setup = () => {
+      if (!window._fb?.rtdb) return;
+      const rtdb = window._fb.rtdb;
+      const gameId = window._gameId || "default";
+      const presenceRef = rtdb.ref(`games/${gameId}/presence/${cu.id}`);
+      const allPresenceRef = rtdb.ref(`games/${gameId}/presence`);
+      const connRef = rtdb.ref(".info/connected");
+      connRef.on("value", (snap) => {
+        if (!snap.val()) return;
+        presenceRef.onDisconnect().remove();
+        presenceRef.set({ username: cu.username, at: Date.now() });
+      });
+      allPresenceRef.on("value", (snap) => {
+        const val = snap.val();
+        const now2 = Date.now();
+        const count = val ? Object.values(val).filter((p) => p && now2 - (p.at || 0) < 12e4).length : 1;
+        setOnlinePlayers(count);
+      });
+      return () => {
+        presenceRef.remove().catch(() => {
+        });
+        connRef.off();
+        allPresenceRef.off();
+      };
+    };
+    let cleanup = null;
+    if (window._fbReady) {
+      cleanup = setup();
+    } else {
+      const h = () => {
+        cleanup = setup();
+      };
+      window.addEventListener("firebase-ready", h, { once: true });
+      return () => window.removeEventListener("firebase-ready", h);
+    }
+    return () => {
+      if (typeof cleanup === "function") cleanup();
+    };
+  }, [cu?.id]);
   useEffect(() => {
     const syncMsgs = () => {
       const freshSupport = S.load("supportMsgs", []);
@@ -7582,7 +7624,7 @@ ${lawList}`, "Numara", "number", { min: 1, max: activeLaws.length });
       setAllUsers((prev) => (Array.isArray(prev) ? prev : []).map((u) => u.id === user?.id ? { ...u, money: (u.money || 0) + w } : u));
     }
   };
-  return /* @__PURE__ */ React.createElement("div", { className: "app-wrap" }, /* @__PURE__ */ React.createElement("div", { className: "header" }, /* @__PURE__ */ React.createElement("div", { className: "header-left" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "logo-text" }, "UNDERSTATE"), /* @__PURE__ */ React.createElement("div", { className: "user-greeting" }, "Ho\u015F geldin, ", cu?.username || "...", " ", cu?.role === "admin" && /* @__PURE__ */ React.createElement("span", { className: "admin-badge" }, "ADMIN")))), /* @__PURE__ */ React.createElement("div", { className: "header-stats" }, cu && (() => {
+  return /* @__PURE__ */ React.createElement("div", { className: "app-wrap" }, /* @__PURE__ */ React.createElement("div", { className: "header" }, /* @__PURE__ */ React.createElement("div", { className: "header-left" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "logo-text" }, "UNDERSTATE"), /* @__PURE__ */ React.createElement("div", { className: "user-greeting", style: { display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" } }, "Ho\u015F geldin, ", cu?.username || "...", " ", cu?.role === "admin" && /* @__PURE__ */ React.createElement("span", { className: "admin-badge" }, "ADMIN"), onlinePlayers > 0 && /* @__PURE__ */ React.createElement("span", { className: "online-badge" }, /* @__PURE__ */ React.createElement("span", { className: "dot" }), onlinePlayers, " \xE7evrimi\xE7i")))), /* @__PURE__ */ React.createElement("div", { className: "header-stats" }, cu && (() => {
     const xpData = getUserXP(cu.username);
     const tier = getPrestigeTier(xpData.prestige || 0);
     const elPhase = electionState.phase;
