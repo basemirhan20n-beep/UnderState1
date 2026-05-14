@@ -11661,7 +11661,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                         updateUser({money:(cu.money||0)-3000000});
                         addFeed(`🏰 ${cu.username} '${name}' kalesini kurdu!`,"economy",cu.username);
                         notify(`✅ ${name} kuruldu! -₺3,000,000`);
-                      }}>🏰 Kale Kur (₺3,000,000)</button>
+                      }}>YAKINDA AKTİF EDİLECEKTİR</button>
                     </div>
                   )}
                   {userCastle&&(
@@ -18774,7 +18774,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                       updateUser({money:(cu.money||0)-3000000});
                       addFeed(`🏰 ${cu.username} '${name}' kalesini kurdu!`,"economy",cu.username);
                       notify(`✅ ${name} kuruldu! -₺3,000,000`);
-                    }}>🏰 Kale Kur (₺3,000,000)</button>
+                    }}>YAKINDA AKTİF EDİLECEKTİR</button>
                   </div>
                 )}
                 {myC&&(
