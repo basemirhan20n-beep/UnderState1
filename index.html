@@ -603,10 +603,14 @@ function idbSet(key, val, cb) {
 
 function execCode(code) {
   try {
-    var s = document.createElement('script');
-    s.textContent = code;
+    var blob = new Blob([code], { type: 'application/javascript' });
+    var url  = URL.createObjectURL(blob);
+    var s    = document.createElement('script');
+    s.src    = url;
+    s.onload = function() { URL.revokeObjectURL(url); };
+    s.onerror = function() { URL.revokeObjectURL(url); _showError('Kod yuklenemedi'); };
     document.body.appendChild(s);
-  } catch(e) { _showError('Kod çalıştırılamadı: ' + e.message); }
+  } catch(e) { _showError('Kod calistirilamadi: ' + e.message); }
 }
 
 // Fetch src/app.js (pre-compiled), cache in IDB
