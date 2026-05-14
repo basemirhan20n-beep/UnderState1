@@ -6851,7 +6851,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
         <style>{`@media(max-width:900px){#mobile-nav{display:none!important;}}`}</style>
 
       {/* CONTENT */}
-      <div className="content" id="page-content-top" style={{paddingBottom:"var(--content-pb,1rem)"}}>
+      <div className="content text-[11px]" id="page-content-top" style={{paddingBottom:"var(--content-pb,1rem)"}}>
 
         {/* ===== DASHBOARD (sadece desktop) ===== */}
                 {currentPage==="dashboard"&&!isMobile()&&(()=>{

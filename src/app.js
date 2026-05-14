@@ -7816,7 +7816,7 @@ ${lawList}`, "Numara", "number", { min: 1, max: activeLaws.length });
   }, style: { position: "relative" } }, /* @__PURE__ */ React.createElement("div", { className: "nav-icon" }, n.icon), /* @__PURE__ */ React.createElement("div", { className: "nav-label" }, n.label), /* @__PURE__ */ React.createElement("span", { onClick: (e) => {
     e.stopPropagation();
     setFavoritePages((prev) => prev.includes(n.id) ? prev.filter((x) => x !== n.id) : [...prev, n.id]);
-  }, style: { position: "absolute", top: 3, right: 4, fontSize: "0.65rem", color: favoritePages.includes(n.id) ? "#FFD700" : "rgba(255,255,255,0.15)", cursor: "pointer" } }, "\u2605")))), /* @__PURE__ */ React.createElement("style", null, `@media(max-width:900px){#mobile-nav{display:none!important;}}`), /* @__PURE__ */ React.createElement("div", { className: "content", id: "page-content-top", style: { paddingBottom: "var(--content-pb,1rem)" } }, currentPage === "dashboard" && !isMobile() && (() => {
+  }, style: { position: "absolute", top: 3, right: 4, fontSize: "0.65rem", color: favoritePages.includes(n.id) ? "#FFD700" : "rgba(255,255,255,0.15)", cursor: "pointer" } }, "\u2605")))), /* @__PURE__ */ React.createElement("style", null, `@media(max-width:900px){#mobile-nav{display:none!important;}}`), /* @__PURE__ */ React.createElement("div", { className: "content text-[11px]", id: "page-content-top", style: { paddingBottom: "var(--content-pb,1rem)" } }, currentPage === "dashboard" && !isMobile() && (() => {
     const MAIN_CARDS = [
       { icon: "\u{1F464}", title: "Profil", page: "profile", r: 59, g: 130, b: 246 },
       { icon: "\u{1F4DA}", title: "E\u011Fitim", page: "education", r: 59, g: 130, b: 246 },
