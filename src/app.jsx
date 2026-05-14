@@ -560,7 +560,7 @@ const AI_DATA = [
     { keys: ["sağlık bakanı", "doktor", "ilaç"], ans: "🏥 Sağlık Bakanı salgınları yönetir ve hastaneleri denetler. Maaşı 2 haftada bir 80.000 TL'dir (+100 UC). Üniversite mezunu olunmalıdır." },
     { keys: ["vali", "valilik"], ans: "🏙️ Vali, atandığı şehrin güvenliğinden sorumludur. Belediye memurlarını yönetir. Maaşı aylık 120.000 TL'dir (+75 UC). Yüksek Lisans mezunu olunmalıdır." },
     { keys: ["milletvekili", "vekil", "yasa", "meclis"], ans: "🗳️ Milletvekilleri meclise yasa tasarısı sunar. Her ilde 2 vekil bulunur. Haftalık 10.000 TL (+15 UC) alırlar. Lise mezunu olmak yeterlidir." },
-    { keys: ["parti kurma", "parti nasıl", "parti kur"], ans: "⚑ Parti kurmak için 1.000.000 TL nakit ve en az 5 kurucu üye gereklidir. Kurulduğunda 100.000 TL iade edilir." },
+    { keys: ["parti kurma", "parti nasıl", "parti kur"], ans: "⚑ Parti kurmak için 1.000.000.000 TL nakit gereklidir. Kurulduğunda 100.000 TL iade edilir." },
     { keys: ["seçim", "oy kullanma", "oy nasıl"], ans: "✅ İlkokul mezunu olan herkes oy kullanabilir. En çok oyu alan parti veya aday yönetime geçer. Seçimi admin başlatır." },
     { keys: ["oduncu", "balta"], ans: "🪓 Odunculuk için 'Balta' gereklidir. 2 saatte bir yapılır ve 1.200 TL kazandırır." },
     { keys: ["madenci", "kazma"], ans: "⛏️ Madencilik için 'Kazma' gereklidir. 2 saatte bir yapılır ve 1.400 TL kazandırır." },
@@ -572,11 +572,11 @@ const AI_DATA = [
     { keys: ["holding kurma", "holding nasıl", "holding kur"], ans: "🏢 Holding kurmak için Üniversite mezunu olmalı ve 10.000.000 TL sermayeye sahip olmalısınız. Başvuru sonrası Ticaret Bakanı onayı gerekir. 24 saatte bir otomatik kar üretir." },
     { keys: ["eğitim", "okul", "diploma", "nasıl okul"], ans: "📚 Makam sahibi olmak için eğitim şarttır. İlkokuldan Profesörlüğe kadar yükselebilirsiniz. Sırası: İlkokul → Ortaokul → Lise → Üniversite → Yüksek Lisans → Doktora → Profesör." },
     { keys: ["profesör", "doktora"], ans: "🎓 Profesör olmak için 4000 eğitim puanı gerekir. Bitirince 50 UC ödül kazanırsınız." },
-    { keys: ["çete kurma", "çete nasıl", "çete kur"], ans: "🔫 Çete kurmak için 500.000 TL ve en az 2 kişi gereklidir. Kurulunca 50 silah hediye edilir. Güç = Silah × Üye × 65." },
+    { keys: ["çete kurma", "çete nasıl", "çete kur"], ans: "🔫 Çete kurmak için 500.000.000 TL + 500 UC ve en az 2 kişi gereklidir. Kurulunca 50 silah hediye edilir. Güç = Silah × Üye × 65." },
     { keys: ["soygun", "banka soygunu"], ans: "🏦 Banka soygununu sadece Çete Liderleri yapabilir. Başarılı olursa hazineden para çalar. Başarısız olunursa hapis riski vardır." },
     { keys: ["suikast"], ans: "☠️ Suikast düzenlemek 500.000 TL'dir. Aile Operasyon Lideri veya Aile Lideri olmanız gerekir. %45 başarı şansı vardır. Başarılı olursa hedef makamını kaybeder." },
     { keys: ["polis baskını", "illegal pazar", "emniyet"], ans: "🚔 Emniyet Müdürü illegal pazara baskın başlatabilir. Başarılı olursa pazardaki tüm silahlara el konulur ve hazineye 500.000 TL aktarılır." },
-    { keys: ["aile", "aile kurma", "aile kur"], ans: "👪 Aile kurmak için 5.000.000 TL ve 100 UC gereklidir. Aileler casusluk, suikast ve siyasete etki gibi güçlü yeteneklere sahiptir." },
+    { keys: ["aile", "aile kurma", "aile kur"], ans: "👪 Aile kurmak için 500.000.000 TL ve 500 UC gereklidir. Aileler casusluk, suikast ve siyasete etki gibi güçlü yeteneklere sahiptir." },
     { keys: ["casusluk", "casus", "istihbarat"], ans: "🕵️ Casusluk işlemi 50.000 TL'dir. Bir aileye üye olmanız gerekir. Hedefin para miktarı, makamı ve parti bilgilerini öğrenebilirsiniz." },
     { keys: ["banka", "faiz", "mevduat"], ans: "🏦 Bankaya para yatırdığınızda günde %5 faiz kazanırsınız. 24 saatte bir otomatik işlenir. Kredi başvurusunda max 100.000 TL alınabilir." },
     { keys: ["para kazanma", "nasıl para", "gelir"], ans: "💵 Para kazanmanın yolları: 1) İş yapmak (Fırıncı, Hamal, Oduncu vb.) 2) Holding kar payı (24 saatte bir) 3) Devlet maaşı 4) Bankada faiz 5) Borsa hissesi." },
@@ -8365,7 +8365,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                       <div style={{fontSize:"0.78rem",marginTop:"0.4rem"}}>Yeni parti kurmak için önce mevcut partinizden ayrılmanız gerekir.</div>
                     </div>
                   ):(
-                    <button className="btn btn-primary" style={{width:"100%",background:"linear-gradient(135deg,#8B5CF6,#6D28D9)",color:"#fff",boxShadow:"0 4px 16px rgba(139,92,246,0.35)"}} onClick={createParty}>⚑ PARTİ KUR (₺1,000,000)</button>
+                    <button className="btn btn-primary" style={{width:"100%",background:"linear-gradient(135deg,#8B5CF6,#6D28D9)",color:"#fff",boxShadow:"0 4px 16px rgba(139,92,246,0.35)"}} onClick={createParty}>⚑ PARTİ KUR (₺1.000.000.000)</button>
                   )}
                 </div>
               )}
@@ -8381,10 +8381,10 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 <div className="card-title">👪 Aile Kur</div>
                 <div style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"1rem"}}>
                   Aileler seçimlere etki eden güçte olmalıdır. Legal ve illegal yollarla güçlenebilirler.<br/>
-                  <strong>Şartlar:</strong> 5.000.000 TL + 100 UC<br/>
+                  <strong>Şartlar:</strong> 500.000.000 TL + 500 UC<br/>
                   <strong>Makamlar:</strong> Aile Lideri, Lider Yardımcısı, Operasyon Birimi Yöneticisi, Aile Elçisi
                 </div>
-                <button className="btn btn-primary" onClick={createFamily}>+ AİLE KUR (₺5,000,000 + 100 UC)</button>
+                <button className="btn btn-primary" onClick={createFamily}>+ AİLE KUR (₺500.000.000 + 500 UC)</button>
               </div>
             )}
             {families.length===0&&<div className="card" style={{textAlign:"center",color:"#aaa"}}>Henüz kurulmuş aile yok.</div>}
@@ -8433,11 +8433,11 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
               <div className="card" style={{marginBottom:"1rem"}}>
                 <div className="card-title">🔫 Çete Kur</div>
                 <div style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"1rem"}}>
-                  <strong>Şartlar:</strong> Min 2 kişi + 500.000 TL<br/>
+                  <strong>Şartlar:</strong> Min 2 kişi + 500.000.000 TL + 500 UC<br/>
                   Başlangıçta 50 silah hediye edilir.<br/>
                   Çete gücü = Silah sayısı × Üye sayısı × 65
                 </div>
-                <button className="btn btn-primary" onClick={createGang}>+ ÇETE KUR (₺500,000)</button>
+                <button className="btn btn-primary" onClick={createGang}>+ ÇETE KUR (₺500.000.000 + 500 UC)</button>
               </div>
             )}
             {userGang&&(
@@ -13394,8 +13394,6 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
           </div>
         )}
 
-        )}
-
         {/* ===== İSTATİSTİK & GRAFİKLER ===== */}
         {currentPage==="istatistik"&&(()=>{
           // === CANLI İSTATİSTİK SİSTEMİ ===
@@ -13773,7 +13771,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                   {!myClub&&(
                     <div className="card" style={{marginBottom:"1rem",borderColor:"rgba(16,185,129,0.3)"}}>
                       <div className="card-title" style={{color:"#10B981"}}>⚽ Kulüp Kur</div>
-                      <p style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>Kendi futbol kulübünü kur, oyuncular al, liglerde oyna ve şampiyon ol! Kurulum ücreti: ₺2,000,000</p>
+                      <p style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>Kendi futbol kulübünü kur, oyuncular al, liglerde oyna ve şampiyon ol! Kurulum ücreti: ₺2.000.000.000 + 3 sponsor şirket</p>
                       <button className="btn btn-green" onClick={async()=>{
                         if(isInIllegal(cu)) return notify(illegalBlockMsg());
                         if((cu.money||0)<2000000) return notify("❌ ₺2,000,000 gerekli!");
@@ -13798,7 +13796,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                         updateUser({money:(cu.money||0)-2000000});
                         setFootballClubs(prev=>[...prev,club]);
                         notify(`✅ ${name} kuruldu! ₺500,000 başlangıç bütçesi verildi.`);
-                      }}>⚽ Kulüp Kur (₺2,000,000)</button>
+                      }}>⚽ Kulüp Kur (₺2.000.000.000)</button>
                     </div>
                   )}
                   {myClub&&(
