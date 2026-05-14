@@ -34,7 +34,7 @@ const S = {
       }
     } else {
       window._fbPendingWrites[k] = v;
-      window._fbScheduleFlush && window._fbScheduleFlush();
+      window._fbScheduleFlush && window._fbScheduleFlush(k);
     }
   },
   // Yükle: localStorage'dan (senkron, React init için gerekli)
