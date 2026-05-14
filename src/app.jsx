@@ -18764,7 +18764,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                   <div className="card" style={{textAlign:"center",marginBottom:"1rem",borderColor:"rgba(255,215,0,0.3)"}}>
                     <div style={{fontSize:"3rem",marginBottom:"0.5rem"}}>🏰</div>
                     <div style={{fontFamily:"Syne,sans-serif",color:"#FFD700",fontSize:"1.2rem",marginBottom:"0.5rem"}}>Kale Kur</div>
-                    <div style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>₺3,000,000 kurulum ücreti · Günlük ₺50,000 gelir · Diğer kalelerle savaşabilir · Seviye atlayarak güçlenebilirsiniz</div>
+                    <div style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>ÇOK YAKINDA...</div>
                     <button className="btn btn-gold" style={{color:"#000"}} onClick={async()=>{
                       if((cu.money||0)<3000000)return notify("❌ ₺3,000,000 gerekli!");
                       const name=await gPrompt("🏰 Kale","Kalenizin adını girin:","Demir Kule");
