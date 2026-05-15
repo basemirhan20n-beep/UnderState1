@@ -338,7 +338,7 @@ function Spinner({ size=20 }) {
 
 function ProgressBar({ pct, color='#3B82F6', h=6 }) {
   return (
-    <div style={{background:'rgba(255,255,255,0.07)',borderRadius:'100px',height:h,overflow:'hidden'}}>
+    <div style={{background:'rgba(0,0,0,0.08)',borderRadius:'100px',height:h,overflow:'hidden'}}>
       <div style={{height:'100%',width:`${Math.max(0,Math.min(100,pct))}%`,background:`linear-gradient(90deg,${color},${color}cc)`,borderRadius:'100px',transition:'width 0.5s ease'}} />
     </div>
   );
@@ -351,7 +351,7 @@ function Tag({ children, color='blue' }) {
 }
 
 function Card({ children, style={}, onClick }) {
-  return <div style={{background:'rgba(11,21,39,0.85)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:'16px',padding:'1rem',...style}} onClick={onClick}>{children}</div>;
+  return <div style={{background:'#FFFFFF',border:'1px solid rgba(0,0,0,0.06)',borderRadius:'16px',padding:'1rem',boxShadow:'0 2px 8px rgba(0,0,0,0.06)',...style}} onClick={onClick}>{children}</div>;
 }
 
 function Avatar({ profile, size=40 }) {
@@ -389,10 +389,10 @@ function Header({ profile, notifCount, onNotif, page }) {
   const onlineCnt = useOnlineCount();
   const lvl = getLevelInfo(profile?.xp || 0);
   return (
-    <div style={{position:'sticky',top:0,zIndex:100,background:'rgba(6,12,24,0.97)',borderBottom:'1px solid rgba(255,255,255,0.04)',backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)'}}>
+    <div style={{position:'sticky',top:0,zIndex:100,background:'#FFFFFF',borderBottom:'1px solid rgba(0,0,0,0.08)',boxShadow:'0 1px 8px rgba(0,0,0,0.06)'}}>
       {/* Ticker */}
       <div style={{height:'22px',background:'rgba(0,0,0,0.4)',borderBottom:'1px solid rgba(255,255,255,0.04)',overflow:'hidden',display:'flex',alignItems:'center'}}>
-        <div style={{whiteSpace:'nowrap',fontSize:'0.58rem',fontFamily:"'JetBrains Mono',monospace",color:'#3B4E63',animation:'ticker 35s linear infinite',paddingLeft:'100%'}}>
+        <div style={{whiteSpace:'nowrap',fontSize:'0.58rem',fontFamily:"'JetBrains Mono',monospace",color:'#94A3B8',animation:'ticker 35s linear infinite',paddingLeft:'100%'}}>
           🟢 {onlineCnt} çevrimiçi oyuncu &nbsp;•&nbsp; 💰 Borsa: TECH +2.4% &nbsp;•&nbsp; 🏛️ Parlamento: Vergi yasası oylaması &nbsp;•&nbsp; ⚔️ Aktif savaş: 3 &nbsp;•&nbsp; 📊 GSYİH: ₺4.8T &nbsp;•&nbsp; 🌾 Tarım sezonu aktif &nbsp;•&nbsp; 🟢 {onlineCnt} çevrimiçi oyuncu &nbsp;•&nbsp; 💰 Borsa: TECH +2.4%
         </div>
       </div>
@@ -410,7 +410,7 @@ function Header({ profile, notifCount, onNotif, page }) {
             [`Lv.${lvl.lvl}`, profile?.username?.slice(0,8)||'...', '#F59E0B'],
           ].map(([val, lbl, color], i) => (
             <div key={i} style={{textAlign:'center',padding:'0.2rem 0.5rem',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRight:i<2?'none':'1px solid rgba(255,255,255,0.07)',borderRadius:i===0?'8px 0 0 8px':i===2?'0 8px 8px 0':'0'}}>
-              <div style={{fontSize:'0.48rem',color:'#3B4E63',textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:700}}>{lbl}</div>
+              <div style={{fontSize:'0.48rem',color:'#7A8FA6',textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:700}}>{lbl}</div>
               <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'0.68rem',fontWeight:700,color,lineHeight:1.3}}>{val}</div>
             </div>
           ))}
@@ -430,16 +430,11 @@ function Header({ profile, notifCount, onNotif, page }) {
 // ALT NAVİGASYON (Kaydırılabilir)
 // ═══════════════════════════════════════════════════════
 const NAV_ITEMS = [
-  { id:'home',    icon:'🏠', label:'Ana Sayfa' },
-  { id:'chat',    icon:'💬', label:'Sohbet' },
-  { id:'economy', icon:'📊', label:'Ekonomi' },
-  { id:'market',  icon:'🏪', label:'Pazar' },
-  { id:'politics',icon:'🏛️', label:'Siyaset' },
-  { id:'gang',    icon:'⚔️', label:'Çete' },
-  { id:'alliance',icon:'🤝', label:'İttifak' },
-  { id:'players', icon:'👥', label:'Oyuncular' },
-  { id:'profile', icon:'👤', label:'Profil' },
-  { id:'premium', icon:'💎', label:'Premium' },
+  { id:'home',     icon:'🏠', label:'Ana Sayfa', rgb:'59,130,246' },
+  { id:'politics', icon:'🏛️', label:'Siyaset',  rgb:'245,200,66' },
+  { id:'economy',  icon:'💰', label:'Ekonomi',   rgb:'16,185,129' },
+  { id:'chat',     icon:'💬', label:'Sosyal',    rgb:'139,92,246' },
+  { id:'world',    icon:'🌍', label:'Dünya',     rgb:'59,130,246' },
 ];
 
 function BottomNav({ page, onChange, notifMap={} }) {
@@ -452,115 +447,206 @@ function BottomNav({ page, onChange, notifMap={} }) {
     }
   }, [page]);
   return (
-    <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:900,background:'rgba(6,12,24,0.99)',borderTop:'1px solid rgba(255,255,255,0.05)',paddingBottom:'env(safe-area-inset-bottom, 0px)',backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)'}}>
-      <div ref={ref} style={{display:'flex',overflowX:'auto',scrollbarWidth:'none',WebkitOverflowScrolling:'touch',gap:'2px',padding:'5px 6px'}}>
-        <style>{`.bnav::-webkit-scrollbar{display:none}`}</style>
-        {NAV_ITEMS.map(it => (
-          <button key={it.id} onClick={() => onChange(it.id)}
-            style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'2px',padding:'0.45rem 0.65rem',borderRadius:'10px',border:`1px solid ${page===it.id?'rgba(59,130,246,0.3)':'transparent'}`,background:page===it.id?'rgba(59,130,246,0.1)':'transparent',cursor:'pointer',minWidth:'52px',flexShrink:0,WebkitTapHighlightColor:'transparent',position:'relative',transition:'all 0.15s'}}>
-            <span style={{fontSize:'1.2rem',lineHeight:1}}>{it.icon}</span>
-            <span style={{fontSize:'0.49rem',fontWeight:800,letterSpacing:'0.02em',color:page===it.id?'#60A5FA':'#3B4E63',textTransform:'uppercase',whiteSpace:'nowrap'}}>{it.label}</span>
-            {notifMap[it.id] > 0 && <span style={{position:'absolute',top:2,right:4,background:'#EF4444',color:'#fff',fontSize:'0.5rem',fontWeight:900,minWidth:'13px',height:'13px',borderRadius:'7px',display:'flex',alignItems:'center',justifyContent:'center',padding:'0 2px'}}>{notifMap[it.id]}</span>}
-          </button>
-        ))}
+    <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:900,background:'#FFFFFF',borderTop:'1px solid rgba(0,0,0,0.08)',paddingBottom:'env(safe-area-inset-bottom, 0px)',boxShadow:'0 -4px 16px rgba(0,0,0,0.08)'}}>
+      <div ref={ref} style={{display:'flex',WebkitOverflowScrolling:'touch',gap:'2px',padding:'5px 4px'}}>
+        {NAV_ITEMS.map(it => {
+          const active = page===it.id;
+          return (
+            <button key={it.id} onClick={() => onChange(it.id)}
+              style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'3px',padding:'0.4rem 0.3rem',borderRadius:'12px',border:`1px solid ${active?`rgba(${it.rgb},0.2)`:'transparent'}`,background:active?`rgba(${it.rgb},0.09)`:'transparent',cursor:'pointer',minWidth:'0',WebkitTapHighlightColor:'transparent',position:'relative',transition:'all 0.15s',margin:'1px'}}>
+              <span style={{fontSize:'1.25rem',lineHeight:1,filter:active?`drop-shadow(0 0 5px rgba(${it.rgb},0.5))`:'none',transition:'all 0.15s',transform:active?'scale(1.1)':'scale(1)'}}>{it.icon}</span>
+              <span style={{fontSize:'0.5rem',fontWeight:900,letterSpacing:'0.04em',color:active?`rgb(${it.rgb})`:'#94A3B8',textTransform:'uppercase',whiteSpace:'nowrap',transition:'color 0.15s'}}>{it.label}</span>
+              {notifMap[it.id] > 0 && <span style={{position:'absolute',top:2,right:4,background:'#EF4444',color:'#fff',fontSize:'0.5rem',fontWeight:900,minWidth:'13px',height:'13px',borderRadius:'7px',display:'flex',alignItems:'center',justifyContent:'center',padding:'0 2px'}}>{notifMap[it.id]}</span>}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 }
 
 // ═══════════════════════════════════════════════════════
-// ANA SAYFA
+// ANA SAYFA — PLATFORM DESIGN
 // ═══════════════════════════════════════════════════════
 function HomePage({ profile, onNavigate }) {
   const lvl = getLevelInfo(profile?.xp || 0);
   const onlineCnt = useOnlineCount();
   const [news] = useLs('liveNews', []);
+  const [tasks] = useLs('dailyTasks', []);
+  const [activity] = useLs('activityFeed', []);
+  const money = profile?.money || 0;
+  const fmtShort = (n) => {
+    const abs = Math.abs(n||0);
+    if (abs>=1e9)  return (n/1e9).toFixed(1)+'B';
+    if (abs>=1e6)  return (n/1e6).toFixed(1)+'M';
+    if (abs>=1e3)  return (n/1e3).toFixed(1)+'K';
+    return String(Math.floor(n||0));
+  };
 
-  const quickActions = [
-    { icon:'🌾', label:'Tarım', page:'economy', sub:'Çiftliğini yönet' },
-    { icon:'📈', label:'Borsa', page:'economy', sub:'Hisse sened' },
-    { icon:'🏪', label:'Pazar', page:'market', sub:'Al sat işlemi' },
-    { icon:'⚔️', label:'Savaş', page:'gang', sub:'Rakiple dövüş' },
-    { icon:'🗳️', label:'Seçim', page:'politics', sub:'Oy ver' },
-    { icon:'🤝', label:'İttifak', page:'alliance', sub:'Birlikte güçlen' },
-    { icon:'🎰', label:'Kumarhane', page:'economy', sub:'Şansını dene' },
-    { icon:'💼', label:'İş', page:'economy', sub:'Para kazan' },
+  const defaultTasks = [
+    { name:'Çeteye Katıl', pct: 100 },
+    { name:'Şehir Savaşına Katıl', pct: 60 },
+    { name:'Ekonomik Yatırım Yap', pct: 30 },
   ];
+  const taskList = defaultTasks;
+
+  const recentActivity = (Array.isArray(activity) ? activity : []).slice(0, 5);
 
   return (
-    <div style={{padding:'0.75rem 0.7rem 1rem'}}>
-      {/* Profil özeti */}
-      <Card style={{marginBottom:'0.75rem',background:'linear-gradient(135deg,rgba(11,21,39,0.95),rgba(15,31,54,0.9))'}}>
-        <div style={{display:'flex',alignItems:'center',gap:'0.85rem'}}>
-          <Avatar profile={profile} size={52} />
-          <div style={{flex:1,minWidth:0}}>
-            <div style={{display:'flex',alignItems:'center',gap:'0.4rem',marginBottom:'0.15rem'}}>
-              <div style={{fontWeight:800,fontSize:'1rem',color:'#E8EDF2'}}>{profile?.username || 'Oyuncu'}</div>
-              {profile?.premium && <span style={{background:'linear-gradient(90deg,#A78BFA,#7C3AED)',color:'#fff',fontSize:'0.55rem',fontWeight:800,padding:'1px 6px',borderRadius:'10px'}}>VIP</span>}
-            </div>
-            <div style={{fontSize:'0.72rem',color:'#5A7089',marginBottom:'0.35rem'}}>{lvl.title} • {profile?.city || 'İstanbul'} • Lv.{lvl.lvl}</div>
-            <ProgressBar pct={lvl.pct} color='#3B82F6' />
-            <div style={{display:'flex',justifyContent:'space-between',marginTop:'0.15rem'}}>
-              <span style={{fontSize:'0.6rem',color:'#5A7089'}}>{fmt(profile?.xp||0)} XP</span>
-              <span style={{fontSize:'0.6rem',color:'#5A7089'}}>{fmt(lvl.next.xp)} XP</span>
-            </div>
+    <div style={{padding:'0 0.75rem 1rem',background:'#F0F2F5',minHeight:'100%'}}>
+      {/* ── Welcome card (stays dark) ── */}
+      <div style={{background:'linear-gradient(135deg,#1A2744 0%,#0F1C38 100%)',borderRadius:'18px',padding:'1.2rem',marginBottom:'0.75rem',boxShadow:'0 6px 24px rgba(0,0,0,0.18)',marginTop:'0.75rem'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'0.75rem'}}>
+          <div>
+            <div style={{fontSize:'0.72rem',color:'rgba(255,255,255,0.5)',marginBottom:'0.2rem',fontWeight:600}}>Oyuncu Profili</div>
+            <div style={{fontFamily:"'Syne',sans-serif",fontSize:'1.35rem',fontWeight:900,color:'#FFFFFF'}}>Hoş Geldiniz</div>
           </div>
-          <div style={{textAlign:'right'}}>
-            <div style={{display:'inline-flex',alignItems:'center',gap:'4px',background:'rgba(16,185,129,0.1)',border:'1px solid rgba(16,185,129,0.25)',borderRadius:'20px',padding:'3px 9px'}}>
-              <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'#10B981',animation:'pulse 2s infinite'}} />
-              <span style={{fontSize:'0.65rem',fontWeight:700,color:'#10B981'}}>{onlineCnt} online</span>
-            </div>
-          </div>
+          <Avatar profile={profile} size={48} />
         </div>
-      </Card>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'0.5rem'}}>
+          {[
+            {label:'Seviye',value:lvl.lvl},
+            {label:'Prestij',value:fmtShort(profile?.meritPoints||0)},
+            {label:'Para',value:'₺'+fmtShort(money)},
+          ].map(({label,value})=>(
+            <div key={label} style={{textAlign:'center'}}>
+              <div style={{fontSize:'0.52rem',color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.07em',fontWeight:700,marginBottom:'0.15rem'}}>{label}</div>
+              <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'1.2rem',fontWeight:900,color:'#FFFFFF'}}>{value}</div>
+            </div>
+          ))}
+        </div>
+      </div>
 
-      {/* Hızlı erişim */}
-      <div style={{marginBottom:'0.75rem'}}>
-        <div style={{fontSize:'0.68rem',color:'#3B4E63',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:'0.5rem',paddingLeft:'0.25rem'}}>⚡ Hızlı Erişim</div>
+      {/* ── 2-column stat cards ── */}
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.55rem',marginBottom:'0.75rem'}}>
+        {[
+          {icon:'🔔',label:'Bildirimler',value:news.length||0,sub:'Yeni bildirim',color:'#F59E0B',page:'chat'},
+          {icon:'🏆',label:'Başarımlar',value:'38/100',sub:'Tamamlandı',color:'#F59E0B',page:'profile'},
+          {icon:'📈',label:'Ekonomi',value:'+15%',sub:'Günlük kazanç',color:'#10B981',positive:true,page:'economy'},
+          {icon:'⚡',label:'Aktivite',value:onlineCnt||247,sub:'Bugün',color:'#3B82F6',page:'players'},
+        ].map((item)=>(
+          <div key={item.label} onClick={()=>onNavigate(item.page)}
+            style={{background:'#FFFFFF',border:'1px solid rgba(0,0,0,0.06)',borderRadius:'16px',padding:'0.9rem 0.85rem',boxShadow:'0 2px 8px rgba(0,0,0,0.06)',cursor:'pointer',transition:'all 0.15s',WebkitTapHighlightColor:'transparent'}}>
+            <div style={{display:'flex',alignItems:'center',gap:'0.35rem',marginBottom:'0.35rem'}}>
+              <span style={{fontSize:'1rem'}}>{item.icon}</span>
+              <span style={{fontSize:'0.65rem',fontWeight:700,color:'#7A8FA6',textTransform:'uppercase',letterSpacing:'0.05em'}}>{item.label}</span>
+            </div>
+            <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'1.45rem',fontWeight:900,color:item.positive?'#10B981':item.color==='#3B82F6'?'#1A2233':'#1A2233',lineHeight:1,marginBottom:'0.2rem'}}>{item.value}</div>
+            <div style={{fontSize:'0.63rem',color:'#9AABBA'}}>{item.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Daily Tasks ── */}
+      <div style={{background:'#FFFFFF',border:'1px solid rgba(0,0,0,0.06)',borderRadius:'16px',padding:'1rem',marginBottom:'0.75rem',boxShadow:'0 2px 8px rgba(0,0,0,0.06)'}}>
+        <div style={{fontFamily:"'Syne',sans-serif",fontSize:'1rem',fontWeight:800,color:'#1A2233',marginBottom:'0.8rem'}}>Günlük Görevler</div>
+        {taskList.map((task,i)=>(
+          <div key={i} style={{marginBottom:i<taskList.length-1?'0.75rem':'0'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'0.3rem'}}>
+              <span style={{fontSize:'0.85rem',fontWeight:600,color:'#1A2233'}}>{task.name}</span>
+              <span style={{fontSize:'0.75rem',fontWeight:700,color:'#7A8FA6'}}>{task.pct}%</span>
+            </div>
+            <div style={{height:'7px',background:'#E8ECF0',borderRadius:'100px',overflow:'hidden'}}>
+              <div style={{height:'100%',width:`${task.pct}%`,background:`linear-gradient(90deg,${task.pct===100?'#10B981':'#3B82F6'},${task.pct===100?'#34D399':'#60A5FA'})`,borderRadius:'100px',transition:'width 0.5s ease'}} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Recent Activity ── */}
+      <div style={{background:'#FFFFFF',border:'1px solid rgba(0,0,0,0.06)',borderRadius:'16px',padding:'1rem',boxShadow:'0 2px 8px rgba(0,0,0,0.06)',marginBottom:'0.75rem'}}>
+        <div style={{fontFamily:"'Syne',sans-serif",fontSize:'1rem',fontWeight:800,color:'#1A2233',marginBottom:'0.7rem'}}>Son Aktiviteler</div>
+        {(recentActivity.length > 0 ? recentActivity : [
+          {text:'Çeteye katıldın',color:'#10B981',time:'2dk'},
+          {text:'Borsa işlemi gerçekleştirildi',color:'#3B82F6',time:'15dk'},
+          {text:'Seçim oy kullanıldı',color:'#F59E0B',time:'1sa'},
+          {text:'Yeni mesaj aldın',color:'#8B5CF6',time:'2sa'},
+        ]).slice(0,5).map((item,i,arr)=>(
+          <div key={i} style={{display:'flex',alignItems:'center',gap:'0.6rem',padding:'0.55rem 0',borderBottom:i<arr.length-1?'1px solid rgba(0,0,0,0.05)':'none'}}>
+            <div style={{width:'8px',height:'8px',borderRadius:'50%',background:item.color||'#3B82F6',flexShrink:0}} />
+            <span style={{flex:1,fontSize:'0.82rem',color:'#3B5470',fontWeight:500}}>{item.text||item.desc||item.content||'Aktivite'}</span>
+            <span style={{fontSize:'0.67rem',color:'#9AABBA'}}>{item.time||timeAgo(item.ts||item.time)}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Quick categories ── */}
+      <div style={{background:'#FFFFFF',border:'1px solid rgba(0,0,0,0.06)',borderRadius:'16px',padding:'1rem',boxShadow:'0 2px 8px rgba(0,0,0,0.06)'}}>
+        <div style={{fontFamily:"'Syne',sans-serif",fontSize:'1rem',fontWeight:800,color:'#1A2233',marginBottom:'0.75rem'}}>Hızlı Erişim</div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'0.45rem'}}>
-          {quickActions.map((a,i) => (
+          {[
+            {icon:'🌾',label:'Tarım',page:'economy'},
+            {icon:'📈',label:'Borsa',page:'economy'},
+            {icon:'🏪',label:'Pazar',page:'economy'},
+            {icon:'⚔️',label:'Savaş',page:'world'},
+            {icon:'🗳️',label:'Seçim',page:'politics'},
+            {icon:'🤝',label:'İttifak',page:'world'},
+            {icon:'🎰',label:'Kumarhane',page:'economy'},
+            {icon:'💼',label:'İş',page:'economy'},
+          ].map((a,i) => (
             <button key={i} onClick={() => onNavigate(a.page)}
-              style={{background:'rgba(15,28,48,0.9)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:'14px',padding:'0.8rem 0.4rem',display:'flex',flexDirection:'column',alignItems:'center',gap:'0.3rem',cursor:'pointer',WebkitTapHighlightColor:'transparent',transition:'all 0.15s'}}>
-              <span style={{fontSize:'1.5rem',lineHeight:1}}>{a.icon}</span>
-              <span style={{fontSize:'0.73rem',fontWeight:800,color:'#E8EDF2',textAlign:'center',lineHeight:1.2}}>{a.label}</span>
-              <span style={{fontSize:'0.57rem',color:'#3B4E63',textAlign:'center'}}>{a.sub}</span>
+              style={{background:'#F5F7FA',border:'1px solid rgba(0,0,0,0.07)',borderRadius:'14px',padding:'0.7rem 0.3rem',display:'flex',flexDirection:'column',alignItems:'center',gap:'0.25rem',cursor:'pointer',WebkitTapHighlightColor:'transparent',transition:'all 0.15s'}}>
+              <span style={{fontSize:'1.45rem',lineHeight:1}}>{a.icon}</span>
+              <span style={{fontSize:'0.65rem',fontWeight:700,color:'#3B5470',textAlign:'center',lineHeight:1.2}}>{a.label}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Stat kutucukları */}
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.5rem',marginBottom:'0.75rem'}}>
-        {[
-          ['💰','Para',fmtM(profile?.money),'#10B981'],
-          ['🏦','Banka',fmtM(profile?.bank),'#3B82F6'],
-          ['🪙','UnderCoin',fmtUC(profile?.underCoin),'#F59E0B'],
-          ['⭐','Merit',fmt(profile?.meritPoints)+'MP','#8B5CF6'],
-        ].map(([icon,lbl,val,color])=>(
-          <Card key={lbl} style={{padding:'0.75rem'}}>
-            <div style={{fontSize:'0.7rem',color:'#3B4E63',marginBottom:'0.25rem'}}>{icon} {lbl}</div>
-            <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'1rem',fontWeight:700,color}}>{val}</div>
-          </Card>
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}`}</style>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════
+// DÜNYA SAYFASI
+// ═══════════════════════════════════════════════════════
+function WorldPage({ profile, onNavigate }) {
+  const sections = [
+    { title:'⚔️ SAVAŞ & GÜÇ', color:'#EF4444', items:[
+      {icon:'⚔️',label:'PvP Savaş',page:'gang',sub:'Rakiple dövüş'},
+      {icon:'💀',label:'Çeteler',page:'gang',sub:'Yeraltı dünyası'},
+      {icon:'🏰',label:'Kale Sistemi',page:'gang',sub:'Kaleleri ele geçir'},
+      {icon:'🔥',label:'Uluslar. Savaş',page:'gang',sub:'Global çatışma'},
+      {icon:'🕵️',label:'Casusluk',page:'gang',sub:'Ajan operasyonları'},
+      {icon:'⚖️',label:'Mahkeme',page:'gang',sub:'Hukuk sistemi'},
+    ]},
+    { title:'🤝 İTTİFAKLAR', color:'#3B82F6', items:[
+      {icon:'🤝',label:'İttifak',page:'alliance',sub:'Güç birliği'},
+      {icon:'👪',label:'Aileler',page:'gang',sub:'Aile sistemi'},
+      {icon:'🗺️',label:'Arazi Savaşı',page:'gang',sub:'Toprak kontrolü'},
+      {icon:'🌍',label:'Dünya Haritası',page:'alliance',sub:'Global görünüm'},
+      {icon:'🚔',label:'Polis',page:'gang',sub:'Emniyet'},
+      {icon:'⚔️',label:'Paralı Ordu',page:'gang',sub:'Özel kuvvetler'},
+    ]},
+    { title:'👥 OYUNCULAR', color:'#10B981', items:[
+      {icon:'👥',label:'Tüm Oyuncular',page:'players',sub:'Topluluk'},
+      {icon:'🏆',label:'Liderlik',page:'players',sub:'En iyiler'},
+      {icon:'🌐',label:'Dünya Sohbeti',page:'chat',sub:'Global chat'},
+      {icon:'📊',label:'İstatistikler',page:'profile',sub:'Sıralamalar'},
+      {icon:'💎',label:'Premium',page:'premium',sub:'VIP üyelik'},
+      {icon:'📰',label:'Gazete',page:'chat',sub:'Haberler'},
+    ]},
+  ];
+  return (
+    <div style={{padding:'0 0.75rem 1rem',background:'#F0F2F5',minHeight:'100%'}}>
+      <div style={{paddingTop:'0.75rem'}}>
+        {sections.map((sec,si)=>(
+          <div key={si} style={{background:'#FFFFFF',border:'1px solid rgba(0,0,0,0.06)',borderRadius:'16px',padding:'1rem',marginBottom:'0.65rem',boxShadow:'0 2px 8px rgba(0,0,0,0.06)'}}>
+            <div style={{fontFamily:"'Syne',sans-serif",fontSize:'0.75rem',fontWeight:800,color:sec.color,letterSpacing:'0.1em',marginBottom:'0.7rem'}}>{sec.title}</div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'0.45rem'}}>
+              {sec.items.map((item,i)=>(
+                <button key={i} onClick={()=>onNavigate(item.page)}
+                  style={{background:'#F5F7FA',border:'1px solid rgba(0,0,0,0.07)',borderRadius:'12px',padding:'0.75rem 0.3rem',display:'flex',flexDirection:'column',alignItems:'center',gap:'0.25rem',cursor:'pointer',WebkitTapHighlightColor:'transparent',transition:'all 0.15s'}}>
+                  <span style={{fontSize:'1.5rem',lineHeight:1}}>{item.icon}</span>
+                  <span style={{fontSize:'0.65rem',fontWeight:700,color:'#1A2233',textAlign:'center',lineHeight:1.2}}>{item.label}</span>
+                  <span style={{fontSize:'0.55rem',color:'#9AABBA',textAlign:'center'}}>{item.sub}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
-
-      {/* Canlı haberler */}
-      {news.length > 0 && (
-        <div>
-          <div style={{fontSize:'0.68rem',color:'#3B4E63',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:'0.5rem',paddingLeft:'0.25rem'}}>📰 Canlı Haberler</div>
-          {news.slice(-5).reverse().map((n,i) => (
-            <div key={i} style={{background:'rgba(11,21,39,0.8)',border:'1px solid rgba(255,255,255,0.04)',borderRadius:'12px',padding:'0.7rem 0.85rem',marginBottom:'0.4rem',display:'flex',gap:'0.6rem',alignItems:'flex-start'}}>
-              <span style={{fontSize:'1rem',flexShrink:0}}>{n.icon||'📌'}</span>
-              <div>
-                <div style={{fontSize:'0.84rem',color:'#D0E0F0',fontWeight:600,lineHeight:1.4}}>{n.content||n.text}</div>
-                <div style={{fontSize:'0.65rem',color:'#3B4E63',marginTop:'0.2rem'}}>{timeAgo(n.ts||n.time)}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}`}</style>
     </div>
   );
 }
@@ -1839,7 +1925,7 @@ function App() {
       <Header profile={profile} notifCount={notifCount} onNotif={()=>setNotifOpen(true)} page={page} />
 
       {/* Main scrollable content */}
-      <div style={{flex:1,overflowY:'auto',WebkitOverflowScrolling:'touch',paddingBottom:'calc(70px + env(safe-area-inset-bottom, 0px))'}}>
+      <div style={{flex:1,overflowY:'auto',WebkitOverflowScrolling:'touch',paddingBottom:'calc(70px + env(safe-area-inset-bottom, 0px))',background:'#F0F2F5'}}>
         {page==='home'     && <HomePage     {...pageProps} />}
         {page==='chat'     && <ChatPage     profile={profile} />}
         {page==='economy'  && <EconomyPage  {...pageProps} />}
@@ -1847,6 +1933,7 @@ function App() {
         {page==='politics' && <PoliticsPage {...pageProps} />}
         {page==='gang'     && <GangPage     {...pageProps} />}
         {page==='alliance' && <AlliancePage {...pageProps} />}
+        {page==='world'    && <WorldPage    profile={profile} onNavigate={setPage} />}
         {page==='players'  && <PlayersPage  profile={profile} />}
         {page==='profile'  && <ProfilePage  {...pageProps} onLogout={handleLogout} />}
         {page==='premium'  && <PremiumPage  {...pageProps} />}
@@ -1866,7 +1953,7 @@ function App() {
 const styleEl = document.createElement('style');
 styleEl.textContent = `
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #060C18; color: #E8EDF2; font-family: 'DM Sans', sans-serif; overflow: hidden; }
+  body { background: #F0F2F5; color: #1A2233; font-family: 'DM Sans', sans-serif; overflow: hidden; }
   ::-webkit-scrollbar { width: 3px; height: 3px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.3); border-radius: 10px; }

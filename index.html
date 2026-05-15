@@ -598,7 +598,7 @@ _advanceBar(10, 'Başlatılıyor...');
 
 // ── IndexedDB cache (fast reload after first visit) ──────────────────────────
 var IDB_NAME = 'us_cache_v1';
-var IDB_KEY  = 'compiled_v96_rtdb';
+var IDB_KEY  = 'compiled_v98_babel';
 
 function idbGet(key, cb) {
   try {
@@ -628,7 +628,15 @@ function idbSet(key, val, cb) {
 
 function execCode(code) {
   try {
-    var blob = new Blob([code], { type: 'application/javascript' });
+    var transformed = code;
+    if (window.Babel) {
+      try {
+        transformed = Babel.transform(code, { presets: ['react'] }).code;
+      } catch(te) {
+        console.warn('Babel transform failed, trying raw:', te.message);
+      }
+    }
+    var blob = new Blob([transformed], { type: 'application/javascript' });
     var url  = URL.createObjectURL(blob);
     var s    = document.createElement('script');
     s.src    = url;
@@ -676,6 +684,12 @@ function boot() {
   });
 }
 </script>
+
+<!-- Babel (JSX transform) -->
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.24.7/babel.min.js"
+  crossorigin="anonymous"
+  onerror="console.warn('Babel CDN failed')"
+  onload="_advanceBar(25,'Babel ✓')"></script>
 
 <!-- React 18 -->
 <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"

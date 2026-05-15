@@ -22351,18 +22351,17 @@ if(cityDevTab==="build") return(
       {/* ===== MOBİL ALT NAVİGASYON — 4 SEKME ===== */}
       <div className="mobile-bottom-nav">
         {[
-          {id:"m_home",     icon:"🏠", label:t("home"),     rgb:"59,130,246"},
-          {id:"m_siyaset",  icon:"🏛️", label:t("politics"),rgb:"245,200,66"},
-          {id:"m_ekonomi",  icon:"💰", label:t("economic"), rgb:"16,217,160"},
-          {id:"m_yeralti",  icon:"⚔️", label:t("power"),   rgb:"239,68,68"},
-          {id:"m_sosyal",   icon:"💬", label:t("social"),   rgb:"139,92,246"},
-          {id:"m_menu",     icon:"☰",  label:t("menu"),     rgb:"148,163,184"},
+          {id:"m_home",     icon:"🏠", label:"Ana Sayfa",  rgb:"59,130,246"},
+          {id:"m_siyaset",  icon:"🏛️", label:"Siyaset",    rgb:"245,200,66"},
+          {id:"m_ekonomi",  icon:"💰", label:"Ekonomi",     rgb:"16,185,129"},
+          {id:"m_sosyal",   icon:"💬", label:"Sosyal",      rgb:"139,92,246"},
+          {id:"m_dunya",    icon:"🌍", label:"Dünya",       rgb:"59,130,246"},
         ].map(tab=>{
           const isActive = currentPage===tab.id||
             (tab.id==="m_siyaset"&&["government","parliament","election_v4","election","parties","laws","anket","scandal","budget","alliances","interior","finance","trade","health","adalet","campaign","prestige","taxinfo","positionpanel","referandum","belediye","sehiryonetim"].includes(currentPage))||
             (tab.id==="m_ekonomi"&&["holdings","bank","stock","market2","mining","fabrika","commodity","rawchain","tezgah","ixport","auction","crafting","luxury","sigorta","lottery","ortakliisler","vergimuhasebe","jobs","realestate","tarim","sehirsavasi","hayvan","restaurant"].includes(currentPage))||
-            (tab.id==="m_yeralti"&&["gangs","families","arazi","pvp","spy","court","police","paraliordu","kale","intlwar","army","prison","worldmap"].includes(currentPage))||
-            (tab.id==="m_sosyal"&&["social","globalchat","sehirchat","dm","members","friends","newspaper","activityfeed","profile","education","schools","dailytasks","achievements","sinav","flash","techtree","happiness","istatistik","events","eventlist","casino","futbol","muzik","notifcenter","history","wiki","restaurant"].includes(currentPage));
+            (tab.id==="m_sosyal"&&["social","globalchat","sehirchat","dm","members","friends","newspaper","activityfeed","profile","education","schools","dailytasks","achievements","sinav","flash","techtree","happiness","istatistik","events","eventlist","casino","futbol","muzik","notifcenter","history","wiki"].includes(currentPage))||
+            (tab.id==="m_dunya"&&["gangs","families","arazi","pvp","spy","court","police","paraliordu","kale","intlwar","army","prison","worldmap","alliances","m_menu"].includes(currentPage));
           return (
             <div key={tab.id}
               className={`mbn-item${isActive?" active":""}`}

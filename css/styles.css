@@ -1134,3 +1134,290 @@
         0%,100% { opacity:1; box-shadow: 0 0 0 0 rgba(16,185,129,0.5); }
         50% { opacity:0.7; box-shadow: 0 0 0 4px rgba(16,185,129,0); }
     }
+
+    /* ═══════════════════════════════════════════════════════
+       OYUN PLATFORMU — PLATFORM LIGHT THEME
+       Mobile-first clean design matching platform UI
+       ═══════════════════════════════════════════════════════ */
+
+    @media(max-width:900px) {
+        /* ── Base ── */
+        body {
+            background: #F0F2F5 !important;
+            background-attachment: fixed !important;
+            color: #1A2233 !important;
+        }
+
+        /* ── App wrap ── */
+        .app-wrap { background: #F0F2F5 !important; }
+
+        /* ── Mobile page ── */
+        .mobile-page { background: #F0F2F5 !important; }
+
+        /* ── Content areas ── */
+        .content, .page-content { background: #F0F2F5 !important; }
+
+        /* ── Scrollbar on light bg ── */
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15) !important; }
+
+        /* ── Sidebar main ── */
+        .sidebar-main { background: #F0F2F5 !important; }
+
+        /* ── Cards light ── */
+        .card {
+            background: #FFFFFF !important;
+            border: 1px solid rgba(0,0,0,0.06) !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07) !important;
+            color: #1A2233 !important;
+        }
+        .card:hover { border-color: rgba(59,130,246,0.25) !important; box-shadow: 0 4px 16px rgba(0,0,0,0.1) !important; }
+        .card-title { color: #1A2233 !important; }
+
+        /* ── mp-section light ── */
+        .mp-section {
+            background: #FFFFFF !important;
+            border: 1px solid rgba(0,0,0,0.06) !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+        }
+        .mp-section-title { color: #3B82F6 !important; }
+
+        /* ── mp-card light ── */
+        .mp-card {
+            background: #FFFFFF !important;
+            border: 1px solid rgba(0,0,0,0.07) !important;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06) !important;
+            color: #1A2233 !important;
+        }
+        .mp-card:active { background: rgba(59,130,246,0.06) !important; }
+        .mp-card-label { color: #1A2233 !important; }
+        .mp-card-sub { color: #7A8FA6 !important; }
+
+        /* ── mp-stat-card light ── */
+        .mp-stat-card {
+            background: #FFFFFF !important;
+            border: 1px solid rgba(0,0,0,0.07) !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+        }
+
+        /* ── mp header light ── */
+        .mp-header {
+            background: #FFFFFF !important;
+            border-bottom: 1px solid rgba(0,0,0,0.07) !important;
+            backdrop-filter: none !important;
+        }
+        .mp-header-title { color: #1A2233 !important; }
+        .mp-icon-btn {
+            background: #F5F7FA !important;
+            border: 1px solid rgba(0,0,0,0.1) !important;
+            color: #3B5470 !important;
+        }
+
+        /* ── mp-menu-row light ── */
+        .mp-menu-row {
+            background: #FFFFFF !important;
+            border: 1px solid rgba(0,0,0,0.07) !important;
+            color: #1A2233 !important;
+        }
+        .mp-menu-row:hover { border-color: rgba(59,130,246,0.2) !important; background: #F8FAFF !important; }
+        .mp-menu-row-label { color: #1A2233 !important; }
+        .mp-menu-row-arrow { color: #B0C0D0 !important; }
+
+        /* ── mp-list light ── */
+        .mp-list-row { border-bottom: 1px solid rgba(0,0,0,0.05) !important; }
+        .mp-list-name { color: #1A2233 !important; }
+        .mp-list-sub { color: #7A8FA6 !important; }
+
+        /* ── mp-member light ── */
+        .mp-member-row { border-bottom: 1px solid rgba(0,0,0,0.05) !important; }
+        .mp-member-name { color: #1A2233 !important; }
+
+        /* ── mp-attack-row light ── */
+        .mp-attack-row {
+            background: #FFFFFF !important;
+            border: 1px solid rgba(0,0,0,0.07) !important;
+        }
+
+        /* ── char-top-card light ── */
+        .char-top-card {
+            background: #FFFFFF !important;
+            border: 1px solid rgba(0,0,0,0.07) !important;
+        }
+
+        /* ── menu-cat light ── */
+        .menu-cat {
+            background: #FFFFFF !important;
+            border: 1px solid rgba(0,0,0,0.07) !important;
+        }
+        .menu-cat-title { color: #3B82F6 !important; }
+
+        /* ── menu-btn light ── */
+        .menu-btn {
+            background: #F5F7FA !important;
+            border: 1px solid rgba(0,0,0,0.08) !important;
+            color: #1A2233 !important;
+        }
+        .menu-btn:active { background: rgba(59,130,246,0.08) !important; }
+
+        /* ── Buttons ── */
+        .btn-gray {
+            background: #F5F7FA !important;
+            color: #3B5470 !important;
+            border: 1px solid rgba(0,0,0,0.1) !important;
+        }
+        .btn-gray:hover { background: #EAEEF3 !important; }
+
+        /* ── Tags light ── */
+        .tag-gray { background: #F5F7FA !important; color: #5E7A94 !important; border: 1px solid rgba(0,0,0,0.1) !important; }
+
+        /* ── Divider light ── */
+        .divider { border-color: rgba(0,0,0,0.07) !important; }
+
+        /* ── Progress light ── */
+        .progress-wrap { background: rgba(0,0,0,0.08) !important; }
+
+        /* ── Tab row light ── */
+        .tab-row { background: #EAEEF3 !important; border-color: rgba(0,0,0,0.07) !important; }
+        .tab-btn:not(.active) { color: #7A8FA6 !important; }
+        .tab-btn:not(.active):hover { background: rgba(0,0,0,0.04) !important; color: #3B5470 !important; }
+
+        /* ── Form inputs light ── */
+        .form-input, .form-select {
+            background: #FFFFFF !important;
+            border: 1px solid rgba(0,0,0,0.12) !important;
+            color: #1A2233 !important;
+        }
+        .form-input:focus { border-color: rgba(59,130,246,0.6) !important; background: #FBFDFF !important; }
+        .form-input::placeholder { color: #A0B0C0 !important; }
+
+        /* ── Search bar light ── */
+        .search-bar {
+            background: #FFFFFF !important;
+            border: 1px solid rgba(0,0,0,0.1) !important;
+        }
+        .search-bar input { color: #1A2233 !important; }
+        .search-results { background: #FFFFFF !important; }
+
+        /* ── Modal light ── */
+        .modal {
+            background: #FFFFFF !important;
+            border: 1px solid rgba(0,0,0,0.08) !important;
+        }
+
+        /* ── Notification light ── */
+        .notification {
+            background: rgba(255,255,255,0.98) !important;
+            color: #1A2233 !important;
+            border-color: rgba(59,130,246,0.3) !important;
+            border-left-color: var(--accent) !important;
+        }
+
+        /* ── Info box light ── */
+        .info-box {
+            background: rgba(245,200,66,0.08) !important;
+            border: 1px solid rgba(245,200,66,0.25) !important;
+        }
+
+        /* ── Stat box light ── */
+        .stat-box {
+            background: #FFFFFF !important;
+            border: 1px solid rgba(0,0,0,0.07) !important;
+        }
+        .stat-box:hover { border-color: rgba(59,130,246,0.2) !important; }
+        .stat-box .lbl { color: #7A8FA6 !important; }
+
+        /* ── mp-wrap padding ── */
+        .mp-wrap { background: #F0F2F5 !important; }
+    }
+
+    /* ═══ BOTTOM NAV — PLATFORM STYLE ═══ */
+    @media(max-width:900px) {
+        .mobile-bottom-nav {
+            background: #FFFFFF !important;
+            border-top: 1px solid rgba(0,0,0,0.08) !important;
+            box-shadow: 0 -4px 16px rgba(0,0,0,0.08) !important;
+            height: 64px !important;
+        }
+        .mbn-item {
+            border-radius: 12px !important;
+            margin: 6px 3px !important;
+            border: 1px solid transparent !important;
+            transition: all 0.18s ease !important;
+        }
+        .mbn-item.active {
+            background: rgba(59,130,246,0.08) !important;
+            border-color: rgba(59,130,246,0.18) !important;
+        }
+        .mbn-icon { font-size: 1.3rem !important; }
+        .mbn-label {
+            font-size: 0.53rem !important;
+            color: #94A3B8 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.04em !important;
+        }
+        .mbn-item.active .mbn-label { color: var(--accent) !important; font-weight: 900 !important; }
+        .mbn-item:active { transform: scale(0.88) !important; }
+        .sidebar-main { padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)) !important; }
+    }
+
+    /* ═══ PLATFORM WELCOME CARD — stays dark ═══ */
+    .platform-welcome-card {
+        background: linear-gradient(135deg,#1A2744,#0F1C38) !important;
+        border: 1px solid rgba(59,130,246,0.25) !important;
+        border-radius: 18px !important;
+        padding: 1.2rem !important;
+        margin-bottom: 0.75rem !important;
+        box-shadow: 0 6px 24px rgba(0,0,0,0.18) !important;
+    }
+    .platform-welcome-name { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:900; color:#FFFFFF; }
+    .platform-welcome-sub  { font-size:0.72rem; color:rgba(255,255,255,0.5); margin-bottom:0.85rem; }
+    .platform-stat-row { display:grid; grid-template-columns:repeat(3,1fr); gap:0.5rem; }
+    .platform-stat-item { text-align:center; }
+    .platform-stat-label { font-size:0.52rem; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.07em; font-weight:700; }
+    .platform-stat-val   { font-family:'JetBrains Mono',monospace; font-size:1.1rem; font-weight:900; color:#FFFFFF; }
+
+    /* ═══ PLATFORM MINI CARDS ═══ */
+    .platform-mini-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.55rem; margin-bottom:0.75rem; }
+    .platform-mini-card {
+        background: #FFFFFF;
+        border: 1px solid rgba(0,0,0,0.06);
+        border-radius: 16px;
+        padding: 0.9rem 0.85rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        display: flex; flex-direction:column; gap:0.2rem;
+    }
+    .pmcard-header { display:flex; align-items:center; gap:0.35rem; margin-bottom:0.25rem; }
+    .pmcard-icon { font-size:1.1rem; }
+    .pmcard-label { font-size:0.68rem; font-weight:700; color:#7A8FA6; text-transform:uppercase; letter-spacing:0.05em; }
+    .pmcard-value { font-family:'JetBrains Mono',monospace; font-size:1.5rem; font-weight:900; color:#1A2233; line-height:1; }
+    .pmcard-sub { font-size:0.65rem; color:#9AABBA; }
+
+    /* ═══ PLATFORM SECTION HEADER ═══ */
+    .platform-section-title {
+        font-family:'Syne',sans-serif;
+        font-size:1rem; font-weight:800; color:#1A2233;
+        margin: 0.75rem 0 0.5rem;
+    }
+
+    /* ═══ PLATFORM TASK ROW ═══ */
+    .platform-task-row { margin-bottom:0.75rem; }
+    .platform-task-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:0.3rem; }
+    .platform-task-name { font-size:0.85rem; font-weight:600; color:#1A2233; }
+    .platform-task-pct  { font-size:0.75rem; font-weight:700; color:#7A8FA6; }
+    .platform-task-bar  { height:7px; background:#E8ECF0; border-radius:100px; overflow:hidden; }
+    .platform-task-fill { height:100%; border-radius:100px; background:linear-gradient(90deg,var(--accent),var(--accent-light)); transition:width 0.5s cubic-bezier(0.4,0,0.2,1); }
+
+    /* ═══ PLATFORM ACTIVITY ROW ═══ */
+    .platform-activity-row {
+        display:flex; align-items:center; gap:0.6rem;
+        padding:0.6rem 0; border-bottom:1px solid rgba(0,0,0,0.05);
+    }
+    .platform-activity-row:last-child { border-bottom:none; }
+    .platform-activity-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+    .platform-activity-text { flex:1; font-size:0.82rem; color:#3B5470; font-weight:500; }
+    .platform-activity-time { font-size:0.68rem; color:#9AABBA; }
+
+    /* ═══ PLATFORM NAV ICON STYLE ═══ */
+    @media(max-width:900px) {
+        .platform-mini-card { background: #FFFFFF !important; }
+        .platform-section-title { color: #1A2233 !important; }
+    }
