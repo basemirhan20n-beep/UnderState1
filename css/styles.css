@@ -1134,3 +1134,59 @@
         0%,100% { opacity:1; box-shadow: 0 0 0 0 rgba(16,185,129,0.5); }
         50% { opacity:0.7; box-shadow: 0 0 0 4px rgba(16,185,129,0); }
     }
+
+
+
+/* === 2026 Mobile overflow + safe-area hardening === */
+html, body, #root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.sidebar-main, .content-main, .content, .page-content {
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.mobile-bottom-nav, .bottom-nav {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  gap: 0.4rem;
+}
+.mobile-bottom-nav::-webkit-scrollbar, .bottom-nav::-webkit-scrollbar {
+  display: none;
+}
+.mobile-bottom-nav > *, .bottom-nav > * {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 768px) {
+  .app-wrap {
+    min-height: 100dvh;
+    padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .sidebar-main, .content-main {
+    height: auto;
+    min-height: calc(100dvh - 60px);
+    padding-bottom: calc(105px + env(safe-area-inset-bottom, 0px)) !important;
+    overscroll-behavior-y: contain;
+  }
+
+  .chat-panel, .private-chat {
+    bottom: calc(82px + env(safe-area-inset-bottom, 0px)) !important;
+    max-height: 52dvh;
+  }
+
+  .grid-2, .grid-3 {
+    grid-template-columns: 1fr;
+  }
+}

@@ -204,3 +204,89 @@ export function useOptimisticAction() {
 
   return { execute, isLoading };
 }
+
+
+/**
+ * Hook #5: useRealtimeChannel - Firebase / Socket.io / WebSocket fallback
+ */
+export function useRealtimeChannel({
+  channel = 'global',
+  socketUrl = '',
+  wsUrl = '',
+  eventName = 'sync:update',
+  enabled = true,
+} = {}) {
+  const [status, setStatus] = useState('idle');
+  const [lastPayload, setLastPayload] = useState(null);
+
+  useEffect(() => {
+    if (!enabled) return undefined;
+
+    let teardown = () => {};
+
+    const broadcastHandler = (event) => {
+      if (event?.detail?.channel && event.detail.channel !== channel) return;
+      setLastPayload(event?.detail || null);
+      setStatus('connected');
+    };
+
+    window.addEventListener(eventName, broadcastHandler);
+
+    if (window.io && socketUrl) {
+      try {
+        const socket = window.io(socketUrl, { transports: ['websocket', 'polling'] });
+        socket.on('connect', () => setStatus('connected'));
+        socket.on('disconnect', () => setStatus('disconnected'));
+        socket.on(channel, (payload) => setLastPayload(payload));
+        teardown = () => socket.close();
+      } catch (err) {
+        console.warn('[Realtime] Socket.io fallback kullanılacak:', err);
+      }
+    } else if (wsUrl) {
+      try {
+        const ws = new WebSocket(wsUrl);
+        ws.onopen = () => setStatus('connected');
+        ws.onclose = () => setStatus('disconnected');
+        ws.onmessage = (event) => {
+          try {
+            const parsed = JSON.parse(event.data);
+            if (!parsed?.channel || parsed.channel === channel) setLastPayload(parsed);
+          } catch {
+            setLastPayload({ raw: event.data, channel });
+          }
+        };
+        teardown = () => ws.close();
+      } catch (err) {
+        console.warn('[Realtime] WebSocket açılamadı:', err);
+      }
+    }
+
+    return () => {
+      window.removeEventListener(eventName, broadcastHandler);
+      teardown();
+    };
+  }, [channel, enabled, eventName, socketUrl, wsUrl]);
+
+  return { status, lastPayload };
+}
+
+/**
+ * Hook #6: useTypingStatus - chat "yazıyor" göstergesi
+ */
+export function useTypingStatus(channel = 'global') {
+  const [typingUsers, setTypingUsers] = useState([]);
+
+  useEffect(() => {
+    const key = `typing:${channel}`;
+    const handler = (event) => {
+      if (event?.detail?.key !== key) return;
+      const users = Array.isArray(event?.detail?.users) ? event.detail.users : [];
+      setTypingUsers(users);
+    };
+
+    window.addEventListener('typing-updated', handler);
+    return () => window.removeEventListener('typing-updated', handler);
+  }, [channel]);
+
+  return typingUsers;
+}
