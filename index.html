@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="UNDERSTATE">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#0A1628">
+    <meta name="theme-color" content="#0A1628" media="(prefers-color-scheme: dark)"><meta name="theme-color" content="#F0F2F5" media="(prefers-color-scheme: light)">
     <link rel="manifest" href="data:application/json,{%22name%22:%22UNDERSTATE%22,%22short_name%22:%22UNDERSTATE%22,%22display%22:%22standalone%22,%22background_color%22:%22%230A1628%22,%22theme_color%22:%22%230A1628%22}">
     <title>UNDERSTATE - Şehir &amp; Devlet Simülasyonu</title>
 
@@ -598,7 +598,7 @@ _advanceBar(10, 'Başlatılıyor...');
 
 // ── IndexedDB cache (fast reload after first visit) ──────────────────────────
 var IDB_NAME = 'us_cache_v1';
-var IDB_KEY  = 'compiled_v104_noperm';
+var IDB_KEY  = 'compiled_v105_dark';
 
 function idbGet(key, cb) {
   try {

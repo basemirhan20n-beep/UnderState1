@@ -40,6 +40,10 @@ function getLevelInfo(xp=0) {
 const AppCtx = createContext(null);
 const useApp = () => useContext(AppCtx);
 
+// ─── Dark Mode Context ────────────────────────────────
+const ThemeCtx = createContext({ dark: false, toggle: ()=>{} });
+const useTheme = () => useContext(ThemeCtx);
+
 // ═══════════════════════════════════════════════════════
 // YARDIMCI
 // ═══════════════════════════════════════════════════════
@@ -240,7 +244,7 @@ function AuthScreen({ onLogin }) {
   };
 
   return (
-    <div style={{position:'fixed',inset:0,background:'#050D1A',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',overflowY:'auto',padding:'1.5rem 1rem 3rem',minHeight:'100dvh'}}>
+    <div style={{position:'fixed',inset:0,background:'#050D1A',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',overflowY:'auto',padding:'env(safe-area-inset-top, 1.5rem) 1rem calc(env(safe-area-inset-bottom, 0px) + 3rem)',minHeight:'100dvh'}}>
       {/* Arka plan efekti */}
       <div style={{position:'fixed',inset:0,background:'radial-gradient(ellipse at 50% 20%, rgba(59,130,246,0.08) 0%, transparent 60%)',pointerEvents:'none'}} />
       <div style={{position:'fixed',top:0,left:0,right:0,height:'1px',background:'linear-gradient(90deg,transparent,rgba(59,130,246,0.4),transparent)',pointerEvents:'none'}} />
@@ -400,7 +404,14 @@ function Tag({ children, color='blue' }) {
 }
 
 function Card({ children, style={}, onClick }) {
-  return <div style={{background:'#FFFFFF',border:'1px solid rgba(0,0,0,0.06)',borderRadius:'16px',padding:'1rem',boxShadow:'0 2px 8px rgba(0,0,0,0.06)',...style}} onClick={onClick}>{children}</div>;
+  const { dark } = useTheme();
+  return <div style={{
+    background: dark ? '#1E293B' : '#FFFFFF',
+    border: dark ? '1px solid rgba(255,255,255,0.07)' : '1px solid rgba(0,0,0,0.06)',
+    borderRadius:'16px', padding:'1rem',
+    boxShadow: dark ? '0 2px 12px rgba(0,0,0,0.35)' : '0 2px 8px rgba(0,0,0,0.06)',
+    ...style
+  }} onClick={onClick}>{children}</div>;
 }
 
 function Avatar({ profile, size=40 }) {
@@ -437,8 +448,9 @@ function Btn({ children, onClick, variant='primary', size='md', disabled=false, 
 function Header({ profile, notifCount, onNotif, page }) {
   const onlineCnt = useOnlineCount();
   const lvl = getLevelInfo(profile?.xp || 0);
+  const { dark, toggle } = useTheme();
   return (
-    <div style={{position:'sticky',top:0,zIndex:100,background:'#FFFFFF',borderBottom:'1px solid rgba(0,0,0,0.08)',boxShadow:'0 1px 8px rgba(0,0,0,0.06)'}}>
+    <div style={{position:'sticky',top:0,zIndex:100,background: dark ? '#0F172A' : '#FFFFFF',borderBottom: dark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.08)',boxShadow: dark ? '0 1px 8px rgba(0,0,0,0.4)' : '0 1px 8px rgba(0,0,0,0.06)'}} >
       {/* Ticker */}
       <div style={{height:'22px',background:'rgba(0,0,0,0.4)',borderBottom:'1px solid rgba(255,255,255,0.04)',overflow:'hidden',display:'flex',alignItems:'center'}}>
         <div style={{whiteSpace:'nowrap',fontSize:'0.58rem',fontFamily:"'JetBrains Mono',monospace",color:'#94A3B8',animation:'ticker 35s linear infinite',paddingLeft:'100%'}}>
@@ -458,13 +470,16 @@ function Header({ profile, notifCount, onNotif, page }) {
             [fmtUC(profile?.underCoin), 'UC', '#60A5FA'],
             [`Lv.${lvl.lvl}`, profile?.username?.slice(0,8)||'...', '#F59E0B'],
           ].map(([val, lbl, color], i) => (
-            <div key={i} style={{textAlign:'center',padding:'0.2rem 0.5rem',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRight:i<2?'none':'1px solid rgba(255,255,255,0.07)',borderRadius:i===0?'8px 0 0 8px':i===2?'0 8px 8px 0':'0'}}>
-              <div style={{fontSize:'0.48rem',color:'#7A8FA6',textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:700}}>{lbl}</div>
+            <div key={i} style={{textAlign:'center',padding:'0.2rem 0.5rem',background: dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',border: dark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.08)',borderRight:i<2?'none':'1px solid rgba(255,255,255,0.07)',borderRadius:i===0?'8px 0 0 8px':i===2?'0 8px 8px 0':'0'}}>
+              <div style={{fontSize:'0.48rem',color: dark ? '#64748B' : '#7A8FA6',textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:700}}>{lbl}</div>
               <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'0.68rem',fontWeight:700,color,lineHeight:1.3}}>{val}</div>
             </div>
           ))}
         </div>
         {/* Notif */}
+        <button onClick={toggle} title={dark?'Aydınlık mod':'Karanlık mod'} style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'10px',padding:'0.35rem 0.55rem',cursor:'pointer',fontSize:'1rem',color:'#8BA0B5',marginRight:'2px'}}>
+          {dark ? '☀️' : '🌙'}
+        </button>
         <button onClick={onNotif} style={{position:'relative',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'10px',padding:'0.35rem 0.55rem',cursor:'pointer',fontSize:'1rem',color:'#8BA0B5'}}>
           🔔
           {notifCount > 0 && <span style={{position:'absolute',top:'-4px',right:'-4px',background:'#EF4444',color:'#fff',fontSize:'0.52rem',fontWeight:900,minWidth:'14px',height:'14px',borderRadius:'7px',display:'flex',alignItems:'center',justifyContent:'center',padding:'0 2px',border:'2px solid #06080F'}}>{notifCount}</span>}
@@ -488,6 +503,7 @@ const NAV_ITEMS = [
 
 function BottomNav({ page, onChange, items, notifMap={} }) {
   const navList = items || NAV_ITEMS;
+  const { dark } = useTheme();
   const ref = useRef(null);
   useEffect(() => {
     const idx = navList.findIndex(i=>i.id===page);
@@ -497,7 +513,7 @@ function BottomNav({ page, onChange, items, notifMap={} }) {
     }
   }, [page]);
   return (
-    <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:900,background:'#FFFFFF',borderTop:'1px solid rgba(0,0,0,0.08)',paddingBottom:'env(safe-area-inset-bottom, 0px)',boxShadow:'0 -4px 16px rgba(0,0,0,0.08)'}}>
+    <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:900,background: dark ? '#0F172A' : '#FFFFFF',borderTop: dark ? '1px solid rgba(255,255,255,0.07)' : '1px solid rgba(0,0,0,0.08)',paddingBottom:'env(safe-area-inset-bottom, 0px)',boxShadow: dark ? '0 -4px 16px rgba(0,0,0,0.4)' : '0 -4px 16px rgba(0,0,0,0.08)'}}>
       <div ref={ref} style={{display:'flex',WebkitOverflowScrolling:'touch',gap:'2px',padding:'5px 4px'}}>
         {navList.map(it => {
           const active = page===it.id;
@@ -505,7 +521,7 @@ function BottomNav({ page, onChange, items, notifMap={} }) {
             <button key={it.id} onClick={() => onChange(it.id)}
               style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'3px',padding:'0.4rem 0.3rem',borderRadius:'12px',border:`1px solid ${active?`rgba(${it.rgb},0.2)`:'transparent'}`,background:active?`rgba(${it.rgb},0.09)`:'transparent',cursor:'pointer',minWidth:'0',WebkitTapHighlightColor:'transparent',position:'relative',transition:'all 0.15s',margin:'1px'}}>
               <span style={{fontSize:'1.25rem',lineHeight:1,filter:active?`drop-shadow(0 0 5px rgba(${it.rgb},0.5))`:'none',transition:'all 0.15s',transform:active?'scale(1.1)':'scale(1)'}}>{it.icon}</span>
-              <span style={{fontSize:'0.5rem',fontWeight:900,letterSpacing:'0.04em',color:active?`rgb(${it.rgb})`:'#94A3B8',textTransform:'uppercase',whiteSpace:'nowrap',transition:'color 0.15s'}}>{it.label}</span>
+              <span style={{fontSize:'0.5rem',fontWeight:900,letterSpacing:'0.04em',color:active?`rgb(${it.rgb})`: dark ? '#64748B' : '#94A3B8',textTransform:'uppercase',whiteSpace:'nowrap',transition:'color 0.15s'}}>{it.label}</span>
               {notifMap[it.id] > 0 && <span style={{position:'absolute',top:2,right:4,background:'#EF4444',color:'#fff',fontSize:'0.5rem',fontWeight:900,minWidth:'13px',height:'13px',borderRadius:'7px',display:'flex',alignItems:'center',justifyContent:'center',padding:'0 2px'}}>{notifMap[it.id]}</span>}
             </button>
           );
@@ -1836,6 +1852,7 @@ function PlayersPage({ profile }) {
 // PROFİL SAYFASI
 // ═══════════════════════════════════════════════════════
 function ProfilePage({ profile, setProfile, onLogout, showNotif }) {
+  const { dark, toggle } = useTheme();
   const lvl = getLevelInfo(profile?.xp || 0);
   const [editModal, setEditModal] = useState(false);
   const [editForm, setEditForm] = useState({ username: profile?.username||'', city: profile?.city||'İstanbul' });
@@ -1940,6 +1957,12 @@ function ProfilePage({ profile, setProfile, onLogout, showNotif }) {
       {tab==='settings' && (
         <Card>
           <div style={{fontWeight:700,color:'#E8EDF2',marginBottom:'0.75rem'}}>⚙️ Hesap Ayarları</div>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'0.5rem 0',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+            <span style={{color:'#5A7089',fontSize:'0.85rem'}}>{dark ? '☀️ Aydınlık Mod' : '🌙 Karanlık Mod'}</span>
+            <button onClick={toggle} style={{background:dark?'#3B82F6':'rgba(255,255,255,0.08)',border:'none',borderRadius:'20px',padding:'0.3rem 0.85rem',color:'#fff',fontSize:'0.75rem',fontWeight:700,cursor:'pointer'}}>
+              {dark ? 'Açık' : 'Kapalı'}
+            </button>
+          </div>
           {[
             ['📧','E-posta',profile?.email||'-'],
             ['🏙️','Şehir',profile?.city||'-'],
@@ -2087,6 +2110,8 @@ function App() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [toast, setToast] = useState(null);
+  const [dark, setDark] = useState(() => localStorage.getItem('us_theme') === 'dark');
+  const toggleDark = () => setDark(d => { const next=!d; localStorage.setItem('us_theme',next?'dark':'light'); return next; });
 
   // Wrapper to also sync to Firebase
   const setProfile = useCallback((val) => {
@@ -2189,31 +2214,39 @@ function App() {
     ? [...NAV_ITEMS, { id:'admin', icon:'⚙️', label:'Admin', rgb:'239,68,68' }]
     : NAV_ITEMS;
 
+  const themeVal = { dark, toggle: toggleDark };
+  const pageBg = dark ? '#0F172A' : '#F0F2F5';
+
   return (
-    <div style={{position:'fixed',inset:0,display:'flex',flexDirection:'column',background:'#060C18',overflow:'hidden'}}>
-      <Header profile={profile} notifCount={notifCount} onNotif={()=>setNotifOpen(true)} page={page} />
+    <ThemeCtx.Provider value={themeVal}>
+      {/* Responsive outer wrapper — max 480px on desktop, centered */}
+      <div style={{position:'fixed',inset:0,display:'flex',alignItems:'stretch',justifyContent:'center',background: dark ? '#060C18' : '#E5E7EB'}}>
+        <div style={{position:'relative',width:'100%',maxWidth:'480px',display:'flex',flexDirection:'column',overflow:'hidden',background: dark ? '#0F172A' : '#F0F2F5',boxShadow:'0 0 60px rgba(0,0,0,0.3)'}}>
+          <Header profile={profile} notifCount={notifCount} onNotif={()=>setNotifOpen(true)} page={page} />
 
-      {/* Main scrollable content */}
-      <div style={{flex:1,overflowY:'auto',WebkitOverflowScrolling:'touch',paddingBottom:'calc(70px + env(safe-area-inset-bottom, 0px))',background:'#F0F2F5'}}>
-        {page==='home'     && <HomePage     {...pageProps} />}
-        {page==='chat'     && <ChatPage     profile={profile} />}
-        {page==='economy'  && <EconomyPage  {...pageProps} />}
-        {page==='market'   && <MarketPage   {...pageProps} />}
-        {page==='politics' && <PoliticsPage {...pageProps} />}
-        {page==='gang'     && <GangPage     {...pageProps} />}
-        {page==='alliance' && <AlliancePage {...pageProps} />}
-        {page==='world'    && <WorldPage    profile={profile} onNavigate={setPage} />}
-        {page==='admin'    && <AdminPage    profile={profile} showNotif={showNotif} onNavigate={setPage} />}
-        {page==='players'  && <PlayersPage  profile={profile} />}
-        {page==='profile'  && <ProfilePage  {...pageProps} onLogout={handleLogout} />}
-        {page==='premium'  && <PremiumPage  {...pageProps} />}
+          {/* Main scrollable content */}
+          <div style={{flex:1,overflowY:'auto',WebkitOverflowScrolling:'touch',paddingBottom:'calc(70px + env(safe-area-inset-bottom, 0px))',background:pageBg}}>
+            {page==='home'     && <HomePage     {...pageProps} />}
+            {page==='chat'     && <ChatPage     profile={profile} />}
+            {page==='economy'  && <EconomyPage  {...pageProps} />}
+            {page==='market'   && <MarketPage   {...pageProps} />}
+            {page==='politics' && <PoliticsPage {...pageProps} />}
+            {page==='gang'     && <GangPage     {...pageProps} />}
+            {page==='alliance' && <AlliancePage {...pageProps} />}
+            {page==='world'    && <WorldPage    profile={profile} onNavigate={setPage} />}
+            {page==='admin'    && <AdminPage    profile={profile} showNotif={showNotif} onNavigate={setPage} />}
+            {page==='players'  && <PlayersPage  profile={profile} />}
+            {page==='profile'  && <ProfilePage  {...pageProps} onLogout={handleLogout} />}
+            {page==='premium'  && <PremiumPage  {...pageProps} />}
+          </div>
+
+          <BottomNav page={page} onChange={setPage} items={navItems} notifMap={{ chat: notifications.filter(n=>n.type==='message'&&Date.now()-n.ts<300000).length }} />
+
+          {toast && <Notif msg={toast.msg} type={toast.type} onClose={()=>setToast(null)} />}
+          {notifOpen && <NotifPanel notifications={notifications} onClose={()=>setNotifOpen(false)} onClear={()=>setNotifications([])} />}
+        </div>
       </div>
-
-      <BottomNav page={page} onChange={setPage} items={navItems} notifMap={{ chat: notifications.filter(n=>n.type==='message'&&Date.now()-n.ts<300000).length }} />
-
-      {toast && <Notif msg={toast.msg} type={toast.type} onClose={()=>setToast(null)} />}
-      {notifOpen && <NotifPanel notifications={notifications} onClose={()=>setNotifOpen(false)} onClear={()=>setNotifications([])} />}
-    </div>
+    </ThemeCtx.Provider>
   );
 }
 
@@ -2223,7 +2256,7 @@ function App() {
 const styleEl = document.createElement('style');
 styleEl.textContent = `
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #F0F2F5; color: #1A2233; font-family: 'DM Sans', sans-serif; overflow: hidden; }
+  body { background: #E5E7EB; color: #1A2233; font-family: 'DM Sans', sans-serif; overflow: hidden; -webkit-tap-highlight-color: transparent; }
   ::-webkit-scrollbar { width: 3px; height: 3px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.3); border-radius: 10px; }
