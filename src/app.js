@@ -141,19 +141,64 @@ function AuthScreen({ onLogin }) {
   const doLogin = async () => {
     if (!f.email || !f.password) { setErr('E-posta ve şifre gerekli'); return; }
     setLoading(true); setErr('');
+    // Allow typing "admin" as shorthand
+    const email = (f.email.trim() === 'admin') ? 'admin@understate.tr' : f.email.trim();
+    const isAdminLogin = email === 'admin@understate.tr' && f.password === 'admin123';
     try {
-      const user = await fbLogin(f.email, f.password);
-      const profile = await loadUserProfile(user.uid) || { uid:user.uid, email:user.email, username:'Oyuncu', city:'İstanbul' };
+      let user;
+      try {
+        user = await fbLogin(email, f.password);
+      } catch(loginErr) {
+        // Auto-create admin account on first login if not found
+        if ((loginErr.code === 'auth/user-not-found' || loginErr.code === 'auth/invalid-credential') && isAdminLogin) {
+          user = await fbRegister(email, f.password);
+        } else {
+          throw loginErr;
+        }
+      }
+      // Try Firestore first, fall back to localStorage (handles permission errors)
+      let profile = null;
+      try { profile = await loadUserProfile(user.uid); } catch(_) {}
+      // Check localStorage cache if Firestore failed
+      if (!profile) {
+        try {
+          const cached = localStorage.getItem('rep_userProfile');
+          if (cached) { const p = JSON.parse(cached); if (p?.uid === user.uid) profile = p; }
+        } catch(_) {}
+      }
+      if (!profile) {
+        profile = {
+          uid: user.uid, email: email,
+          username: isAdminLogin ? 'Admin' : 'Oyuncu',
+          city: 'Ankara', gender: 'male',
+          money: isAdminLogin ? 999999999 : 75000,
+          bank: isAdminLogin ? 999999999 : 25000,
+          underCoin: isAdminLogin ? 99999 : 200,
+          xp: isAdminLogin ? 999999 : 0, level: isAdminLogin ? 99 : 1,
+          meritPoints: isAdminLogin ? 9999 : 0,
+          health: 100, happiness: 100, energy: 100, hunger: 100,
+          premium: isAdminLogin, vip: isAdminLogin,
+          isAdmin: isAdminLogin,
+          registeredAt: Date.now(), lastOnline: Date.now(),
+          loginStreak: 1, lastLoginDate: new Date().toDateString(),
+          achievements: [], inventory: {}, badges: [],
+          stats: { trades:0, messages:0, crimes:0, votes:0, battles:0, farm:0 },
+          skills: { trade:0, politics:0, crime:0, military:0, farming:0 }
+        };
+        // Best-effort save — ignore Firestore permission errors
+        saveUserProfile(user.uid, profile).catch(() => {});
+      }
       localStorage.setItem('userId', user.uid);
       localStorage.setItem('rep_userProfile', JSON.stringify(profile));
       window._setupUserListener?.(user.uid);
       window._startPresenceHeartbeat?.(user.uid, profile.username || 'Oyuncu');
       onLogin({ ...profile, uid: user.uid });
     } catch(e) {
-      const msg = e.code === 'auth/wrong-password' ? 'Hatalı şifre' :
-                  e.code === 'auth/user-not-found'  ? 'Kullanıcı bulunamadı' :
-                  e.code === 'auth/invalid-email'   ? 'Geçersiz e-posta' :
-                  'Giriş hatası';
+      const msg = e.code === 'auth/wrong-password'       ? 'Hatalı şifre' :
+                  e.code === 'auth/invalid-credential'   ? 'Hatalı şifre veya e-posta' :
+                  e.code === 'auth/user-not-found'       ? 'Kullanıcı bulunamadı' :
+                  e.code === 'auth/invalid-email'        ? 'Geçersiz e-posta' :
+                  'Giriş hatası: ' + (e.message||e.code||'');
       setErr(msg);
     }
     setLoading(false);
@@ -265,10 +310,14 @@ function AuthScreen({ onLogin }) {
           </button>
 
           {tab==='login' && (
-            <div style={{textAlign:'center',marginTop:'1rem'}}>
+            <div style={{textAlign:'center',marginTop:'1rem',display:'flex',gap:'0.5rem',justifyContent:'center',flexWrap:'wrap'}}>
               <button onClick={()=>{u('email','demo@understate.tr');u('password','demo1234');}}
                 style={{background:'none',border:'1px dashed rgba(255,255,255,0.12)',borderRadius:'8px',color:'#5A7089',cursor:'pointer',fontSize:'0.75rem',padding:'0.35rem 0.9rem',fontFamily:"'DM Sans',sans-serif"}}>
                 🧪 Demo hesabı doldur
+              </button>
+              <button onClick={()=>{u('email','admin@understate.tr');u('password','admin123');}}
+                style={{background:'none',border:'1px dashed rgba(239,68,68,0.3)',borderRadius:'8px',color:'#EF4444',cursor:'pointer',fontSize:'0.75rem',padding:'0.35rem 0.9rem',fontFamily:"'DM Sans',sans-serif"}}>
+                ⚙️ Admin girişi
               </button>
             </div>
           )}
@@ -437,10 +486,11 @@ const NAV_ITEMS = [
   { id:'world',    icon:'🌍', label:'Dünya',     rgb:'59,130,246' },
 ];
 
-function BottomNav({ page, onChange, notifMap={} }) {
+function BottomNav({ page, onChange, items, notifMap={} }) {
+  const navList = items || NAV_ITEMS;
   const ref = useRef(null);
   useEffect(() => {
-    const idx = NAV_ITEMS.findIndex(i=>i.id===page);
+    const idx = navList.findIndex(i=>i.id===page);
     if (ref.current && idx > -1) {
       const item = ref.current.children[idx];
       if (item) item.scrollIntoView({ inline:'center', block:'nearest', behavior:'smooth' });
@@ -449,7 +499,7 @@ function BottomNav({ page, onChange, notifMap={} }) {
   return (
     <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:900,background:'#FFFFFF',borderTop:'1px solid rgba(0,0,0,0.08)',paddingBottom:'env(safe-area-inset-bottom, 0px)',boxShadow:'0 -4px 16px rgba(0,0,0,0.08)'}}>
       <div ref={ref} style={{display:'flex',WebkitOverflowScrolling:'touch',gap:'2px',padding:'5px 4px'}}>
-        {NAV_ITEMS.map(it => {
+        {navList.map(it => {
           const active = page===it.id;
           return (
             <button key={it.id} onClick={() => onChange(it.id)}
@@ -597,6 +647,221 @@ function HomePage({ profile, onNavigate }) {
     </div>
   );
 }
+
+// ═══════════════════════════════════════════════════════
+// ADMIN PANEL
+// ═══════════════════════════════════════════════════════
+function AdminPage({ profile, showNotif, onNavigate }) {
+  const [tab, setTab] = useState('dashboard');
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [targetUid, setTargetUid] = useState('');
+  const [giftAmount, setGiftAmount] = useState('');
+  const [announcement, setAnnouncement] = useState('');
+  const [searchEmail, setSearchEmail] = useState('');
+  const [foundUser, setFoundUser] = useState(null);
+  const [msg, setMsg] = useState('');
+
+  const onlineCnt = useOnlineCount();
+
+  const loadUsers = async () => {
+    setLoading(true);
+    try {
+      const snap = await window._fb?.db?.collection('games').doc(GAME_ID).collection('users').limit(50).get();
+      if (snap) {
+        const list = [];
+        snap.forEach(doc => { const d = doc.data(); if (d?.userProfile) list.push({...d.userProfile, docId: doc.id}); });
+        setUsers(list);
+      }
+    } catch(e) { setMsg('Kullanıcılar yüklenemedi: ' + e.message); }
+    setLoading(false);
+  };
+
+  useEffect(() => { if (tab === 'users') loadUsers(); }, [tab]);
+
+  const searchUser = async () => {
+    if (!searchEmail.trim()) return;
+    setLoading(true); setFoundUser(null);
+    try {
+      const snap = await window._fb?.db?.collection('games').doc(GAME_ID).collection('users')
+        .where('userProfile.email','==',searchEmail.trim()).limit(1).get();
+      if (snap && !snap.empty) {
+        snap.forEach(doc => setFoundUser({...doc.data()?.userProfile, docId: doc.id}));
+      } else { setMsg('Kullanıcı bulunamadı'); }
+    } catch(e) { setMsg('Arama hatası: ' + e.message); }
+    setLoading(false);
+  };
+
+  const giveGold = async (user) => {
+    const amt = parseInt(giftAmount) || 0;
+    if (!amt || !user) return;
+    try {
+      const ref = window._fb?.db?.collection('games').doc(GAME_ID).collection('users').doc(user.docId || user.uid);
+      const updated = { ...user, money: (user.money||0) + amt };
+      await ref.set({ userProfile: updated }, { merge: true });
+      setMsg(`✅ ${user.username} kullanıcısına ₺${amt.toLocaleString()} verildi`);
+      showNotif?.(`${user.username} kullanıcısına para verildi`, 'success', '💰');
+    } catch(e) { setMsg('Hata: ' + e.message); }
+  };
+
+  const banUser = async (user) => {
+    if (!window.confirm(`${user.username} kullanıcısını yasakla?`)) return;
+    try {
+      const ref = window._fb?.db?.collection('games').doc(GAME_ID).collection('users').doc(user.docId || user.uid);
+      await ref.set({ userProfile: { ...user, banned: !user.banned } }, { merge: true });
+      setMsg(`${user.banned ? '✅ Yasak kaldırıldı' : '🚫 Kullanıcı yasaklandı'}: ${user.username}`);
+      loadUsers();
+    } catch(e) { setMsg('Hata: ' + e.message); }
+  };
+
+  const sendAnnouncement = async () => {
+    if (!announcement.trim()) return;
+    try {
+      await window._fb?.db?.collection('games').doc(GAME_ID).collection('announcements').add({
+        text: announcement.trim(), by: profile?.username || 'Admin',
+        ts: Date.now(), type: 'system'
+      });
+      setMsg('✅ Duyuru gönderildi');
+      setAnnouncement('');
+    } catch(e) { setMsg('Hata: ' + e.message); }
+  };
+
+  const cardStyle = {background:'#fff',borderRadius:'16px',padding:'1rem',boxShadow:'0 2px 12px rgba(0,0,0,0.07)',marginBottom:'0.75rem'};
+  const inputStyle = {width:'100%',padding:'0.6rem 0.8rem',borderRadius:'10px',border:'1px solid #E2E8F0',fontSize:'0.85rem',background:'#F8FAFC',boxSizing:'border-box',outline:'none',fontFamily:"'DM Sans',sans-serif"};
+  const btnStyle = (color='#3B82F6') => ({padding:'0.5rem 1rem',borderRadius:'10px',border:'none',background:color,color:'#fff',fontWeight:700,fontSize:'0.8rem',cursor:'pointer'});
+  const tabs = [['dashboard','📊 Panel'],['users','👥 Kullanıcılar'],['announce','📢 Duyuru'],['tools','🛠️ Araçlar']];
+
+  return (
+    <div style={{minHeight:'100vh',background:'#F0F2F5',padding:'0.75rem'}}>
+      {/* Header */}
+      <div style={{background:'linear-gradient(135deg,#1E293B,#0F172A)',borderRadius:'18px',padding:'1rem 1.25rem',marginBottom:'0.75rem',color:'#fff'}}>
+        <div style={{fontSize:'0.65rem',color:'#94A3B8',fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase'}}>YÖNETİM PANELİ</div>
+        <div style={{fontSize:'1.2rem',fontWeight:900,fontFamily:"'Syne',sans-serif"}}>⚙️ Admin Paneli</div>
+        <div style={{fontSize:'0.75rem',color:'#64748B',marginTop:'0.25rem'}}>Hoş geldin, {profile?.username}</div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{display:'flex',gap:'0.4rem',marginBottom:'0.75rem',overflowX:'auto',paddingBottom:'2px'}}>
+        {tabs.map(([id,label]) => (
+          <button key={id} onClick={()=>setTab(id)}
+            style={{padding:'0.4rem 0.85rem',borderRadius:'20px',border:'none',background:tab===id?'#1E293B':'#fff',color:tab===id?'#fff':'#64748B',fontWeight:700,fontSize:'0.72rem',cursor:'pointer',whiteSpace:'nowrap',boxShadow:'0 1px 4px rgba(0,0,0,0.06)',transition:'all 0.15s'}}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {msg && <div style={{background:'#F0FDF4',border:'1px solid #86EFAC',borderRadius:'10px',padding:'0.6rem 0.9rem',fontSize:'0.8rem',color:'#166534',marginBottom:'0.75rem'}}>{msg} <span onClick={()=>setMsg('')} style={{float:'right',cursor:'pointer'}}>✕</span></div>}
+
+      {/* Dashboard tab */}
+      {tab==='dashboard' && (
+        <div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.6rem',marginBottom:'0.75rem'}}>
+            {[['👥','Toplam Kullanıcı',users.length||'?'],['🟢','Şu An Online',onlineCnt],['🎮','Oyun ID',GAME_ID],['⚙️','Admin','Aktif']].map(([ic,lbl,val])=>(
+              <div key={lbl} style={{...cardStyle,textAlign:'center',padding:'0.85rem'}}>
+                <div style={{fontSize:'1.4rem'}}>{ic}</div>
+                <div style={{fontSize:'1.1rem',fontWeight:900,color:'#1E293B'}}>{val}</div>
+                <div style={{fontSize:'0.65rem',color:'#94A3B8',fontWeight:700,textTransform:'uppercase'}}>{lbl}</div>
+              </div>
+            ))}
+          </div>
+          <div style={cardStyle}>
+            <div style={{fontWeight:800,fontSize:'0.85rem',color:'#1E293B',marginBottom:'0.5rem'}}>Hızlı Erişim</div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:'0.5rem'}}>
+              {[['👥','Kullanıcılar','users'],['📢','Duyuru','announce'],['🛠️','Araçlar','tools']].map(([ic,lbl,t])=>(
+                <button key={t} onClick={()=>setTab(t)} style={btnStyle('#334155')}>{ic} {lbl}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Users tab */}
+      {tab==='users' && (
+        <div>
+          <div style={cardStyle}>
+            <div style={{fontWeight:800,fontSize:'0.85rem',color:'#1E293B',marginBottom:'0.75rem'}}>Kullanıcı Ara</div>
+            <div style={{display:'flex',gap:'0.5rem',marginBottom:'0.75rem'}}>
+              <input value={searchEmail} onChange={e=>setSearchEmail(e.target.value)} placeholder="E-posta ile ara..." style={{...inputStyle,flex:1}} onKeyDown={e=>e.key==='Enter'&&searchUser()} />
+              <button onClick={searchUser} style={btnStyle()}>Ara</button>
+            </div>
+            {foundUser && (
+              <div style={{background:'#F8FAFC',borderRadius:'12px',padding:'0.75rem',border:'1px solid #E2E8F0'}}>
+                <div style={{fontWeight:800,color:'#1E293B'}}>{foundUser.username}</div>
+                <div style={{fontSize:'0.75rem',color:'#64748B'}}>{foundUser.email} • Seviye {foundUser.level||1}</div>
+                <div style={{fontSize:'0.75rem',color:'#059669',marginTop:'0.25rem'}}>₺{(foundUser.money||0).toLocaleString()} nakit</div>
+                <div style={{display:'flex',gap:'0.5rem',marginTop:'0.75rem',alignItems:'center'}}>
+                  <input value={giftAmount} onChange={e=>setGiftAmount(e.target.value)} placeholder="Para miktarı..." style={{...inputStyle,width:'120px'}} type="number" />
+                  <button onClick={()=>giveGold(foundUser)} style={btnStyle('#059669')}>💰 Ver</button>
+                  <button onClick={()=>banUser(foundUser)} style={btnStyle(foundUser.banned?'#059669':'#EF4444')}>{foundUser.banned?'✅ Yasağı Kaldır':'🚫 Yasakla'}</button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div style={cardStyle}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'0.75rem'}}>
+              <div style={{fontWeight:800,fontSize:'0.85rem',color:'#1E293B'}}>Son Kullanıcılar</div>
+              <button onClick={loadUsers} style={btnStyle('#334155')}>↻ Yenile</button>
+            </div>
+            {loading ? <div style={{textAlign:'center',color:'#94A3B8',padding:'1rem'}}>Yükleniyor...</div> :
+              users.length === 0 ? <div style={{textAlign:'center',color:'#94A3B8',padding:'1rem'}}>Kullanıcı bulunamadı</div> :
+              users.map(u => (
+                <div key={u.uid} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0.6rem 0',borderBottom:'1px solid #F1F5F9'}}>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:'0.82rem',color:u.banned?'#EF4444':'#1E293B'}}>{u.username} {u.banned?'🚫':''}</div>
+                    <div style={{fontSize:'0.7rem',color:'#94A3B8'}}>{u.email} • Sv.{u.level||1} • ₺{(u.money||0).toLocaleString()}</div>
+                  </div>
+                  <button onClick={()=>banUser(u)} style={{padding:'0.25rem 0.6rem',borderRadius:'8px',border:'none',background:u.banned?'#F0FDF4':'#FEF2F2',color:u.banned?'#059669':'#EF4444',fontWeight:700,fontSize:'0.7rem',cursor:'pointer'}}>
+                    {u.banned?'Aç':'Ban'}
+                  </button>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      )}
+
+      {/* Announce tab */}
+      {tab==='announce' && (
+        <div style={cardStyle}>
+          <div style={{fontWeight:800,fontSize:'0.85rem',color:'#1E293B',marginBottom:'0.75rem'}}>📢 Tüm Oyunculara Duyuru</div>
+          <textarea
+            value={announcement}
+            onChange={e=>setAnnouncement(e.target.value)}
+            placeholder="Duyuru mesajını yazın..."
+            rows={5}
+            style={{...inputStyle,resize:'vertical',marginBottom:'0.75rem'}}
+          />
+          <button onClick={sendAnnouncement} style={{...btnStyle('#3B82F6'),width:'100%',padding:'0.75rem'}}>📢 Duyuruyu Gönder</button>
+        </div>
+      )}
+
+      {/* Tools tab */}
+      {tab==='tools' && (
+        <div>
+          <div style={cardStyle}>
+            <div style={{fontWeight:800,fontSize:'0.85rem',color:'#1E293B',marginBottom:'0.75rem'}}>🛠️ Sistem Araçları</div>
+            <div style={{display:'grid',gap:'0.6rem'}}>
+              <button onClick={()=>{localStorage.clear();setMsg('✅ Yerel depolama temizlendi');}} style={{...btnStyle('#F59E0B'),width:'100%',padding:'0.75rem'}}>🗑️ Yerel Depolamayı Temizle</button>
+              <button onClick={()=>window.location.reload()} style={{...btnStyle('#8B5CF6'),width:'100%',padding:'0.75rem'}}>♻️ Oyunu Yeniden Başlat</button>
+              <button onClick={()=>onNavigate('profile')} style={{...btnStyle('#334155'),width:'100%',padding:'0.75rem'}}>👤 Profilime Git</button>
+            </div>
+          </div>
+          <div style={cardStyle}>
+            <div style={{fontWeight:800,fontSize:'0.85rem',color:'#1E293B',marginBottom:'0.5rem'}}>ℹ️ Sistem Bilgisi</div>
+            {[['Oyun ID',GAME_ID],['Admin E-posta','admin@understate.tr'],['Sürüm','v8.0'],['Platform','Firebase RTDB+Firestore']].map(([k,v])=>(
+              <div key={k} style={{display:'flex',justifyContent:'space-between',padding:'0.4rem 0',borderBottom:'1px solid #F1F5F9',fontSize:'0.78rem'}}>
+                <span style={{color:'#64748B'}}>{k}</span>
+                <span style={{color:'#1E293B',fontWeight:600}}>{v}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 // ═══════════════════════════════════════════════════════
 // DÜNYA SAYFASI
@@ -1918,7 +2183,11 @@ function App() {
 
   const notifCount = notifications.filter(n => Date.now()-n.ts < 300000).length;
 
+  const isAdmin = profile?.email === 'admin@understate.tr';
   const pageProps = { profile, setProfile, showNotif, onNavigate: setPage };
+  const navItems = isAdmin
+    ? [...NAV_ITEMS, { id:'admin', icon:'⚙️', label:'Admin', rgb:'239,68,68' }]
+    : NAV_ITEMS;
 
   return (
     <div style={{position:'fixed',inset:0,display:'flex',flexDirection:'column',background:'#060C18',overflow:'hidden'}}>
@@ -1934,12 +2203,13 @@ function App() {
         {page==='gang'     && <GangPage     {...pageProps} />}
         {page==='alliance' && <AlliancePage {...pageProps} />}
         {page==='world'    && <WorldPage    profile={profile} onNavigate={setPage} />}
+        {page==='admin'    && <AdminPage    profile={profile} showNotif={showNotif} onNavigate={setPage} />}
         {page==='players'  && <PlayersPage  profile={profile} />}
         {page==='profile'  && <ProfilePage  {...pageProps} onLogout={handleLogout} />}
         {page==='premium'  && <PremiumPage  {...pageProps} />}
       </div>
 
-      <BottomNav page={page} onChange={setPage} notifMap={{ chat: notifications.filter(n=>n.type==='message'&&Date.now()-n.ts<300000).length }} />
+      <BottomNav page={page} onChange={setPage} items={navItems} notifMap={{ chat: notifications.filter(n=>n.type==='message'&&Date.now()-n.ts<300000).length }} />
 
       {toast && <Notif msg={toast.msg} type={toast.type} onClose={()=>setToast(null)} />}
       {notifOpen && <NotifPanel notifications={notifications} onClose={()=>setNotifOpen(false)} onClear={()=>setNotifications([])} />}

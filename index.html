@@ -598,7 +598,7 @@ _advanceBar(10, 'Başlatılıyor...');
 
 // ── IndexedDB cache (fast reload after first visit) ──────────────────────────
 var IDB_NAME = 'us_cache_v1';
-var IDB_KEY  = 'compiled_v98_babel';
+var IDB_KEY  = 'compiled_v104_noperm';
 
 function idbGet(key, cb) {
   try {
@@ -631,7 +631,7 @@ function execCode(code) {
     var transformed = code;
     if (window.Babel) {
       try {
-        transformed = Babel.transform(code, { presets: ['react'] }).code;
+        transformed = Babel.transform(code, { presets: ['react'], sourceType: 'script' }).code;
       } catch(te) {
         console.warn('Babel transform failed, trying raw:', te.message);
       }
