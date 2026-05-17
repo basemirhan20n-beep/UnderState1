@@ -2452,33 +2452,101 @@ function GangPage({ profile, setProfile, showNotif }) {
   const [sub, setSub] = useState('gangs');
   const [createModal, setCreateModal] = useState(false);
   const [gForm, setGForm] = useState({ name:'', type:'gang', desc:'' });
+  const [gangCooldowns, setGangCooldowns] = useLs('gangCooldowns', {});
+  const [transferModal, setTransferModal] = useState(false);
+  const [transferTarget, setTransferTarget] = useState('');
+  const [disbandConfirm, setDisbandConfirm] = useState(false);
+  const [donateModal, setDonateModal] = useState(false);
+  const [donateAmt, setDonateAmt] = useState('');
 
-  const myGang = gangs.find(g => g.leaderId===profile?.uid || g.members?.includes(profile?.uid));
+  const uid = profile?.uid || profile?.id;
+  const myGang = gangs.find(g => g.leaderId===uid || (g.members||[]).includes(uid));
+  const isGangLeader = !!uid && myGang?.leaderId === uid;
 
   const createGang = () => {
-    if (!gForm.name.trim()) { showNotif('İsim gerekli', 'error'); return; }
-    if (myGang) { showNotif('Zaten bir çeteye üyesin', 'error'); return; }
-    const cost = gForm.type==='gang' ? 20000 : 50000;
-    if ((profile?.money||0) < cost) { showNotif(`${fmtM(cost)} gerekli`, 'error'); return; }
-    const gang = { id:genId(), name:gForm.name.trim(), type:gForm.type, desc:gForm.desc, leaderId:profile?.uid, leaderName:profile?.username, members:[profile?.uid], memberCount:1, treasury:0, power:10, territory:0, createdAt:Date.now() };
-    setGangs([...gangs, gang]);
-    setProfile(p => { const np={...p, gang:gang.id, money:(p.money||0)-cost}; localStorage.setItem('rep_userProfile',JSON.stringify(np)); return np; });
+    if (!gForm.name.trim()) { showNotif('İsim gerekli','error'); return; }
+    if (myGang) { showNotif('Zaten bir çeteye üyesin','error'); return; }
+    const cost = gForm.type==='gang' ? 50000 : 100000;
+    if ((profile?.money||0) < cost) { showNotif(`${fmtWord(cost)} gerekli`,'error'); return; }
+    const gang = {
+      id:genId(), name:gForm.name.trim(), type:gForm.type, desc:gForm.desc,
+      leaderId:uid, leaderName:profile?.username,
+      members:[uid], memberCount:1, treasury:0,
+      power:10, territory:0, reputation:0, createdAt:Date.now()
+    };
+    setGangs(prev => [...prev, gang]);
+    setProfile(p => { const np={...p,gang:gang.id,money:(p.money||0)-cost}; localStorage.setItem('rep_userProfile',JSON.stringify(np)); return np; });
     setCreateModal(false);
-    showNotif(`⚔️ ${gForm.name} kuruldu!`, 'success');
+    setGForm({name:'',type:'gang',desc:''});
+    showNotif(`${gang.type==='family'?'👨‍👩‍👧‍👦':'⚔️'} ${gang.name} kuruldu!`,'success');
   };
 
   const joinGang = (gang) => {
-    if (myGang) { showNotif('Zaten üyesin', 'error'); return; }
-    const upd = gangs.map(g => g.id===gang.id ? {...g, members:[...(g.members||[]),profile.uid], memberCount:(g.memberCount||0)+1} : g);
-    setGangs(upd);
-    setProfile(p => { const np={...p, gang:gang.id}; localStorage.setItem('rep_userProfile',JSON.stringify(np)); return np; });
-    showNotif(`✅ ${gang.name}'e katıldın`, 'success');
+    if (myGang) { showNotif('Zaten üyesin','error'); return; }
+    setGangs(prev => prev.map(g => g.id===gang.id ? {...g, members:[...(g.members||[]),uid], memberCount:(g.memberCount||0)+1} : g));
+    setProfile(p => { const np={...p,gang:gang.id}; localStorage.setItem('rep_userProfile',JSON.stringify(np)); return np; });
+    showNotif(`✅ ${gang.name}'e katıldın`,'success');
   };
+
+  const leaveGang = () => {
+    if (!myGang||isGangLeader) { if(isGangLeader) showNotif('Lider ayrılamaz. Önce liderliği devret.','error'); return; }
+    setGangs(prev => prev.map(g => g.id===myGang.id ? {...g,members:(g.members||[]).filter(m=>m!==uid),memberCount:Math.max(0,(g.memberCount||1)-1)} : g));
+    setProfile(p => { const np={...p,gang:null}; localStorage.setItem('rep_userProfile',JSON.stringify(np)); return np; });
+    showNotif('Çeteden ayrıldın','info');
+  };
+
+  const kickMember = (muid) => {
+    if (!isGangLeader) return;
+    setGangs(prev => prev.map(g => g.id===myGang.id ? {...g,members:(g.members||[]).filter(m=>m!==muid),memberCount:Math.max(0,(g.memberCount||1)-1)} : g));
+    showNotif('Üye çeteden çıkarıldı','info');
+  };
+
+  const donateToGang = () => {
+    const amt = parseInt(donateAmt);
+    if (!amt||amt<=0) { showNotif('Geçerli tutar girin','error'); return; }
+    if ((profile?.money||0)<amt) { showNotif('Yetersiz para','error'); return; }
+    setGangs(prev => prev.map(g => g.id===myGang.id ? {...g,treasury:(g.treasury||0)+amt} : g));
+    setProfile(p => { const np={...p,money:(p.money||0)-amt}; localStorage.setItem('rep_userProfile',JSON.stringify(np)); return np; });
+    setDonateModal(false); setDonateAmt('');
+    showNotif(`💰 ${fmtWord(amt)} kasaya yatırıldı`,'success');
+  };
+
+  const gangAction = (actionId, cdMs, fn) => {
+    const key = `gang_${myGang?.id}_${actionId}`;
+    const rem = cdMs - (Date.now()-(gangCooldowns[key]||0));
+    if (rem > 0) { showNotif(`⏳ ${Math.ceil(rem/3600000)}s sonra tekrar`,'error'); return; }
+    fn();
+    setGangCooldowns(prev => ({...prev,[key]:Date.now()}));
+  };
+
+  const transferGangLeadership = () => {
+    if (!isGangLeader||!transferTarget.trim()) { showNotif('Kullanıcı adı girin','error'); return; }
+    const users = (() => { try { return JSON.parse(localStorage.getItem('rep_users')||'[]'); } catch{return[];} })();
+    const tgt = users.find(u => u.username===transferTarget.trim());
+    if (!tgt) { showNotif('Kullanıcı bulunamadı','error'); return; }
+    if (!(myGang.members||[]).includes(tgt.id||tgt.uid)) { showNotif('Bu kişi çetede değil','error'); return; }
+    setGangs(prev => prev.map(g => g.id===myGang.id ? {...g,leaderId:tgt.id||tgt.uid,leaderName:tgt.username} : g));
+    setTransferModal(false); setTransferTarget('');
+    showNotif(`👑 Liderlik ${tgt.username} kişisine devredildi`,'success');
+  };
+
+  const disbandGang = () => {
+    if (!isGangLeader) return;
+    setGangs(prev => prev.filter(g => g.id!==myGang.id));
+    setProfile(p => { const np={...p,gang:null}; localStorage.setItem('rep_userProfile',JSON.stringify(np)); return np; });
+    setDisbandConfirm(false);
+    showNotif(`${myGang.type==='family'?'👨‍👩‍👧‍👦':'⚔️'} ${myGang.name} dağıtıldı`,'info');
+  };
+
+  const inpSt = {width:'100%',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'10px',padding:'0.65rem 0.9rem',color:'#E8EDF2',fontFamily:"'DM Sans',sans-serif",fontSize:'16px',outline:'none',boxSizing:'border-box'};
+  const subItems = myGang
+    ? [{id:'gangs',label:'⚔️ Liste'},{id:'management',label:'⚙️ Yönetim'},{id:'attack',label:'🥊 Suç'},{id:'territory',label:'🗺️ Bölge'}]
+    : [{id:'gangs',label:'⚔️ Çeteler'},{id:'attack',label:'🥊 Suç'},{id:'territory',label:'🗺️ Bölge'}];
 
   return (
     <div>
       <div style={{display:'flex',gap:'4px',padding:'0.5rem 0.7rem',overflowX:'auto',scrollbarWidth:'none',background:'rgba(6,12,24,0.97)',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
-        {[{id:'gangs',label:'⚔️ Çeteler'},{id:'attack',label:'🥊 Saldırı'},{id:'territory',label:'🗺️ Bölge'}].map(s=>(
+        {subItems.map(s=>(
           <button key={s.id} onClick={()=>setSub(s.id)}
             style={{padding:'0.38rem 0.75rem',borderRadius:'8px',border:`1px solid ${sub===s.id?'rgba(239,68,68,0.4)':'rgba(255,255,255,0.07)'}`,background:sub===s.id?'rgba(239,68,68,0.12)':'rgba(255,255,255,0.03)',color:sub===s.id?'#FCA5A5':'#5A7089',fontFamily:"'DM Sans',sans-serif",fontWeight:700,fontSize:'0.76rem',cursor:'pointer',whiteSpace:'nowrap',flexShrink:0}}>
             {s.label}
@@ -2486,74 +2554,220 @@ function GangPage({ profile, setProfile, showNotif }) {
         ))}
       </div>
       <div style={{padding:'0.7rem'}}>
+
         {sub==='gangs' && (
           <div>
             {myGang && (
-              <div style={{background:'linear-gradient(135deg,rgba(239,68,68,0.08),rgba(11,21,39,0.9))',border:'1px solid rgba(239,68,68,0.2)',borderRadius:'14px',padding:'0.85rem',marginBottom:'0.75rem'}}>
-                <div style={{fontSize:'0.7rem',color:'#FCA5A5',fontWeight:700,textTransform:'uppercase',marginBottom:'0.25rem'}}>{myGang.type==='family'?'👨‍👩‍👧‍👦 Aile':'⚔️ Çete'}</div>
-                <div style={{fontWeight:800,color:'#E8EDF2',fontSize:'1rem'}}>{myGang.name}</div>
-                <div style={{fontSize:'0.72rem',color:'#5A7089'}}>{myGang.memberCount} üye • Güç: {myGang.power} • {myGang.leaderId===profile?.uid?'👑 Lidersin':'Üye'}</div>
+              <div style={{background:'linear-gradient(135deg,rgba(239,68,68,0.1),rgba(11,21,39,0.95))',border:'1px solid rgba(239,68,68,0.25)',borderRadius:'14px',padding:'1rem',marginBottom:'0.75rem'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'0.6rem',marginBottom:'0.5rem'}}>
+                  <div style={{fontSize:'1.5rem'}}>{myGang.type==='family'?'👨‍👩‍👧‍👦':'⚔️'}</div>
+                  <div>
+                    <div style={{fontWeight:900,color:'#E8EDF2',fontSize:'1rem'}}>{myGang.name}</div>
+                    <div style={{fontSize:'0.7rem',color:'#5A7089'}}>{myGang.memberCount} üye • Güç: {myGang.power} • {isGangLeader?'👑 Lidersin':'Üye'}</div>
+                  </div>
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'0.35rem',marginBottom:'0.5rem'}}>
+                  {[['💰','Kasa',fmtWord(myGang.treasury||0)],['⚡','Güç',myGang.power||10],['🗺️','Bölge',myGang.territory||0]].map(([ic,lb,v])=>(
+                    <div key={lb} style={{background:'rgba(255,255,255,0.04)',borderRadius:'8px',padding:'0.4rem',textAlign:'center'}}>
+                      <div style={{fontSize:'0.9rem'}}>{ic}</div>
+                      <div style={{fontWeight:700,color:'#E8EDF2',fontSize:'0.78rem'}}>{v}</div>
+                      <div style={{fontSize:'0.55rem',color:'#3B4E63',textTransform:'uppercase'}}>{lb}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{display:'flex',gap:'0.4rem',flexWrap:'wrap'}}>
+                  <Btn variant='ghost' size='sm' onClick={()=>setSub('management')}>⚙️ Yönet</Btn>
+                  <Btn variant='ghost' size='sm' onClick={()=>setDonateModal(true)}>💰 Bağış</Btn>
+                  {!isGangLeader && <Btn variant='danger' size='sm' onClick={leaveGang}>🚪 Ayrıl</Btn>}
+                </div>
               </div>
             )}
             {!myGang && (
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.5rem',marginBottom:'0.75rem'}}>
-                <Btn variant='danger' size='sm' onClick={()=>{setGForm(p=>({...p,type:'gang'}));setCreateModal(true);}}>⚔️ Çete Kur (₺20K)</Btn>
-                <Btn variant='ghost' size='sm' onClick={()=>{setGForm(p=>({...p,type:'family'}));setCreateModal(true);}}>👨‍👩‍👧‍👦 Aile Kur (₺50K)</Btn>
+                <Btn variant='danger' size='sm' onClick={()=>{setGForm(p=>({...p,type:'gang'}));setCreateModal(true);}}>⚔️ Çete Kur (₺50K)</Btn>
+                <Btn variant='ghost' size='sm' onClick={()=>{setGForm(p=>({...p,type:'family'}));setCreateModal(true);}}>👨‍👩‍👧‍👦 Aile Kur (₺100K)</Btn>
               </div>
             )}
             {gangs.map(gang => (
-              <Card key={gang.id} style={{marginBottom:'0.5rem',padding:'0.85rem',border:`1px solid ${gang.type==='family'?'rgba(245,158,11,0.2)':'rgba(239,68,68,0.15)'}`}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+              <Card key={gang.id} style={{marginBottom:'0.5rem',padding:'0.85rem',border:`1px solid ${gang.id===myGang?.id?'rgba(239,68,68,0.3)':gang.type==='family'?'rgba(245,158,11,0.15)':'rgba(239,68,68,0.1)'}`}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                   <div>
-                    <div style={{fontWeight:800,color:'#E8EDF2'}}>{gang.type==='family'?'👨‍👩‍👧‍👦':'⚔️'} {gang.name}</div>
-                    <div style={{fontSize:'0.72rem',color:'#5A7089'}}>{gang.memberCount} üye • Güç: {gang.power}</div>
+                    <div style={{fontWeight:800,color:'#E8EDF2',fontSize:'0.9rem'}}>{gang.type==='family'?'👨‍👩‍👧‍👦':'⚔️'} {gang.name}</div>
+                    <div style={{fontSize:'0.7rem',color:'#5A7089'}}>{gang.memberCount} üye • Güç: {gang.power} • {fmtWord(gang.treasury||0)} kasa</div>
                   </div>
-                  {!myGang && (
-                    <Btn variant='ghost' size='sm' onClick={()=>joinGang(gang)}>Katıl</Btn>
-                  )}
+                  <div style={{display:'flex',gap:'0.3rem',alignItems:'center'}}>
+                    {gang.id===myGang?.id && <Tag color='red'>Üyesin</Tag>}
+                    {!myGang && <Btn variant='ghost' size='sm' onClick={()=>joinGang(gang)}>Katıl</Btn>}
+                  </div>
                 </div>
               </Card>
             ))}
-            {gangs.length === 0 && <div style={{textAlign:'center',color:'#3B4E63',padding:'2rem',fontSize:'0.85rem'}}>Henüz çete yok</div>}
+            {gangs.length===0 && <div style={{textAlign:'center',color:'#3B4E63',padding:'2rem',fontSize:'0.85rem'}}>Henüz çete yok. İlk sen kur! ⚔️</div>}
           </div>
         )}
+
+        {sub==='management' && (
+          <div>
+            {!myGang ? (
+              <Card style={{textAlign:'center',padding:'2rem'}}><div style={{fontSize:'2rem',marginBottom:'0.5rem'}}>⚔️</div><div style={{color:'#5A7089',fontSize:'0.85rem'}}>Yönetim için bir çeteye katıl</div></Card>
+            ) : (
+              <div>
+                <Card style={{marginBottom:'0.65rem',background:'linear-gradient(135deg,rgba(239,68,68,0.08),rgba(11,21,39,0.95))'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'0.5rem',marginBottom:'0.65rem'}}>
+                    <div style={{fontSize:'1.5rem'}}>{myGang.type==='family'?'👨‍👩‍👧‍👦':'⚔️'}</div>
+                    <div style={{fontWeight:900,color:'#E8EDF2',fontSize:'1rem'}}>{myGang.name}</div>
+                    {isGangLeader&&<Tag color='red'>👑 Lider</Tag>}
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'0.35rem',marginBottom:'0.5rem'}}>
+                    {[['👑','Lider',myGang.leaderName||'?'],['👥','Üye',myGang.memberCount||1],['⚡','Güç',myGang.power||10],['💰','Kasa',fmtWord(myGang.treasury||0)]].map(([ic,lb,v])=>(
+                      <div key={lb} style={{background:'rgba(255,255,255,0.04)',borderRadius:'8px',padding:'0.4rem',textAlign:'center'}}>
+                        <div style={{fontSize:'0.8rem'}}>{ic}</div>
+                        <div style={{fontWeight:700,color:'#E8EDF2',fontSize:'0.7rem',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{v}</div>
+                        <div style={{fontSize:'0.52rem',color:'#3B4E63',textTransform:'uppercase'}}>{lb}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{display:'flex',gap:'0.4rem',flexWrap:'wrap'}}>
+                    <Btn variant='ghost' size='sm' onClick={()=>setDonateModal(true)}>💰 Kasa Yatır</Btn>
+                    {!isGangLeader && <Btn variant='danger' size='sm' onClick={leaveGang}>🚪 Ayrıl</Btn>}
+                  </div>
+                </Card>
+
+                {isGangLeader && (
+                  <Card style={{marginBottom:'0.65rem',border:'1px solid rgba(239,68,68,0.2)'}}>
+                    <div style={{fontWeight:700,color:'#FCA5A5',marginBottom:'0.65rem',fontSize:'0.82rem',textTransform:'uppercase',letterSpacing:'0.06em'}}>👑 Lider Yetkileri</div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.4rem',marginBottom:'0.5rem'}}>
+                      {[
+                        {id:'harac',label:'💰 Haraç Topla',cd:2*3600000,fn:()=>{const g=Math.floor((myGang.power||10)*150);setGangs(prev=>prev.map(x=>x.id===myGang.id?{...x,treasury:(x.treasury||0)+g}:x));showNotif(`💰 Haraç! +${fmtWord(g)} kasa`,'success');}},
+                        {id:'bolge',label:'🗺️ Bölge Al',cd:3*3600000,fn:()=>{setGangs(prev=>prev.map(x=>x.id===myGang.id?{...x,territory:(x.territory||0)+1,power:(x.power||10)+2}:x));setProfile(pr=>{const np={...pr,xp:(pr.xp||0)+150};localStorage.setItem('rep_userProfile',JSON.stringify(np));return np;});showNotif('🗺️ Yeni bölge! +1 bölge, +2 güç, +150 XP','success');}},
+                        {id:'savunma',label:'🛡️ Güvenli Alan',cd:4*3600000,fn:()=>{setGangs(prev=>prev.map(x=>x.id===myGang.id?{...x,power:(x.power||10)+5}:x));showNotif('🛡️ Güvenli alan! +5 güç','success');}},
+                        {id:'baskin',label:'⚔️ Baskın',cd:6*3600000,fn:()=>{const won=Math.random()<0.55;const prize=won?Math.floor((myGang.power||10)*200):0;if(won){setGangs(prev=>prev.map(x=>x.id===myGang.id?{...x,power:(x.power||10)+3}:x));setProfile(pr=>{const np={...pr,money:(pr.money||0)+prize,xp:(pr.xp||0)+200};localStorage.setItem('rep_userProfile',JSON.stringify(np));return np;});}else{setGangs(prev=>prev.map(x=>x.id===myGang.id?{...x,power:Math.max(5,(x.power||10)-2)}:x));}showNotif(won?`⚔️ Baskın başarılı! +${fmtWord(prize)}`:'⚔️ Başarısız! -2 güç',won?'success':'error');}},
+                      ].map(a=>{
+                        const key=`gang_${myGang.id}_${a.id}`;
+                        const rem=Math.max(0,a.cd-(Date.now()-(gangCooldowns[key]||0)));
+                        return (
+                          <button key={a.id} onClick={()=>gangAction(a.id,a.cd,a.fn)} disabled={rem>0}
+                            style={{padding:'0.55rem 0.4rem',background:rem>0?'rgba(255,255,255,0.03)':'rgba(239,68,68,0.08)',border:`1px solid ${rem>0?'rgba(255,255,255,0.07)':'rgba(239,68,68,0.2)'}`,borderRadius:'10px',color:rem>0?'#3B4E63':'#FCA5A5',cursor:rem>0?'not-allowed':'pointer',fontWeight:700,fontSize:'0.72rem',fontFamily:"'DM Sans',sans-serif",textAlign:'center',lineHeight:1.3}}>
+                            {a.label}{rem>0&&<div style={{fontSize:'0.6rem',marginTop:'2px',color:'#3B4E63'}}>⏳{Math.ceil(rem/3600000)}s</div>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div style={{display:'flex',gap:'0.4rem',flexWrap:'wrap',borderTop:'1px solid rgba(255,255,255,0.05)',paddingTop:'0.5rem'}}>
+                      <Btn variant='ghost' size='sm' onClick={()=>setTransferModal(true)}>🔄 Liderliği Devret</Btn>
+                      <Btn variant='danger' size='sm' onClick={()=>setDisbandConfirm(true)}>🗑️ Dağıt</Btn>
+                    </div>
+                  </Card>
+                )}
+
+                <Card>
+                  <div style={{fontWeight:700,color:'#E8EDF2',marginBottom:'0.65rem',fontSize:'0.85rem'}}>👥 Üyeler ({myGang.memberCount||1})</div>
+                  {(myGang.members||[]).map((muid,i)=>(
+                    <div key={muid} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0.45rem 0',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:'0.5rem'}}>
+                        <div style={{width:'28px',height:'28px',borderRadius:'50%',background:'rgba(239,68,68,0.15)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.85rem'}}>{muid===myGang.leaderId?'👑':'👤'}</div>
+                        <div style={{fontSize:'0.82rem',fontWeight:700,color:muid===uid?'#FCA5A5':'#E8EDF2'}}>
+                          {muid===uid?profile?.username:`Üye #${i+1}`}{muid===myGang.leaderId&&<span style={{marginLeft:'0.3rem'}}><Tag color='red'>Lider</Tag></span>}
+                        </div>
+                      </div>
+                      {isGangLeader&&muid!==myGang.leaderId&&(
+                        <button onClick={()=>kickMember(muid)} style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:'6px',padding:'2px 8px',color:'#FCA5A5',cursor:'pointer',fontSize:'0.68rem',fontWeight:700}}>Çıkar</button>
+                      )}
+                    </div>
+                  ))}
+                </Card>
+              </div>
+            )}
+          </div>
+        )}
+
         {sub==='attack' && (
           <div>
-            {['Sokak kavgası (₺1K risk)','Gasp girişimi (₺5K risk)','Banka soygunu (₺20K risk)','Araba hırsızlığı','Fidye']['map']?.map || [['🥊','Sokak Kavgası','%80 başarı','₺500-2.000','₺500'],['🔫','Gasp Girişimi','%60 başarı','₺2.000-8.000','₺3.000'],['💣','Banka Soygunu','%30 başarı','₺20K-100K','₺10.000'],['🚗','Araba Hırsızlığı','%70 başarı','₺5.000-15.000','₺2.000']].map(([ic,name,rate,earn,fine])=>(
+            {[['🥊','Sokak Kavgası',80,'₺500-2.000',500],['🔫','Gasp Girişimi',60,'₺2.000-8.000',3000],['💣','Banka Soygunu',30,'₺20K-100K',10000],['🚗','Araba Hırsızlığı',70,'₺5.000-15.000',2000]].map(([ic,name,rate,earn,fine])=>(
               <button key={name} onClick={()=>{
-                const success = Math.random() < parseFloat(rate)/100;
-                const amount = success ? Math.floor(Math.random()*5000)+2000 : 0;
-                const penalty = success ? 0 : parseInt(fine.replace(/[₺K.]/g,''))*1000;
+                const success=Math.random()*100<rate;
+                const amount=success?Math.floor(Math.random()*(rate===30?80000:rate===60?6000:rate===70?10000:1500)+2000):0;
+                const penalty=success?0:fine;
                 setProfile(p=>{const np={...p,money:(p.money||0)+amount-penalty,xp:(p.xp||0)+(success?100:20)};localStorage.setItem('rep_userProfile',JSON.stringify(np));return np;});
-                showNotif(success?`🎉 Başarılı! +${fmtM(amount)}`:`😔 Başarısız! -${fine} ceza`, success?'success':'error');
+                showNotif(success?`🎉 Başarılı! +${fmtWord(amount)}`:`😔 Başarısız! -${fmtWord(penalty)} ceza`,success?'success':'error');
               }}
                 style={{display:'flex',alignItems:'center',gap:'0.75rem',padding:'0.85rem',background:'rgba(20,36,60,0.8)',border:'1px solid rgba(239,68,68,0.15)',borderRadius:'12px',width:'100%',marginBottom:'0.5rem',cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>
                 <span style={{fontSize:'1.5rem',width:'32px',textAlign:'center',flexShrink:0}}>{ic}</span>
                 <div style={{flex:1,textAlign:'left'}}>
                   <div style={{fontWeight:800,color:'#E8EDF2',fontSize:'0.9rem'}}>{name}</div>
-                  <div style={{fontSize:'0.67rem',color:'#10B981'}}>{rate} • Kazanç: {earn}</div>
-                  <div style={{fontSize:'0.65rem',color:'#EF4444'}}>Ceza riski: {fine}</div>
+                  <div style={{fontSize:'0.67rem',color:'#10B981'}}>%{rate} başarı • Kazanç: {earn}</div>
+                  <div style={{fontSize:'0.65rem',color:'#EF4444'}}>Ceza riski: {fmtWord(fine)}</div>
                 </div>
                 <span style={{color:'#EF4444',fontSize:'0.85rem'}}>→</span>
               </button>
             ))}
           </div>
         )}
+
         {sub==='territory' && (
           <Card style={{textAlign:'center',padding:'2rem'}}>
             <div style={{fontSize:'2rem',marginBottom:'0.5rem'}}>🗺️</div>
-            <div style={{color:'#5A7089'}}>Bölge sistemi yakında</div>
+            <div style={{color:'#5A7089'}}>Bölge sistemi yakında aktif</div>
           </Card>
         )}
       </div>
+
       {createModal && (
-        <Modal title={gForm.type==='gang'?'⚔️ Çete Kur':'👨‍👩‍👧‍👦 Aile Kur'} onClose={()=>setCreateModal(false)}>
+        <Modal title={gForm.type==='gang'?'⚔️ Çete Kur':'👨‍👩‍👧‍👦 Aile Kur'} onClose={()=>{setCreateModal(false);setGForm({name:'',type:'gang',desc:''});}}>
           <div style={{marginBottom:'0.85rem'}}>
             <div style={{fontSize:'0.72rem',color:'#5A7089',marginBottom:'0.4rem',fontWeight:700}}>İsim</div>
-            <input value={gForm.name} onChange={e=>setGForm(p=>({...p,name:e.target.value}))} placeholder="İsim girin"
-              style={{width:'100%',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'10px',padding:'0.65rem 0.9rem',color:'#E8EDF2',fontFamily:"'DM Sans',sans-serif",fontSize:'16px',outline:'none',boxSizing:'border-box'}} />
+            <input value={gForm.name} onChange={e=>setGForm(p=>({...p,name:e.target.value}))} placeholder={gForm.type==='gang'?'Çete adı...':'Aile adı...'} style={inpSt} />
           </div>
-          <Btn variant='danger' size='full' onClick={createGang}>Kur</Btn>
+          <div style={{marginBottom:'0.85rem'}}>
+            <div style={{fontSize:'0.72rem',color:'#5A7089',marginBottom:'0.4rem',fontWeight:700}}>Açıklama (opsiyonel)</div>
+            <textarea value={gForm.desc} onChange={e=>setGForm(p=>({...p,desc:e.target.value}))} placeholder="Kısa bir açıklama..." rows={2}
+              style={{width:'100%',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'10px',padding:'0.65rem 0.9rem',color:'#E8EDF2',fontFamily:"'DM Sans',sans-serif",fontSize:'14px',outline:'none',resize:'none',boxSizing:'border-box'}} />
+          </div>
+          <div style={{background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:'10px',padding:'0.65rem',fontSize:'0.78rem',color:'#FCA5A5',marginBottom:'1rem'}}>
+            💡 Kurmak {fmtWord(gForm.type==='gang'?50000:100000)} gerektirir. Bakiye: {fmtWord(profile?.money)}
+          </div>
+          <Btn variant='danger' size='full' onClick={createGang}>{gForm.type==='gang'?'⚔️ Çeteyi Kur':'👨‍👩‍👧‍👦 Aileyi Kur'}</Btn>
+        </Modal>
+      )}
+
+      {donateModal&&(
+        <Modal title="💰 Kasaya Para Yatır" onClose={()=>{setDonateModal(false);setDonateAmt('');}}>
+          <div style={{marginBottom:'1rem'}}>
+            <div style={{fontSize:'0.72rem',color:'#5A7089',marginBottom:'0.4rem',fontWeight:700}}>Tutar</div>
+            <input type="number" value={donateAmt} onChange={e=>setDonateAmt(e.target.value)} placeholder="₺ Tutar" style={inpSt} />
+            <div style={{display:'flex',gap:'0.4rem',marginTop:'0.5rem',flexWrap:'wrap'}}>
+              {[5000,10000,25000,50000].map(n=><button key={n} onClick={()=>setDonateAmt(String(n))} style={{padding:'0.3rem 0.65rem',borderRadius:'8px',border:'1px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.04)',color:'#8BA0B5',fontSize:'0.72rem',cursor:'pointer',fontWeight:700}}>{fmtWord(n)}</button>)}
+            </div>
+          </div>
+          <Btn variant='danger' size='full' onClick={donateToGang}>💰 Yatır</Btn>
+        </Modal>
+      )}
+
+      {transferModal&&(
+        <Modal title="🔄 Liderliği Devret" onClose={()=>{setTransferModal(false);setTransferTarget('');}}>
+          <div style={{background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:'10px',padding:'0.65rem',fontSize:'0.78rem',color:'#FCA5A5',marginBottom:'1rem'}}>
+            ⚠️ Liderliği devrettikten sonra artık lider yetkilerine sahip olmayacaksın.
+          </div>
+          <div style={{marginBottom:'1rem'}}>
+            <div style={{fontSize:'0.72rem',color:'#5A7089',marginBottom:'0.4rem',fontWeight:700}}>Yeni Lider Kullanıcı Adı</div>
+            <input value={transferTarget} onChange={e=>setTransferTarget(e.target.value)} placeholder="Çete üyesinin kullanıcı adı" style={inpSt} />
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.5rem'}}>
+            <Btn variant='ghost' size='md' onClick={()=>{setTransferModal(false);setTransferTarget('');}}>İptal</Btn>
+            <Btn variant='danger' size='md' onClick={transferGangLeadership}>🔄 Devret</Btn>
+          </div>
+        </Modal>
+      )}
+
+      {disbandConfirm&&(
+        <Modal title="🗑️ Çeteyi Dağıt" onClose={()=>setDisbandConfirm(false)}>
+          <div style={{background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:'10px',padding:'0.65rem',fontSize:'0.78rem',color:'#FCA5A5',marginBottom:'1rem'}}>
+            ⚠️ Bu işlem geri alınamaz! <strong>{myGang?.name}</strong> kalıcı olarak dağıtılacak.
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.5rem'}}>
+            <Btn variant='ghost' size='md' onClick={()=>setDisbandConfirm(false)}>İptal</Btn>
+            <Btn variant='red' size='md' onClick={disbandGang}>🗑️ Dağıt</Btn>
+          </div>
         </Modal>
       )}
     </div>
@@ -2565,128 +2779,302 @@ function GangPage({ profile, setProfile, showNotif }) {
 // ═══════════════════════════════════════════════════════
 function AlliancePage({ profile, setProfile, showNotif }) {
   const [alliances, setAlliances] = useLs('alliances', []);
+  const [sub, setSub] = useState('list');
   const [createModal, setCreateModal] = useState(false);
   const [aForm, setAForm] = useState({ name:'', tag:'', desc:'', type:'open' });
   const [searchQ, setSearchQ] = useState('');
-  const [inviteSearch, setInviteSearch] = useState('');
+  const [allianceCooldowns, setAllianceCooldowns] = useLs('allianceCooldowns', {});
+  const [transferModal, setTransferModal] = useState(false);
+  const [transferTarget, setTransferTarget] = useState('');
+  const [disbandConfirm, setDisbandConfirm] = useState(false);
+  const [donateModal, setDonateModal] = useState(false);
+  const [donateAmt, setDonateAmt] = useState('');
 
-  const myAlliance = alliances.find(a => a.leaderId===profile?.uid || a.members?.includes(profile?.uid));
+  const uid = profile?.uid || profile?.id;
+  const myAlliance = alliances.find(a => a.leaderId===uid || (a.members||[]).includes(uid));
+  const isAllianceLeader = !!uid && myAlliance?.leaderId === uid;
+
+  const ALLIANCE_COST = 75000;
 
   const createAlliance = () => {
-    if (!aForm.name.trim()||!aForm.tag.trim()) { showNotif('İsim ve etiket gerekli', 'error'); return; }
-    if (aForm.tag.length>5) { showNotif('Etiket max 5 karakter', 'error'); return; }
-    if (myAlliance) { showNotif('Zaten bir ittifaka üyesin', 'error'); return; }
-    if ((profile?.money||0) < 30000) { showNotif('İttifak kurmak ₺30.000 gerektirir', 'error'); return; }
-    const a = { id:genId(), name:aForm.name.trim(), tag:aForm.tag.toUpperCase(), desc:aForm.desc, type:aForm.type, leaderId:profile?.uid, leaderName:profile?.username, members:[profile?.uid], memberCount:1, level:1, treasury:0, xp:0, createdAt:Date.now() };
-    setAlliances([...alliances, a]);
-    setProfile(p => { const np={...p, alliance:a.id, money:(p.money||0)-30000}; localStorage.setItem('rep_userProfile',JSON.stringify(np)); return np; });
+    if (!aForm.name.trim()||!aForm.tag.trim()) { showNotif('İsim ve etiket gerekli','error'); return; }
+    if (aForm.tag.length>5) { showNotif('Etiket max 5 karakter','error'); return; }
+    if (myAlliance) { showNotif('Zaten bir ittifaka üyesin','error'); return; }
+    if ((profile?.money||0) < ALLIANCE_COST) { showNotif(`İttifak kurmak ${fmtWord(ALLIANCE_COST)} gerektirir`,'error'); return; }
+    const a = { id:genId(), name:aForm.name.trim(), tag:aForm.tag.toUpperCase(), desc:aForm.desc, type:aForm.type,
+      leaderId:uid, leaderName:profile?.username, members:[uid], memberCount:1, level:1, treasury:0, xp:0, power:10, createdAt:Date.now() };
+    setAlliances(prev => [...prev, a]);
+    setProfile(p => { const np={...p,alliance:a.id,money:(p.money||0)-ALLIANCE_COST}; localStorage.setItem('rep_userProfile',JSON.stringify(np)); return np; });
     setCreateModal(false);
-    showNotif(`🤝 ${aForm.name} İttifakı kuruldu!`, 'success');
+    setAForm({name:'',tag:'',desc:'',type:'open'});
+    showNotif(`🤝 ${a.name} İttifakı kuruldu!`,'success');
   };
 
   const joinAlliance = (a) => {
-    if (myAlliance) { showNotif('Zaten bir ittifaka üyesin', 'error'); return; }
-    if (a.type==='closed') { showNotif('Bu ittifak kapalı', 'error'); return; }
-    const upd = alliances.map(al => al.id===a.id ? {...al, members:[...(al.members||[]),profile.uid], memberCount:(al.memberCount||0)+1} : al);
-    setAlliances(upd);
-    setProfile(p => { const np={...p, alliance:a.id}; localStorage.setItem('rep_userProfile',JSON.stringify(np)); return np; });
-    showNotif(`✅ ${a.name}'e katıldın!`, 'success');
+    if (myAlliance) { showNotif('Zaten bir ittifaka üyesin','error'); return; }
+    if (a.type!=='open') { showNotif('Bu ittifak kapalı','error'); return; }
+    setAlliances(prev => prev.map(al => al.id===a.id ? {...al,members:[...(al.members||[]),uid],memberCount:(al.memberCount||0)+1} : al));
+    setProfile(p => { const np={...p,alliance:a.id}; localStorage.setItem('rep_userProfile',JSON.stringify(np)); return np; });
+    showNotif(`✅ ${a.name}'e katıldın!`,'success');
   };
 
   const leaveAlliance = () => {
-    if (!myAlliance) return;
-    if (myAlliance.leaderId===profile?.uid) { showNotif('Lider ittifakı terk edemez. Önce liderliği devret.', 'error'); return; }
-    const upd = alliances.map(a => a.id===myAlliance.id ? {...a, members:a.members.filter(m=>m!==profile.uid), memberCount:(a.memberCount||1)-1} : a);
-    setAlliances(upd);
-    setProfile(p => { const np={...p, alliance:null}; localStorage.setItem('rep_userProfile',JSON.stringify(np)); return np; });
-    showNotif('İttifaktan ayrıldın', 'info');
+    if (!myAlliance||isAllianceLeader) { if(isAllianceLeader) showNotif('Lider ayrılamaz. Önce liderliği devret.','error'); return; }
+    setAlliances(prev => prev.map(a => a.id===myAlliance.id ? {...a,members:(a.members||[]).filter(m=>m!==uid),memberCount:Math.max(0,(a.memberCount||1)-1)} : a));
+    setProfile(p => { const np={...p,alliance:null}; localStorage.setItem('rep_userProfile',JSON.stringify(np)); return np; });
+    showNotif('İttifaktan ayrıldın','info');
+  };
+
+  const kickAllianceMember = (muid) => {
+    if (!isAllianceLeader) return;
+    setAlliances(prev => prev.map(a => a.id===myAlliance.id ? {...a,members:(a.members||[]).filter(m=>m!==muid),memberCount:Math.max(0,(a.memberCount||1)-1)} : a));
+    showNotif('Üye ittifaktan çıkarıldı','info');
+  };
+
+  const donateToAlliance = () => {
+    const amt = parseInt(donateAmt);
+    if (!amt||amt<=0) { showNotif('Geçerli tutar girin','error'); return; }
+    if ((profile?.money||0)<amt) { showNotif('Yetersiz para','error'); return; }
+    setAlliances(prev => prev.map(a => a.id===myAlliance.id ? {...a,treasury:(a.treasury||0)+amt} : a));
+    setProfile(p => { const np={...p,money:(p.money||0)-amt}; localStorage.setItem('rep_userProfile',JSON.stringify(np)); return np; });
+    setDonateModal(false); setDonateAmt('');
+    showNotif(`💰 ${fmtWord(amt)} ittifak kasasına yatırıldı`,'success');
+  };
+
+  const allianceAction = (actionId, cdMs, fn) => {
+    const key = `all_${myAlliance?.id}_${actionId}`;
+    const rem = cdMs - (Date.now()-(allianceCooldowns[key]||0));
+    if (rem > 0) { showNotif(`⏳ ${Math.ceil(rem/3600000)}s sonra tekrar`,'error'); return; }
+    fn();
+    setAllianceCooldowns(prev => ({...prev,[key]:Date.now()}));
+  };
+
+  const transferAllianceLeadership = () => {
+    if (!isAllianceLeader||!transferTarget.trim()) { showNotif('Kullanıcı adı girin','error'); return; }
+    const users = (() => { try { return JSON.parse(localStorage.getItem('rep_users')||'[]'); } catch{return[];} })();
+    const tgt = users.find(u => u.username===transferTarget.trim());
+    if (!tgt) { showNotif('Kullanıcı bulunamadı','error'); return; }
+    if (!(myAlliance.members||[]).includes(tgt.id||tgt.uid)) { showNotif('Bu kişi ittifakta değil','error'); return; }
+    setAlliances(prev => prev.map(a => a.id===myAlliance.id ? {...a,leaderId:tgt.id||tgt.uid,leaderName:tgt.username} : a));
+    setTransferModal(false); setTransferTarget('');
+    showNotif(`👑 Liderlik ${tgt.username} kişisine devredildi`,'success');
+  };
+
+  const disbandAlliance = () => {
+    if (!isAllianceLeader) return;
+    setAlliances(prev => prev.filter(a => a.id!==myAlliance.id));
+    setProfile(p => { const np={...p,alliance:null}; localStorage.setItem('rep_userProfile',JSON.stringify(np)); return np; });
+    setDisbandConfirm(false);
+    showNotif(`🤝 ${myAlliance.name} ittifakı feshedildi`,'info');
   };
 
   const filtered = alliances.filter(a => !searchQ || a.name.toLowerCase().includes(searchQ.toLowerCase()) || a.tag.toLowerCase().includes(searchQ.toLowerCase()));
+  const inpSt = {width:'100%',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'10px',padding:'0.65rem 0.9rem',color:'#E8EDF2',fontFamily:"'DM Sans',sans-serif",fontSize:'16px',outline:'none',boxSizing:'border-box'};
+  const subItems = myAlliance
+    ? [{id:'list',label:'🤝 Liste'},{id:'management',label:'⚙️ Yönetim'}]
+    : [{id:'list',label:'🤝 İttifaklar'}];
 
   return (
-    <div style={{padding:'0.7rem'}}>
-      {/* Benim İttifakım */}
-      {myAlliance && (
-        <Card style={{marginBottom:'0.75rem',background:'linear-gradient(135deg,rgba(16,185,129,0.08),rgba(11,21,39,0.9))',border:'1px solid rgba(16,185,129,0.2)'}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'0.75rem'}}>
-            <div>
-              <div style={{display:'flex',alignItems:'center',gap:'0.4rem',marginBottom:'0.15rem'}}>
-                <div style={{background:'rgba(16,185,129,0.15)',border:'1px solid rgba(16,185,129,0.3)',borderRadius:'6px',padding:'2px 7px',fontWeight:900,fontSize:'0.75rem',color:'#10B981'}}>
-                  [{myAlliance.tag}]
-                </div>
-                {myAlliance.leaderId===profile?.uid && <Tag color='gold'>👑 Lider</Tag>}
-              </div>
-              <div style={{fontWeight:900,fontSize:'1.05rem',color:'#E8EDF2'}}>{myAlliance.name}</div>
-              <div style={{fontSize:'0.72rem',color:'#5A7089'}}>{myAlliance.memberCount} üye • Lv.{myAlliance.level||1} • {fmtM(myAlliance.treasury)} kasa</div>
-            </div>
-            <Btn variant='ghost' size='sm' onClick={leaveAlliance}>Ayrıl</Btn>
-          </div>
-          <div style={{fontSize:'0.78rem',color:'#8BA0B5',marginBottom:'0.6rem'}}>{myAlliance.desc}</div>
-          <div style={{display:'flex',gap:'0.4rem'}}>
-            <Btn variant='green' size='sm'>👥 Üyeler</Btn>
-            <Btn variant='ghost' size='sm'>💰 Kasa</Btn>
-            {myAlliance.leaderId===profile?.uid && <Btn variant='ghost' size='sm'>⚙️ Yönet</Btn>}
-          </div>
-        </Card>
-      )}
+    <div>
+      <div style={{display:'flex',gap:'4px',padding:'0.5rem 0.7rem',overflowX:'auto',scrollbarWidth:'none',background:'rgba(6,12,24,0.97)',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+        {subItems.map(s=>(
+          <button key={s.id} onClick={()=>setSub(s.id)}
+            style={{padding:'0.38rem 0.75rem',borderRadius:'8px',border:`1px solid ${sub===s.id?'rgba(16,185,129,0.4)':'rgba(255,255,255,0.07)'}`,background:sub===s.id?'rgba(16,185,129,0.12)':'rgba(255,255,255,0.03)',color:sub===s.id?'#6EE7B7':'#5A7089',fontFamily:"'DM Sans',sans-serif",fontWeight:700,fontSize:'0.76rem',cursor:'pointer',whiteSpace:'nowrap',flexShrink:0}}>
+            {s.label}
+          </button>
+        ))}
+      </div>
+      <div style={{padding:'0.7rem'}}>
 
-      {/* Arama */}
-      <div style={{display:'flex',gap:'0.5rem',marginBottom:'0.75rem'}}>
-        <div style={{flex:1,display:'flex',alignItems:'center',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'10px',padding:'0 0.75rem'}}>
-          <span style={{color:'#3B4E63',marginRight:'0.4rem'}}>🔍</span>
-          <input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="İttifak ara..."
-            style={{flex:1,background:'none',border:'none',outline:'none',color:'#E8EDF2',fontFamily:"'DM Sans',sans-serif",fontSize:'16px',padding:'0.55rem 0'}} />
-        </div>
-        {!myAlliance && <Btn variant='primary' size='sm' onClick={()=>setCreateModal(true)}>+ Kur</Btn>}
+        {sub==='list' && (
+          <div>
+            {myAlliance && (
+              <Card style={{marginBottom:'0.75rem',background:'linear-gradient(135deg,rgba(16,185,129,0.08),rgba(11,21,39,0.9))',border:'1px solid rgba(16,185,129,0.2)'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'0.5rem'}}>
+                  <div>
+                    <div style={{display:'flex',alignItems:'center',gap:'0.4rem',marginBottom:'0.2rem'}}>
+                      <div style={{background:'rgba(16,185,129,0.15)',border:'1px solid rgba(16,185,129,0.3)',borderRadius:'6px',padding:'2px 7px',fontWeight:900,fontSize:'0.75rem',color:'#10B981'}}>[{myAlliance.tag}]</div>
+                      {isAllianceLeader && <Tag color='gold'>👑 Lider</Tag>}
+                    </div>
+                    <div style={{fontWeight:900,fontSize:'1.05rem',color:'#E8EDF2'}}>{myAlliance.name}</div>
+                    <div style={{fontSize:'0.72rem',color:'#5A7089'}}>{myAlliance.memberCount} üye • Lv.{myAlliance.level||1} • {fmtWord(myAlliance.treasury)} kasa</div>
+                  </div>
+                </div>
+                <div style={{fontSize:'0.78rem',color:'#8BA0B5',marginBottom:'0.5rem'}}>{myAlliance.desc}</div>
+                <div style={{display:'flex',gap:'0.4rem',flexWrap:'wrap'}}>
+                  <Btn variant='green' size='sm' onClick={()=>setSub('management')}>⚙️ Yönet</Btn>
+                  <Btn variant='ghost' size='sm' onClick={()=>setDonateModal(true)}>💰 Kasa Yatır</Btn>
+                  {!isAllianceLeader && <Btn variant='ghost' size='sm' onClick={leaveAlliance}>🚪 Ayrıl</Btn>}
+                </div>
+              </Card>
+            )}
+            <div style={{display:'flex',gap:'0.5rem',marginBottom:'0.75rem'}}>
+              <div style={{flex:1,display:'flex',alignItems:'center',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'10px',padding:'0 0.75rem'}}>
+                <span style={{color:'#3B4E63',marginRight:'0.4rem'}}>🔍</span>
+                <input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="İttifak ara..."
+                  style={{flex:1,background:'none',border:'none',outline:'none',color:'#E8EDF2',fontFamily:"'DM Sans',sans-serif",fontSize:'16px',padding:'0.55rem 0'}} />
+              </div>
+              {!myAlliance && <Btn variant='primary' size='sm' onClick={()=>setCreateModal(true)}>+ Kur</Btn>}
+            </div>
+            <div style={{fontSize:'0.68rem',color:'#3B4E63',fontWeight:700,textTransform:'uppercase',marginBottom:'0.5rem',letterSpacing:'0.08em'}}>Tüm İttifaklar ({filtered.length})</div>
+            {filtered.map(a => (
+              <Card key={a.id} style={{marginBottom:'0.5rem',padding:'0.85rem',border:`1px solid ${a.id===myAlliance?.id?'rgba(16,185,129,0.3)':'rgba(255,255,255,0.06)'}`}}>
+                <div style={{display:'flex',alignItems:'center',gap:'0.75rem'}}>
+                  <div style={{background:'rgba(59,130,246,0.15)',border:'1px solid rgba(59,130,246,0.3)',borderRadius:'8px',padding:'0.4rem 0.6rem',fontWeight:900,fontSize:'0.8rem',color:'#60A5FA',flexShrink:0}}>[{a.tag}]</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:800,color:'#E8EDF2',fontSize:'0.92rem'}}>{a.name}</div>
+                    <div style={{fontSize:'0.68rem',color:'#5A7089'}}>{a.memberCount||0} üye • Lv.{a.level||1} • {a.type==='open'?'🔓 Açık':'🔒 Kapalı'}</div>
+                  </div>
+                  {!myAlliance && a.type==='open' && <Btn variant='primary' size='sm' onClick={()=>joinAlliance(a)}>Katıl</Btn>}
+                  {a.id===myAlliance?.id && <Tag color='green'>Üyesin</Tag>}
+                </div>
+              </Card>
+            ))}
+            {filtered.length===0 && <div style={{textAlign:'center',color:'#3B4E63',padding:'2rem',fontSize:'0.85rem'}}>İttifak bulunamadı. İlk sen kur! 🤝</div>}
+          </div>
+        )}
+
+        {sub==='management' && (
+          <div>
+            {!myAlliance ? (
+              <Card style={{textAlign:'center',padding:'2rem'}}><div style={{fontSize:'2rem',marginBottom:'0.5rem'}}>🤝</div><div style={{color:'#5A7089',fontSize:'0.85rem'}}>Yönetim için bir ittifaka katıl</div></Card>
+            ) : (
+              <div>
+                <Card style={{marginBottom:'0.65rem',background:'linear-gradient(135deg,rgba(16,185,129,0.08),rgba(11,21,39,0.95))'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'0.5rem',marginBottom:'0.65rem'}}>
+                    <div style={{background:'rgba(16,185,129,0.15)',border:'1px solid rgba(16,185,129,0.3)',borderRadius:'6px',padding:'2px 7px',fontWeight:900,fontSize:'0.8rem',color:'#10B981'}}>[{myAlliance.tag}]</div>
+                    <div style={{fontWeight:900,color:'#E8EDF2',fontSize:'1rem'}}>{myAlliance.name}</div>
+                    {isAllianceLeader&&<Tag color='gold'>👑 Lider</Tag>}
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'0.35rem',marginBottom:'0.5rem'}}>
+                    {[['👥','Üye',myAlliance.memberCount||1],['⭐','Seviye',myAlliance.level||1],['⚡','Güç',myAlliance.power||10],['💰','Kasa',fmtWord(myAlliance.treasury||0)]].map(([ic,lb,v])=>(
+                      <div key={lb} style={{background:'rgba(255,255,255,0.04)',borderRadius:'8px',padding:'0.4rem',textAlign:'center'}}>
+                        <div style={{fontSize:'0.8rem'}}>{ic}</div>
+                        <div style={{fontWeight:700,color:'#E8EDF2',fontSize:'0.7rem'}}>{v}</div>
+                        <div style={{fontSize:'0.52rem',color:'#3B4E63',textTransform:'uppercase'}}>{lb}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{display:'flex',gap:'0.4rem',flexWrap:'wrap'}}>
+                    <Btn variant='ghost' size='sm' onClick={()=>setDonateModal(true)}>💰 Kasa Yatır</Btn>
+                    {!isAllianceLeader && <Btn variant='ghost' size='sm' onClick={leaveAlliance}>🚪 Ayrıl</Btn>}
+                  </div>
+                </Card>
+
+                {isAllianceLeader && (
+                  <Card style={{marginBottom:'0.65rem',border:'1px solid rgba(16,185,129,0.2)'}}>
+                    <div style={{fontWeight:700,color:'#6EE7B7',marginBottom:'0.65rem',fontSize:'0.82rem',textTransform:'uppercase',letterSpacing:'0.06em'}}>👑 Lider Yetkileri</div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.4rem',marginBottom:'0.5rem'}}>
+                      {[
+                        {id:'operasyon',label:'🎯 Ortak Operasyon',cd:4*3600000,fn:()=>{const xp=Math.floor((myAlliance.memberCount||1)*80);setProfile(pr=>{const np={...pr,xp:(pr.xp||0)+xp};localStorage.setItem('rep_userProfile',JSON.stringify(np));return np;});setAlliances(prev=>prev.map(a=>a.id===myAlliance.id?{...a,xp:(a.xp||0)+xp,power:(a.power||10)+1}:a));showNotif(`🎯 Operasyon tamamlandı! +${xp} XP +1 güç`,'success');}},
+                        {id:'diplomatik',label:'🕊️ Diplomatik Hamle',cd:6*3600000,fn:()=>{setAlliances(prev=>prev.map(a=>a.id===myAlliance.id?{...a,level:Math.min(10,(a.level||1)+1),power:(a.power||10)+3}:a));setProfile(pr=>{const np={...pr,xp:(pr.xp||0)+200,meritPoints:(pr.meritPoints||0)+20};localStorage.setItem('rep_userProfile',JSON.stringify(np));return np;});showNotif('🕊️ Diplomatik hamle! +1 seviye, +3 güç, +200 XP','success');}},
+                        {id:'savunma',label:'🛡️ Savunma Hattı',cd:5*3600000,fn:()=>{setAlliances(prev=>prev.map(a=>a.id===myAlliance.id?{...a,power:(a.power||10)+8}:a));showNotif('🛡️ Savunma hattı kuruldu! +8 güç','success');}},
+                        {id:'hazine',label:'💎 Hazine Kampanyası',cd:8*3600000,fn:()=>{const earn=Math.floor((myAlliance.level||1)*50000);setAlliances(prev=>prev.map(a=>a.id===myAlliance.id?{...a,treasury:(a.treasury||0)+earn}:a));showNotif(`💎 Kampanya! +${fmtWord(earn)} kasa`,'success');}},
+                      ].map(a=>{
+                        const key=`all_${myAlliance.id}_${a.id}`;
+                        const rem=Math.max(0,a.cd-(Date.now()-(allianceCooldowns[key]||0)));
+                        return (
+                          <button key={a.id} onClick={()=>allianceAction(a.id,a.cd,a.fn)} disabled={rem>0}
+                            style={{padding:'0.55rem 0.4rem',background:rem>0?'rgba(255,255,255,0.03)':'rgba(16,185,129,0.08)',border:`1px solid ${rem>0?'rgba(255,255,255,0.07)':'rgba(16,185,129,0.2)'}`,borderRadius:'10px',color:rem>0?'#3B4E63':'#6EE7B7',cursor:rem>0?'not-allowed':'pointer',fontWeight:700,fontSize:'0.72rem',fontFamily:"'DM Sans',sans-serif",textAlign:'center',lineHeight:1.3}}>
+                            {a.label}{rem>0&&<div style={{fontSize:'0.6rem',marginTop:'2px',color:'#3B4E63'}}>⏳{Math.ceil(rem/3600000)}s</div>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div style={{display:'flex',gap:'0.4rem',flexWrap:'wrap',borderTop:'1px solid rgba(255,255,255,0.05)',paddingTop:'0.5rem'}}>
+                      <Btn variant='ghost' size='sm' onClick={()=>setTransferModal(true)}>🔄 Liderliği Devret</Btn>
+                      <Btn variant='danger' size='sm' onClick={()=>setDisbandConfirm(true)}>🗑️ Feshet</Btn>
+                    </div>
+                  </Card>
+                )}
+
+                <Card>
+                  <div style={{fontWeight:700,color:'#E8EDF2',marginBottom:'0.65rem',fontSize:'0.85rem'}}>👥 Üyeler ({myAlliance.memberCount||1})</div>
+                  {(myAlliance.members||[]).map((muid,i)=>(
+                    <div key={muid} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0.45rem 0',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:'0.5rem'}}>
+                        <div style={{width:'28px',height:'28px',borderRadius:'50%',background:'rgba(16,185,129,0.15)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.85rem'}}>{muid===myAlliance.leaderId?'👑':'👤'}</div>
+                        <div style={{fontSize:'0.82rem',fontWeight:700,color:muid===uid?'#6EE7B7':'#E8EDF2'}}>
+                          {muid===uid?profile?.username:`Üye #${i+1}`}{muid===myAlliance.leaderId&&<span style={{marginLeft:'0.3rem'}}><Tag color='gold'>Lider</Tag></span>}
+                        </div>
+                      </div>
+                      {isAllianceLeader&&muid!==myAlliance.leaderId&&(
+                        <button onClick={()=>kickAllianceMember(muid)} style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:'6px',padding:'2px 8px',color:'#FCA5A5',cursor:'pointer',fontSize:'0.68rem',fontWeight:700}}>Çıkar</button>
+                      )}
+                    </div>
+                  ))}
+                </Card>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Liste */}
-      <div style={{fontSize:'0.68rem',color:'#3B4E63',fontWeight:700,textTransform:'uppercase',marginBottom:'0.5rem',letterSpacing:'0.08em'}}>Tüm İttifaklar ({filtered.length})</div>
-      {filtered.map(a => (
-        <Card key={a.id} style={{marginBottom:'0.5rem',padding:'0.85rem'}}>
-          <div style={{display:'flex',alignItems:'center',gap:'0.75rem'}}>
-            <div style={{background:'rgba(59,130,246,0.15)',border:'1px solid rgba(59,130,246,0.3)',borderRadius:'8px',padding:'0.4rem 0.6rem',fontWeight:900,fontSize:'0.8rem',color:'#60A5FA',flexShrink:0}}>[{a.tag}]</div>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontWeight:800,color:'#E8EDF2',fontSize:'0.92rem'}}>{a.name}</div>
-              <div style={{fontSize:'0.68rem',color:'#5A7089'}}>{a.memberCount||0} üye • Lv.{a.level||1} • {a.type==='open'?'🔓 Açık':'🔒 Kapalı'}</div>
-            </div>
-            {!myAlliance && a.type==='open' && <Btn variant='primary' size='sm' onClick={()=>joinAlliance(a)}>Katıl</Btn>}
-            {a.id===myAlliance?.id && <Tag color='green'>Üyesin</Tag>}
-          </div>
-        </Card>
-      ))}
-      {filtered.length === 0 && !myAlliance && <div style={{textAlign:'center',color:'#3B4E63',padding:'2rem',fontSize:'0.85rem'}}>İttifak bulunamadı. İlk sen kur! 🤝</div>}
-
       {createModal && (
-        <Modal title="🤝 İttifak Kur" onClose={()=>setCreateModal(false)}>
-          {[
-            ['name','İttifak Adı','İttifak adını girin',false],
-            ['tag','Etiket (Max 5)','ORG',false],
-            ['desc','Açıklama','Kısa bir açıklama...',true],
-          ].map(([k,l,ph,ta])=>(
+        <Modal title="🤝 İttifak Kur" onClose={()=>{setCreateModal(false);setAForm({name:'',tag:'',desc:'',type:'open'});}}>
+          {[['name','İttifak Adı','İttifak adını girin',false],['tag','Etiket (Max 5)','ORG',false],['desc','Açıklama','Kısa bir açıklama...',true]].map(([k,l,ph,ta])=>(
             <div key={k} style={{marginBottom:'0.85rem'}}>
               <div style={{fontSize:'0.72rem',color:'#5A7089',marginBottom:'0.4rem',fontWeight:700}}>{l}</div>
               {ta ? <textarea value={aForm[k]} onChange={e=>setAForm(p=>({...p,[k]:e.target.value}))} placeholder={ph} rows={2}
                 style={{width:'100%',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'10px',padding:'0.65rem 0.9rem',color:'#E8EDF2',fontFamily:"'DM Sans',sans-serif",fontSize:'14px',outline:'none',resize:'none',boxSizing:'border-box'}} />
-              : <input value={aForm[k]} onChange={e=>setAForm(p=>({...p,[k]:e.target.value}))} placeholder={ph}
-                style={{width:'100%',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'10px',padding:'0.65rem 0.9rem',color:'#E8EDF2',fontFamily:"'DM Sans',sans-serif",fontSize:'16px',outline:'none',boxSizing:'border-box'}} />}
+              : <input value={aForm[k]} onChange={e=>setAForm(p=>({...p,[k]:e.target.value}))} placeholder={ph} style={inpSt} />}
             </div>
           ))}
           <div style={{marginBottom:'1rem'}}>
             <div style={{fontSize:'0.72rem',color:'#5A7089',marginBottom:'0.4rem',fontWeight:700}}>Katılım Tipi</div>
             <div style={{display:'flex',gap:'0.5rem'}}>
-              {[['open','🔓 Açık'],['invite','📩 Davet']].map(([v,l])=>(
-                <button key={v} onClick={()=>setAForm(p=>({...p,type:v}))} style={{flex:1,padding:'0.55rem',borderRadius:'10px',border:`1px solid ${aForm.type===v?'rgba(59,130,246,0.4)':'rgba(255,255,255,0.08)'}`,background:aForm.type===v?'rgba(59,130,246,0.12)':'rgba(255,255,255,0.03)',color:aForm.type===v?'#60A5FA':'#5A7089',fontFamily:"'DM Sans',sans-serif",fontWeight:700,cursor:'pointer'}}>
+              {[['open','🔓 Açık'],['invite','🔒 Davet']].map(([v,l])=>(
+                <button key={v} onClick={()=>setAForm(p=>({...p,type:v}))} style={{flex:1,padding:'0.55rem',borderRadius:'10px',border:`1px solid ${aForm.type===v?'rgba(16,185,129,0.4)':'rgba(255,255,255,0.08)'}`,background:aForm.type===v?'rgba(16,185,129,0.12)':'rgba(255,255,255,0.03)',color:aForm.type===v?'#10B981':'#5A7089',fontFamily:"'DM Sans',sans-serif",fontWeight:700,cursor:'pointer'}}>
                   {l}
                 </button>
               ))}
             </div>
           </div>
           <div style={{background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.2)',borderRadius:'10px',padding:'0.6rem',fontSize:'0.78rem',color:'#F59E0B',marginBottom:'1rem'}}>
-            💡 Kurmak ₺30.000 gerektirir. Nakit: {fmtM(profile?.money)}
+            💡 Kurmak {fmtWord(ALLIANCE_COST)} gerektirir. Bakiye: {fmtWord(profile?.money)}
           </div>
           <Btn variant='primary' size='full' onClick={createAlliance}>🤝 İttifak Kur</Btn>
+        </Modal>
+      )}
+
+      {donateModal&&(
+        <Modal title="💰 Kasaya Para Yatır" onClose={()=>{setDonateModal(false);setDonateAmt('');}}>
+          <div style={{marginBottom:'1rem'}}>
+            <div style={{fontSize:'0.72rem',color:'#5A7089',marginBottom:'0.4rem',fontWeight:700}}>Tutar</div>
+            <input type="number" value={donateAmt} onChange={e=>setDonateAmt(e.target.value)} placeholder="₺ Tutar" style={inpSt} />
+            <div style={{display:'flex',gap:'0.4rem',marginTop:'0.5rem',flexWrap:'wrap'}}>
+              {[10000,25000,50000,100000].map(n=><button key={n} onClick={()=>setDonateAmt(String(n))} style={{padding:'0.3rem 0.65rem',borderRadius:'8px',border:'1px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.04)',color:'#8BA0B5',fontSize:'0.72rem',cursor:'pointer',fontWeight:700}}>{fmtWord(n)}</button>)}
+            </div>
+          </div>
+          <Btn variant='primary' size='full' onClick={donateToAlliance}>💰 Yatır</Btn>
+        </Modal>
+      )}
+
+      {transferModal&&(
+        <Modal title="🔄 Liderliği Devret" onClose={()=>{setTransferModal(false);setTransferTarget('');}}>
+          <div style={{background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.2)',borderRadius:'10px',padding:'0.65rem',fontSize:'0.78rem',color:'#F59E0B',marginBottom:'1rem'}}>
+            ⚠️ Liderliği devrettikten sonra artık lider yetkilerine sahip olmayacaksın.
+          </div>
+          <div style={{marginBottom:'1rem'}}>
+            <div style={{fontSize:'0.72rem',color:'#5A7089',marginBottom:'0.4rem',fontWeight:700}}>Yeni Lider Kullanıcı Adı</div>
+            <input value={transferTarget} onChange={e=>setTransferTarget(e.target.value)} placeholder="İttifak üyesinin kullanıcı adı" style={inpSt} />
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.5rem'}}>
+            <Btn variant='ghost' size='md' onClick={()=>{setTransferModal(false);setTransferTarget('');}}>İptal</Btn>
+            <Btn variant='primary' size='md' onClick={transferAllianceLeadership}>🔄 Devret</Btn>
+          </div>
+        </Modal>
+      )}
+
+      {disbandConfirm&&(
+        <Modal title="🗑️ İttifakı Feshet" onClose={()=>setDisbandConfirm(false)}>
+          <div style={{background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:'10px',padding:'0.65rem',fontSize:'0.78rem',color:'#FCA5A5',marginBottom:'1rem'}}>
+            ⚠️ Bu işlem geri alınamaz! <strong>{myAlliance?.name}</strong> ittifakı kalıcı olarak feshedilecek.
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.5rem'}}>
+            <Btn variant='ghost' size='md' onClick={()=>setDisbandConfirm(false)}>İptal</Btn>
+            <Btn variant='red' size='md' onClick={disbandAlliance}>🗑️ Feshet</Btn>
+          </div>
         </Modal>
       )}
     </div>
@@ -4322,81 +4710,134 @@ function CrisisPage({ profile, setProfile, showNotif }) {
   const { dark } = useTheme();
   const bg = dark ? '#0F172A' : '#F8FAFC';
   const cu = profile || {};
+  const uid = cu.uid || cu.id;
   const now = Date.now();
-  const updateUser = (upd) => {
-    const next = {...cu,...upd};
-    setProfile(next);
-    localStorage.setItem('rep_userProfile', JSON.stringify(next));
-    try { const u2 = JSON.parse(localStorage.getItem('rep_users')||'[]'); localStorage.setItem('rep_users', JSON.stringify(u2.map(u => u.id===next.id ? next : u))); } catch{}
-  };
 
-  const CRISIS_TYPES = [
-    {id:'earthquake',name:'Deprem',icon:'🌍',impact:'−₺50,000 herkese',severity:'Yüksek',color:'#EF4444'},
-    {id:'economic',name:'Ekonomik Kriz',icon:'📉',impact:'Para değeri düşer',severity:'Orta',color:'#F59E0B'},
-    {id:'pandemic',name:'Salgın',icon:'🦠',impact:'Can kaybı',severity:'Kritik',color:'#A78BFA'},
-    {id:'political',name:'Siyasi Kriz',icon:'🏛️',impact:'Meclis durur',severity:'Orta',color:'#60A5FA'},
-    {id:'war',name:'Savaş Tehdidi',icon:'⚔️',impact:'Ordu harekete geçer',severity:'Yüksek',color:'#DC2626'},
+  const CRISIS_TEMPLATES = [
+    {id:'earthquake',name:'Deprem',icon:'🌍',desc:'Büyük bir deprem şehri vurdu! Altyapı ciddi hasar gördü.',severity:'Kritik',color:'#EF4444',poolTarget:500000,duration:12*3600000},
+    {id:'economic',name:'Ekonomik Kriz',icon:'📉',desc:'Piyasalar çöküyor, enflasyon tırmanıyor.',severity:'Yüksek',color:'#F59E0B',poolTarget:300000,duration:8*3600000},
+    {id:'pandemic',name:'Salgın Hastalık',icon:'🦠',desc:'Tehlikeli bir salgın hızla yayılıyor.',severity:'Kritik',color:'#A78BFA',poolTarget:750000,duration:24*3600000},
+    {id:'political',name:'Siyasi Kriz',icon:'🏛️',desc:'Hükümet krizi derinleşiyor, meclis kilitlendi.',severity:'Orta',color:'#60A5FA',poolTarget:200000,duration:6*3600000},
+    {id:'war',name:'Savaş Tehdidi',icon:'⚔️',desc:'Sınırda gerilim tırmanıyor, ordu alarma geçti.',severity:'Yüksek',color:'#DC2626',poolTarget:1000000,duration:18*3600000},
+    {id:'flood',name:'Sel Felaketi',icon:'🌊',desc:'Şiddetli yağışlar sel baskınına neden oldu.',severity:'Yüksek',color:'#3B82F6',poolTarget:400000,duration:10*3600000},
   ];
 
-  const triggerCrisis = (type) => {
-    if (cu.role!=='admin'&&cu.role!=='user') return;
-    if ((cu.money||0)<100000) { showNotif('❌ Kriz tetiklemek için ₺100,000 gerekli!','error'); return; }
-    const crisis = {id:Date.now(),type:type.id,name:type.name,icon:type.icon,triggeredBy:cu.username,startTime:now,duration:6*3600000,active:true};
-    setCrises(prev=>[crisis,...prev.filter(c=>c.active)].slice(0,5));
-    setCrisisLog(prev=>[{id:Date.now(),text:`${cu.username} tarafından ${type.name} krizi başlatıldı!`,time:new Date().toLocaleTimeString('tr-TR'),...crisis},...prev].slice(0,50));
-    updateUser({money:(cu.money||0)-100000});
-    showNotif(`🚨 ${type.name} krizi başlatıldı! -₺100,000`,'error');
+  useEffect(() => {
+    const lastGen = parseInt(localStorage.getItem('rep_lastCrisisGen')||'0');
+    const GEN_INTERVAL = 2*3600000;
+    const nowTs = Date.now();
+    if (nowTs - lastGen > GEN_INTERVAL) {
+      const active = crises.filter(c => c.active && (nowTs-c.startTime)<c.duration);
+      if (active.length < 2) {
+        const tmpl = CRISIS_TEMPLATES[Math.floor(Math.random()*CRISIS_TEMPLATES.length)];
+        const crisis = {
+          id:genId(), type:tmpl.id, name:tmpl.name, icon:tmpl.icon, desc:tmpl.desc,
+          severity:tmpl.severity, color:tmpl.color, startTime:nowTs, duration:tmpl.duration,
+          poolTarget:tmpl.poolTarget, poolCurrent:0, contributions:{}, active:true,
+        };
+        setCrises(prev => [crisis,...prev.filter(c=>c.active&&(nowTs-c.startTime)<c.duration)].slice(0,5));
+        setCrisisLog(prev => [{id:genId(),icon:crisis.icon,text:`🚨 Otomatik uyarı: ${crisis.name} krizi başladı!`,time:new Date().toLocaleTimeString('tr-TR')},...prev].slice(0,50));
+        localStorage.setItem('rep_lastCrisisGen', String(nowTs));
+      }
+    }
+  }, []);
+
+  const contribute = (crisisId, amount) => {
+    if (!amount||amount<=0) return;
+    if ((cu.money||0)<amount) { showNotif('❌ Yetersiz bakiye!','error'); return; }
+    let resolved = false;
+    setCrises(prev => prev.map(c => {
+      if (c.id!==crisisId) return c;
+      const newPool = (c.poolCurrent||0)+amount;
+      resolved = newPool >= c.poolTarget;
+      return {...c, poolCurrent:newPool, contributions:{...(c.contributions||{}),[uid]:((c.contributions||{})[uid]||0)+amount}, active:!resolved, resolvedAt:resolved?Date.now():undefined};
+    }));
+    const xpGain = Math.floor(amount/1000);
+    const meritGain = Math.floor(amount/10000);
+    setProfile(pr => { const np={...pr,money:(pr.money||0)-amount,xp:(pr.xp||0)+xpGain,meritPoints:(pr.meritPoints||0)+meritGain}; localStorage.setItem('rep_userProfile',JSON.stringify(np)); return np; });
+    const crisis = crises.find(c=>c.id===crisisId);
+    if (crisis && (crisis.poolCurrent||0)+amount >= crisis.poolTarget) {
+      setCrisisLog(prev => [{id:genId(),icon:'✅',text:`${crisis.name} krizi havuz doldurularak çözüldü!`,time:new Date().toLocaleTimeString('tr-TR')},...prev].slice(0,50));
+      showNotif(`✅ ${crisis.name} krizi çözüldü! Katkın için teşekkürler. +${xpGain} XP`,'success');
+    } else {
+      showNotif(`💪 Havuza ${fmtWord(amount)} katkı! +${xpGain} XP +${meritGain}🏅`,'success');
+    }
   };
 
-  const respondCrisis = (crisis) => {
-    const cost = 50000;
-    if ((cu.money||0)<cost) { showNotif('❌ Kriz müdahalesi için ₺50,000 gerekli!','error'); return; }
-    updateUser({money:(cu.money||0)-cost,meritPoints:(cu.meritPoints||0)+30});
-    setCrises(prev=>prev.map(c=>c.id===crisis.id?{...c,responders:[...(c.responders||[]),cu.username]}:c));
-    showNotif(`✅ ${crisis.name} krizine müdahale edildi! +30🏅 -₺50,000`,'success');
-  };
-
-  const activeCrises = crises.filter(c=>c.active&&(now-c.startTime)<c.duration);
+  const activeCrises = crises.filter(c => c.active && (now-c.startTime)<c.duration);
 
   return (
     <div style={{padding:'1rem',background:bg,minHeight:'100%'}}>
-      <div style={{fontFamily:"'Syne',sans-serif",fontSize:'1.3rem',fontWeight:900,color:'#EF4444',marginBottom:'1rem'}}>🚨 Kriz Yönetimi</div>
-      {activeCrises.length>0&&<div style={{marginBottom:'1rem'}}>
-        <div style={{fontWeight:700,color:'#EF4444',fontSize:'0.85rem',marginBottom:'0.5rem',display:'flex',alignItems:'center',gap:'0.4rem'}}><span style={{width:8,height:8,background:'#EF4444',borderRadius:'50%',display:'inline-block',marginRight:4}}></span>AKTİF KRİZLER</div>
-        {activeCrises.map(c=>(
-          <div key={c.id} style={{background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.3)',borderRadius:'12px',padding:'1rem',marginBottom:'0.75rem'}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'0.4rem'}}>
-              <div style={{display:'flex',alignItems:'center',gap:'0.5rem'}}><span style={{fontSize:'1.5rem'}}>{c.icon}</span><div><div style={{fontWeight:700,color:'#EF4444'}}>{c.name}</div><div style={{fontSize:'0.7rem',color:'#999'}}>Tetikleyen: {c.triggeredBy}</div></div></div>
-              <div style={{fontSize:'0.75rem',color:'#F59E0B'}}>⏰ {Math.ceil((c.duration-(now-c.startTime))/3600000)}sa kaldı</div>
+      <div style={{fontFamily:"'Syne',sans-serif",fontSize:'1.3rem',fontWeight:900,color:'#EF4444',marginBottom:'0.3rem'}}>🚨 Kriz Merkezi</div>
+      <div style={{fontSize:'0.78rem',color:'#5A7089',marginBottom:'1rem'}}>Krizler sistem tarafından otomatik oluşturulur. Havuza para katkısı yaparak çöz, XP ve Puan kazan!</div>
+
+      {activeCrises.length===0 && (
+        <Card style={{textAlign:'center',padding:'2rem',marginBottom:'1rem'}}>
+          <div style={{fontSize:'2.5rem',marginBottom:'0.5rem'}}>✅</div>
+          <div style={{fontWeight:700,color:'#10B981',marginBottom:'0.3rem'}}>Şu an aktif kriz yok</div>
+          <div style={{fontSize:'0.78rem',color:'#5A7089'}}>Sistem her 2 saatte bir kriz üretebilir</div>
+        </Card>
+      )}
+
+      {activeCrises.map(c=>{
+        const pct = Math.min(100,Math.round((c.poolCurrent||0)/c.poolTarget*100));
+        const timeLeft = Math.ceil(Math.max(0,c.duration-(now-c.startTime))/3600000);
+        const myContrib = (c.contributions||{})[uid]||0;
+        const remaining = c.poolTarget-(c.poolCurrent||0);
+        return (
+          <div key={c.id} style={{background:'rgba(239,68,68,0.05)',border:`1px solid ${c.color||'#EF4444'}44`,borderRadius:'14px',padding:'1rem',marginBottom:'0.75rem'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'0.6rem'}}>
+              <div style={{display:'flex',alignItems:'center',gap:'0.6rem'}}>
+                <span style={{fontSize:'2rem'}}>{c.icon}</span>
+                <div>
+                  <div style={{fontWeight:800,color:c.color||'#EF4444',fontSize:'0.95rem'}}>{c.name}</div>
+                  <div style={{fontSize:'0.7rem',color:'#5A7089',maxWidth:'180px'}}>{c.desc}</div>
+                </div>
+              </div>
+              <div style={{textAlign:'right',flexShrink:0}}>
+                <div style={{fontSize:'0.72rem',color:'#F59E0B',fontWeight:700}}>⏰ {timeLeft}sa</div>
+                <Tag color='red'>{c.severity}</Tag>
+              </div>
             </div>
-            {!(c.responders||[]).includes(cu.username)&&<button onClick={()=>respondCrisis(c)} style={{width:'100%',padding:'0.5rem',background:'rgba(16,185,129,0.1)',border:'1px solid rgba(16,185,129,0.3)',borderRadius:'8px',color:'#10B981',cursor:'pointer',fontWeight:700,fontFamily:'inherit',fontSize:'0.85rem'}}>🆘 Müdahale Et (₺50,000) +30🏅</button>}
-            {(c.responders||[]).includes(cu.username)&&<div style={{textAlign:'center',color:'#10B981',fontSize:'0.82rem'}}>✅ Müdahale edildi</div>}
+            <div style={{marginBottom:'0.65rem'}}>
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:'0.68rem',color:'#5A7089',marginBottom:'4px'}}>
+                <span style={{color:'#10B981',fontWeight:700}}>💰 Havuz: {fmtWord(c.poolCurrent||0)}</span>
+                <span>Hedef: {fmtWord(c.poolTarget)}</span>
+              </div>
+              <div style={{height:'8px',background:'rgba(255,255,255,0.06)',borderRadius:'100px',overflow:'hidden',marginBottom:'4px'}}>
+                <div style={{height:'100%',width:`${pct}%`,background:`linear-gradient(90deg,#10B981,${c.color||'#EF4444'})`,borderRadius:'100px',transition:'width 0.5s'}} />
+              </div>
+              <div style={{fontSize:'0.62rem',color:'#3B4E63'}}>{pct}% tamamlandı • {fmtWord(remaining)} daha gerekli</div>
+              {myContrib>0&&<div style={{fontSize:'0.65rem',color:'#10B981',marginTop:'2px'}}>✅ Senin katkın: {fmtWord(myContrib)}</div>}
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'0.35rem',marginBottom:'0.35rem'}}>
+              {[10000,25000,50000,100000].map(amt=>{
+                const can=(cu.money||0)>=amt;
+                return (
+                  <button key={amt} onClick={()=>can&&contribute(c.id,amt)} disabled={!can}
+                    style={{padding:'0.45rem 0.2rem',borderRadius:'8px',border:`1px solid ${can?'rgba(16,185,129,0.3)':'rgba(255,255,255,0.06)'}`,background:can?'rgba(16,185,129,0.08)':'rgba(255,255,255,0.02)',color:can?'#10B981':'#3B4E63',cursor:can?'pointer':'not-allowed',fontWeight:700,fontSize:'0.65rem',fontFamily:"'DM Sans',sans-serif"}}>
+                    {fmtWord(amt)}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{fontSize:'0.62rem',color:'#3B4E63'}}>Katkı yap → XP + Puan kazan • Kriz çözülünce katkıcılar ödüllenir</div>
           </div>
-        ))}
-      </div>}
-      <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'12px',padding:'1rem',marginBottom:'1rem'}}>
-        <div style={{fontWeight:700,color:'#aaa',marginBottom:'0.5rem',fontSize:'0.9rem'}}>🚨 Kriz Tetikle</div>
-        <div style={{fontSize:'0.78rem',color:'#999',marginBottom:'0.75rem'}}>Kriz tetiklemek ₺100,000 maliyetlidir. Diğer oyuncular müdahale edebilir.</div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.5rem'}}>
-          {CRISIS_TYPES.map(type=>(
-            <button key={type.id} onClick={()=>triggerCrisis(type)} style={{background:`rgba(255,255,255,0.03)`,border:`1px solid rgba(255,255,255,0.08)`,borderRadius:'10px',padding:'0.75rem 0.5rem',cursor:'pointer',textAlign:'center',fontFamily:'inherit'}}>
-              <div style={{fontSize:'1.5rem',marginBottom:'0.25rem'}}>{type.icon}</div>
-              <div style={{fontWeight:700,fontSize:'0.78rem',color:type.color}}>{type.name}</div>
-              <div style={{fontSize:'0.62rem',color:'#666',marginTop:'0.1rem'}}>{type.severity}</div>
-            </button>
+        );
+      })}
+
+      {crisisLog.length>0 && (
+        <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'12px',padding:'1rem'}}>
+          <div style={{fontWeight:700,color:'#5A7089',marginBottom:'0.5rem',fontSize:'0.85rem'}}>📋 Kriz Kayıtları</div>
+          {crisisLog.slice(0,10).map((c,i)=>(
+            <div key={i} style={{display:'flex',gap:'0.5rem',padding:'0.3rem 0',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+              <span style={{fontSize:'1rem',flexShrink:0}}>{c.icon}</span>
+              <div style={{flex:1,fontSize:'0.75rem',color:'#8BA0B5'}}>{c.text}</div>
+              <div style={{fontSize:'0.62rem',color:'#3B4E63',flexShrink:0}}>{c.time}</div>
+            </div>
           ))}
         </div>
-      </div>
-      {crisisLog.length>0&&<div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'12px',padding:'1rem'}}>
-        <div style={{fontWeight:700,color:'#aaa',marginBottom:'0.5rem',fontSize:'0.9rem'}}>📋 Kriz Günlüğü</div>
-        {crisisLog.slice(0,10).map(c=>(
-          <div key={c.id} style={{display:'flex',gap:'0.5rem',padding:'0.35rem 0',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
-            <span style={{fontSize:'1rem'}}>{c.icon}</span>
-            <div style={{flex:1,fontSize:'0.78rem',color:'#bbb'}}>{c.text}</div>
-            <div style={{fontSize:'0.65rem',color:'#555',flexShrink:0}}>{c.time}</div>
-          </div>
-        ))}
-      </div>}
+      )}
     </div>
   );
 }
