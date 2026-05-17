@@ -60,6 +60,41 @@ const fmtWord = (n) => {
 const fmtM   = fmtWord;
 const fmtUC  = (n) => `${fmt(n||0)} UC`;
 const cls    = (...a) => a.filter(Boolean).join(' ');
+
+// ─── Map / Territory helpers ───────────────────────────────────────────────
+const getCentroid = (pts) => {
+  const pairs = pts.split(' ').map(p => p.split(',').map(Number));
+  const n = pairs.length;
+  return { x: pairs.reduce((s,p)=>s+p[0],0)/n, y: pairs.reduce((s,p)=>s+p[1],0)/n };
+};
+const DEFAULT_DISTRICTS = [
+  {id:'d1',  name:'Kuzey Park',    controlBy:'Halk',      controlColor:'#6B7280', crime:28, support:76, alarm:22, income:52000,  influence:65, population:42000, legalIncome:48000, illegalIncome:4000,  conflicts:[]},
+  {id:'d2',  name:'Üniversite',    controlBy:'Aydınlar',  controlColor:'#3B82F6', crime:18, support:88, alarm:14, income:55000,  influence:90, population:38000, legalIncome:50000, illegalIncome:5000,  conflicts:[]},
+  {id:'d3',  name:'Askeri Üs',     controlBy:'Ordu',      controlColor:'#EF4444', crime:10, support:62, alarm:88, income:48000,  influence:95, population:8000,  legalIncome:48000, illegalIncome:0,     conflicts:['police']},
+  {id:'d4',  name:'Sanayi',        controlBy:'Şirketler', controlColor:'#10B981', crime:52, support:55, alarm:40, income:95000,  influence:58, population:30000, legalIncome:72000, illegalIncome:23000, conflicts:[]},
+  {id:'d5',  name:'Tarihi Merkez', controlBy:'Tüccarlar', controlColor:'#EAB308', crime:42, support:72, alarm:35, income:85000,  influence:80, population:45000, legalIncome:65000, illegalIncome:20000, conflicts:[]},
+  {id:'d6',  name:'Liman',         controlBy:'Halk',      controlColor:'#06B6D4', crime:65, support:48, alarm:55, income:120000, influence:62, population:35000, legalIncome:80000, illegalIncome:40000, conflicts:['cartel']},
+  {id:'d7',  name:'Gecekondular',  controlBy:'Asi Grup',  controlColor:'#F59E0B', crime:80, support:35, alarm:72, income:38000,  influence:52, population:68000, legalIncome:22000, illegalIncome:16000, conflicts:['riot','cartel']},
+  {id:'d8',  name:'İş Merkezi',    controlBy:'Şirketler', controlColor:'#10B981', crime:28, support:68, alarm:26, income:200000, influence:88, population:22000, legalIncome:185000,illegalIncome:15000, conflicts:[]},
+  {id:'d9',  name:'Sahil',         controlBy:'Halk',      controlColor:'#06B6D4', crime:22, support:82, alarm:18, income:90000,  influence:74, population:35000, legalIncome:82000, illegalIncome:8000,  conflicts:[]},
+  {id:'d10', name:'Banliyö',       controlBy:'Halk',      controlColor:'#6B7280', crime:38, support:70, alarm:32, income:48000,  influence:45, population:58000, legalIncome:42000, illegalIncome:6000,  conflicts:[]},
+  {id:'d11', name:'Çarşı',         controlBy:'Tüccarlar', controlColor:'#EAB308', crime:48, support:64, alarm:45, income:78000,  influence:68, population:42000, legalIncome:62000, illegalIncome:16000, conflicts:[]},
+  {id:'d12', name:'Güney Kent',    controlBy:'Halk',      controlColor:'#6B7280', crime:44, support:68, alarm:38, income:58000,  influence:50, population:52000, legalIncome:50000, illegalIncome:8000,  conflicts:[]},
+];
+const DISTRICT_POLYGONS = {
+  d1:  '0,0 125,0 138,88 68,108 0,86',
+  d2:  '125,0 258,0 270,82 192,106 138,88',
+  d3:  '258,0 360,0 360,95 308,108 270,82',
+  d4:  '0,86 68,108 78,208 22,230 0,210',
+  d5:  '68,108 138,88 192,106 270,82 282,190 210,218 132,212 78,208',
+  d6:  '270,82 308,108 360,95 360,205 326,220 282,205 282,190',
+  d7:  '0,210 22,230 32,342 0,480',
+  d8:  '22,230 78,208 132,212 210,218 220,332 148,348 78,340 32,342',
+  d9:  '282,190 326,220 360,205 360,342 322,355 222,334 220,332',
+  d10: '32,342 78,340 88,448 35,480 0,480',
+  d11: '78,340 148,348 220,332 222,334 322,355 325,465 222,480 78,480 88,448',
+  d12: '322,355 360,342 360,480 325,480 325,465',
+};
 const genId  = () => Math.random().toString(36).slice(2,10);
 const sleep  = (ms) => new Promise(r => setTimeout(r, ms));
 const timeAgo = (ts) => {
@@ -396,12 +431,25 @@ function Card({ children, style={}, onClick }) {
   }} onClick={onClick}>{children}</div>;
 }
 
+const VIP_FRAMES = {
+  rainbow: {border:'3px solid transparent',backgroundImage:'linear-gradient(#0B1527,#0B1527),linear-gradient(135deg,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)',backgroundOrigin:'border-box',backgroundClip:'padding-box,border-box',animation:'vipRainbow 3s linear infinite'},
+  fire:    {border:'3px solid transparent',backgroundImage:'linear-gradient(#0B1527,#0B1527),linear-gradient(135deg,#FF4500,#FF8C00,#FFD700)',backgroundOrigin:'border-box',backgroundClip:'padding-box,border-box',animation:'vipFire 1.5s ease-in-out infinite'},
+  ice:     {border:'3px solid transparent',backgroundImage:'linear-gradient(#0B1527,#0B1527),linear-gradient(135deg,#00BFFF,#87CEEB,#E0FFFF)',backgroundOrigin:'border-box',backgroundClip:'padding-box,border-box',animation:'vipIce 2s ease-in-out infinite'},
+  gold:    {border:'3px solid transparent',backgroundImage:'linear-gradient(#0B1527,#0B1527),linear-gradient(135deg,#FFD700,#FFA500,#FFD700)',backgroundOrigin:'border-box',backgroundClip:'padding-box,border-box',animation:'vipGold 2s ease-in-out infinite'},
+  neon:    {border:'3px solid #00FF64',boxShadow:'0 0 8px #00FF64,0 0 16px rgba(0,255,100,0.4)',animation:'vipNeon 1.2s ease-in-out infinite'},
+  violet:  {border:'3px solid transparent',backgroundImage:'linear-gradient(#0B1527,#0B1527),linear-gradient(135deg,#8B5CF6,#A78BFA,#7C3AED)',backgroundOrigin:'border-box',backgroundClip:'padding-box,border-box',animation:'vipViolet 2s ease-in-out infinite'},
+  heart:   {border:'3px solid transparent',backgroundImage:'linear-gradient(#0B1527,#0B1527),linear-gradient(135deg,#EC4899,#F43F5E,#EC4899)',backgroundOrigin:'border-box',backgroundClip:'padding-box,border-box',animation:'vipHeart 1.5s ease-in-out infinite'},
+};
+
 function Avatar({ profile, size=40 }) {
-  if (!profile) return <div style={{width:size,height:size,borderRadius:'50%',background:'rgba(59,130,246,0.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:size*0.45}}>👤</div>;
+  if (!profile) return <div style={{width:size,height:size,borderRadius:'50%',background:'rgba(59,130,246,0.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:size*0.45,flexShrink:0}}>👤</div>;
   const icon = profile.gender==='female' ? '👩' : '👨';
+  const photoSrc = profile.avatarUrl || profile.photoUrl || profile.avatar || null;
+  const frameStyle = profile.premium && profile.vipFrame ? (VIP_FRAMES[profile.vipFrame]||{}) : {};
+  const borderDefault = profile.premium ? '2px solid rgba(245,158,11,0.5)' : '2px solid rgba(59,130,246,0.3)';
   return (
-    <div style={{width:size,height:size,borderRadius:'50%',background:'linear-gradient(135deg,#1a3a5c,#0a1a2e)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:size*0.45,border:`2px solid rgba(59,130,246,0.3)`,flexShrink:0,overflow:'hidden'}}>
-      {profile.avatar ? <img src={profile.avatar} style={{width:'100%',height:'100%',objectFit:'cover'}} /> : icon}
+    <div style={{width:size,height:size,borderRadius:'50%',background:'linear-gradient(135deg,#1a3a5c,#0a1a2e)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:size*0.45,border:borderDefault,flexShrink:0,overflow:'hidden',position:'relative',...frameStyle}}>
+      {photoSrc ? <img src={photoSrc} alt="avatar" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none';}} /> : icon}
     </div>
   );
 }
@@ -496,6 +544,7 @@ const NAV_ITEMS = [
   { id:'players',   icon:'👥', label:'Oyuncular',rgb:'59,130,246' },
   { id:'achievements',icon:'🏆',label:'Başarılar',rgb:'255,215,0' },
   { id:'crisis',    icon:'🚨', label:'Kriz',     rgb:'239,68,68'  },
+  { id:'map',       icon:'🗺️', label:'Harita',   rgb:'0,200,100'  },
 ];
 
 function BottomNav({ page, onChange, items, notifMap={} }) {
@@ -714,6 +763,7 @@ function AdminPage({ profile, showNotif, onNavigate }) {
   const [msg, setMsg] = useState('');
   const [editMoney, setEditMoney] = useState('');
   const [tabLog, setTabLog] = useState('all');
+  const [elections_adm, setElections_adm] = useLs('rep_elections', {phase:'idle',candidates:[],votes:{}});
   const onlineCnt = useOnlineCount();
 
   const isAdmin = profile?.role === 'admin';
@@ -809,7 +859,7 @@ function AdminPage({ profile, showNotif, onNavigate }) {
 
   const cs = {background:'rgba(255,255,255,0.04)',borderRadius:'14px',padding:'1rem',border:'1px solid rgba(255,255,255,0.07)',marginBottom:'0.65rem'};
   const inp = {width:'100%',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'10px',padding:'0.55rem 0.8rem',color:'#E8EDF2',fontFamily:"'DM Sans',sans-serif",fontSize:'15px',outline:'none',boxSizing:'border-box'};
-  const tabs = [['dashboard','📊 Panel'],['users','👥 Kullanıcılar'],['manage','🛡️ Yönet'],['announce','📢 Duyuru'],['logs','📋 Log'],['tools','🛠️ Araçlar']];
+  const tabs = [['dashboard','📊 Panel'],['users','👥 Kullanıcılar'],['manage','🛡️ Yönet'],['announce','📢 Duyuru'],['logs','📋 Log'],['tools','🛠️ Araçlar'],['election','🗳️ Seçim']];
 
   return (
     <div style={{padding:'0.7rem',minHeight:'100%',background:'rgba(6,12,24,0.99)'}}>
@@ -1107,6 +1157,56 @@ function AdminPage({ profile, showNotif, onNavigate }) {
           </div>
         </div>
       )}
+
+      {/* ── SEÇİM YÖNETİMİ ── */}
+      {tab==='election' && (() => {
+        const sortedCands = [...(elections_adm.candidates||[])].sort((a,b)=>(b.votes||0)-(a.votes||0));
+        const totalVotes = sortedCands.reduce((s,c)=>s+(c.votes||0),0);
+        const startElection = () => { setElections_adm({...elections_adm, phase:'active', startedAt:Date.now()}); showNotif('✅ Seçim başlatıldı!','success'); };
+        const closeElection = () => { const w=sortedCands[0]||null; setElections_adm({...elections_adm, phase:'finished', finishedAt:Date.now(), winner:w}); showNotif(`🏆 Kazanan: ${w?.username||'-'}`,'gold'); };
+        const resetElection = () => { if(!window.confirm('Seçimi sıfırla?')) return; setElections_adm({phase:'idle',candidates:[],votes:{},nextElection:Date.now()+7*24*60*60*1000}); showNotif('↺ Seçim sıfırlandı','success'); };
+        return (
+          <div>
+            <div style={cs}>
+              <div style={{fontWeight:800,color:'#E8EDF2',marginBottom:'0.65rem',fontSize:'0.85rem'}}>🗳️ Seçim Yönetimi</div>
+              <div style={{display:'flex',gap:'0.4rem',alignItems:'center',marginBottom:'0.65rem',flexWrap:'wrap'}}>
+                <span style={{padding:'0.3rem 0.75rem',borderRadius:'8px',border:`1px solid ${elections_adm.phase==='active'?'rgba(16,185,129,0.4)':elections_adm.phase==='finished'?'rgba(59,130,246,0.4)':'rgba(255,255,255,0.1)'}`,background:elections_adm.phase==='active'?'rgba(16,185,129,0.1)':elections_adm.phase==='finished'?'rgba(59,130,246,0.1)':'rgba(255,255,255,0.03)',color:elections_adm.phase==='active'?'#10B981':elections_adm.phase==='finished'?'#60A5FA':'#5A7089',fontSize:'0.78rem',fontWeight:700}}>
+                  {elections_adm.phase==='active'?'🟢 Aktif':elections_adm.phase==='finished'?'🏁 Bitti':'⏸️ Bekliyor'}
+                </span>
+                <span style={{fontSize:'0.7rem',color:'#3B4E63'}}>{sortedCands.length} aday • {totalVotes} oy</span>
+              </div>
+              <div style={{display:'flex',gap:'0.4rem',flexWrap:'wrap'}}>
+                {elections_adm.phase==='idle'&&<button onClick={startElection} style={{padding:'0.45rem 0.85rem',borderRadius:'10px',border:'none',background:'#10B981',color:'#fff',fontWeight:700,fontSize:'0.78rem',cursor:'pointer'}}>🗳️ Seçimi Başlat</button>}
+                {elections_adm.phase==='active'&&<button onClick={closeElection} style={{padding:'0.45rem 0.85rem',borderRadius:'10px',border:'none',background:'#3B82F6',color:'#fff',fontWeight:700,fontSize:'0.78rem',cursor:'pointer'}}>🏁 Seçimi Kapat ve Kazananı Duyur</button>}
+                <button onClick={resetElection} style={{padding:'0.45rem 0.85rem',borderRadius:'10px',border:'1px solid rgba(239,68,68,0.3)',background:'rgba(239,68,68,0.1)',color:'#EF4444',fontWeight:700,fontSize:'0.78rem',cursor:'pointer'}}>↺ Sıfırla</button>
+              </div>
+              {elections_adm.winner&&elections_adm.phase==='finished'&&(
+                <div style={{marginTop:'0.65rem',background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.2)',borderRadius:'10px',padding:'0.65rem'}}>
+                  <div style={{fontSize:'0.78rem',fontWeight:700,color:'#F59E0B'}}>🏆 Kazanan: {elections_adm.winner.username} ({elections_adm.winner.votes||0} oy)</div>
+                  {elections_adm.winner.party&&<div style={{fontSize:'0.65rem',color:'#5A7089',marginTop:'0.15rem'}}>{elections_adm.winner.party}</div>}
+                </div>
+              )}
+            </div>
+            <div style={{fontWeight:700,color:'#E8EDF2',marginBottom:'0.4rem',fontSize:'0.78rem'}}>👥 Adaylar ({sortedCands.length})</div>
+            {sortedCands.length===0 ? <div style={{...cs,textAlign:'center',color:'#3B4E63',padding:'1.5rem',fontSize:'0.82rem'}}>Henüz aday yok</div>
+            : sortedCands.map((c,i)=>{
+              const pct = totalVotes>0 ? Math.round((c.votes||0)/totalVotes*100) : 0;
+              return (
+                <div key={c.uid} style={{...cs,padding:'0.75rem',marginBottom:'0.4rem',border:`1px solid ${i===0?'rgba(245,158,11,0.3)':'rgba(255,255,255,0.06)'}`}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'0.3rem'}}>
+                    <div>
+                      <div style={{fontWeight:700,color:i===0?'#F59E0B':'#E8EDF2',fontSize:'0.85rem'}}>{['🥇','🥈','🥉'][i]||'•'} {c.username}</div>
+                      <div style={{fontSize:'0.62rem',color:'#5A7089'}}>{c.party||'Bağımsız'}</div>
+                    </div>
+                    <div style={{textAlign:'right'}}><div style={{fontWeight:800,color:'#F59E0B'}}>{c.votes||0}</div><div style={{fontSize:'0.6rem',color:'#5A7089'}}>oy ({pct}%)</div></div>
+                  </div>
+                  <div style={{height:'4px',background:'rgba(255,255,255,0.06)',borderRadius:'2px'}}><div style={{height:'100%',width:`${pct}%`,background:i===0?'#F59E0B':'#8B5CF6',borderRadius:'2px',transition:'width 0.5s'}}/></div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -1230,18 +1330,33 @@ function ChatPage({ profile }) {
           <div style={{flex:1,overflowY:'auto',padding:'0.6rem 0.7rem',display:'flex',flexDirection:'column',gap:'0.4rem',WebkitOverflowScrolling:'touch'}}>
             {messages.slice(-80).map((m,i) => {
               const isMe = m.userId === profile?.uid;
+              const imgRx = /(https?:\/\/\S+\.(?:jpg|jpeg|png|gif|webp)(\?\S*)?)/i;
+              const imgMatch = m.text?.match(imgRx);
+              const isImageOnly = imgMatch && m.text.trim()===imgMatch[0];
               return (
                 <div key={m.id||i} style={{display:'flex',flexDirection:isMe?'row-reverse':'row',gap:'0.45rem',alignItems:'flex-end'}}>
                   {!isMe && (
-                    <div style={{width:'30px',height:'30px',borderRadius:'50%',background:'linear-gradient(135deg,#1a3a5c,#0a1a2e)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.85rem',border:'1px solid rgba(59,130,246,0.2)',flexShrink:0}}>
-                      {m.gender==='female'?'👩':'👨'}
+                    <div style={{width:'30px',height:'30px',borderRadius:'50%',background:'linear-gradient(135deg,#1a3a5c,#0a1a2e)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.85rem',border:'1px solid rgba(59,130,246,0.2)',flexShrink:0,overflow:'hidden'}}>
+                      {m.photoUrl ? <img src={m.photoUrl} style={{width:'100%',height:'100%',objectFit:'cover'}} alt="" onError={e=>e.target.style.display='none'}/> : m.gender==='female'?'👩':'👨'}
                     </div>
                   )}
                   <div style={{maxWidth:'78%'}}>
                     {!isMe && <div style={{fontSize:'0.63rem',color:m.premium?'#F59E0B':'#5A7089',fontWeight:700,marginBottom:'2px',paddingLeft:'4px'}}>{m.username} {m.premium&&'⭐'}</div>}
-                    <div style={{background:isMe?'rgba(59,130,246,0.15)':'rgba(255,255,255,0.05)',border:`1px solid ${isMe?'rgba(59,130,246,0.25)':'rgba(255,255,255,0.08)'}`,borderRadius:isMe?'12px 12px 3px 12px':'12px 12px 12px 3px',padding:'0.5rem 0.75rem',fontSize:'0.87rem',color:'#D0E0F0',lineHeight:1.5,wordBreak:'break-word'}}>
-                      {m.text}
-                    </div>
+                    {isImageOnly ? (
+                      <div style={{borderRadius:isMe?'12px 12px 3px 12px':'12px 12px 12px 3px',overflow:'hidden',border:`1px solid ${isMe?'rgba(59,130,246,0.25)':'rgba(255,255,255,0.08)'}`}}>
+                        <img src={imgMatch[0]} alt="foto" style={{maxWidth:'220px',maxHeight:'200px',display:'block',objectFit:'cover'}} onError={e=>{e.target.parentElement.innerHTML=`<div style="padding:0.5rem 0.75rem;color:#EF4444;font-size:0.75rem">⚠️ Resim yüklenemedi</div>`;}}/>
+                      </div>
+                    ) : (
+                      <div style={{background:isMe?'rgba(59,130,246,0.15)':'rgba(255,255,255,0.05)',border:`1px solid ${isMe?'rgba(59,130,246,0.25)':'rgba(255,255,255,0.08)'}`,borderRadius:isMe?'12px 12px 3px 12px':'12px 12px 12px 3px',padding:'0.5rem 0.75rem',fontSize:'0.87rem',color:'#D0E0F0',lineHeight:1.5,wordBreak:'break-word'}}>
+                        {imgMatch ? (
+                          <>
+                            <span>{m.text.replace(imgMatch[0],'').trim()}</span>
+                            {m.text.replace(imgMatch[0],'').trim() && <br/>}
+                            <img src={imgMatch[0]} alt="foto" style={{maxWidth:'200px',maxHeight:'180px',borderRadius:'8px',marginTop:'4px',display:'block'}} onError={e=>e.target.style.display='none'}/>
+                          </>
+                        ) : m.text}
+                      </div>
+                    )}
                     <div style={{fontSize:'0.58rem',color:'#3B4E63',marginTop:'2px',textAlign:isMe?'right':'left',paddingLeft:isMe?0:'4px'}}>{timeAgo(m.ts)}</div>
                   </div>
                 </div>
@@ -1374,25 +1489,61 @@ function EconomyPage({ profile, setProfile, showNotif }) {
       <div style={{padding:'0.7rem'}}>
         {sub==='overview' && (
           <div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.5rem',marginBottom:'0.75rem'}}>
-              {[['💰','Nakit',fmtM(profile?.money),'#10B981'],['🏦','Banka',fmtM(profile?.bank),'#3B82F6'],['📈','Portföy',fmtM(Object.entries(portfolio).reduce((a,[sym,d])=>a+(stocks[sym]||0)*(d.qty||0),0)),'#F59E0B'],['🪙','UC',fmtUC(profile?.underCoin),'#8B5CF6']].map(([ic,lb,v,c])=>(
-                <Card key={lb} style={{padding:'0.85rem',textAlign:'center'}}>
-                  <div style={{fontSize:'1.3rem',marginBottom:'0.25rem'}}>{ic}</div>
-                  <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'1rem',fontWeight:700,color:c,marginBottom:'0.15rem'}}>{v}</div>
-                  <div style={{fontSize:'0.6rem',color:'#3B4E63',fontWeight:700,textTransform:'uppercase'}}>{lb}</div>
-                </Card>
+            {/* Ekonomik Durum */}
+            <div style={{fontFamily:"'Syne',sans-serif",fontSize:'0.6rem',fontWeight:700,color:'#10B981',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:'0.45rem'}}>⚡ EKONOMİK DURUM</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0.4rem',marginBottom:'0.75rem'}}>
+              {[
+                ['💵','Nakit',fmtM(profile?.money),'#10B981'],
+                ['🏦','Mevduat',fmtM(profile?.bank),'#3B82F6'],
+                ['🪙','Kripto (UCP)',fmtUC(profile?.underCoin),'#8B5CF6'],
+                ['📊','Net Değer',fmtM((profile?.money||0)+(profile?.bank||0)),'#F59E0B'],
+                ['🤝','Ticaret Puanı',`${fmt(profile?.tradePoints||0)} TP`,'#06B6D4'],
+                ['💎','Liyakat (UC)',`${fmt(profile?.underCoin||0)} UC`,'#A78BFA'],
+              ].map(([ic,lb,v,c])=>(
+                <div key={lb} style={{background:'rgba(255,255,255,0.03)',border:`1px solid ${c}28`,borderRadius:'10px',padding:'0.55rem 0.35rem',textAlign:'center'}}>
+                  <div style={{fontSize:'0.52rem',color:'#2A3A4A',textTransform:'uppercase',marginBottom:'0.15rem',letterSpacing:'0.04em',lineHeight:1.2}}>{ic} {lb}</div>
+                  <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'0.72rem',fontWeight:700,color:c,lineHeight:1.2}}>{v}</div>
+                </div>
               ))}
             </div>
-            <Card>
-              <div style={{fontSize:'0.75rem',color:'#5A7089',fontWeight:700,textTransform:'uppercase',marginBottom:'0.6rem'}}>⚡ Hızlı Erişim</div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.5rem'}}>
-                {['stocks','farm','casino','bank'].map(s=>(
-                  <button key={s} onClick={()=>setSub(s)} style={{padding:'0.6rem',borderRadius:'10px',border:'1px solid rgba(255,255,255,0.07)',background:'rgba(255,255,255,0.03)',color:'#8BA0B5',fontFamily:"'DM Sans',sans-serif",fontWeight:700,cursor:'pointer',fontSize:'0.82rem'}}>
-                    {s==='stocks'?'📈 Borsa':s==='farm'?'🌾 Tarım':s==='casino'?'🎰 Kumarhane':'🏦 Banka'}
-                  </button>
+
+            {/* Devlet Ekonomisi */}
+            <div style={{fontFamily:"'Syne',sans-serif",fontSize:'0.6rem',fontWeight:700,color:'#F59E0B',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:'0.4rem'}}>🏛️ DEVLET EKONOMİSİ</div>
+            <div style={{background:'rgba(245,158,11,0.05)',border:'1px solid rgba(245,158,11,0.15)',borderRadius:'12px',padding:'0.7rem',marginBottom:'0.75rem'}}>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.4rem'}}>
+                {[['🏛️','Hazine','₺4.8 Trilyon','#10B981'],['📉','Enflasyon','%68.4','#EF4444'],['💹','Faiz Oranı','%45','#F59E0B'],['💰','Vergi Oranı','%22','#8B5CF6']].map(([ic,lb,v,c])=>(
+                  <div key={lb} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0.3rem 0',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+                    <span style={{fontSize:'0.7rem',color:'#4A5A6A'}}>{ic} {lb}</span>
+                    <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'0.72rem',fontWeight:700,color:c}}>{v}</span>
+                  </div>
                 ))}
               </div>
-            </Card>
+            </div>
+
+            {/* Tüm Ekonomi Araçları */}
+            <div style={{fontFamily:"'Syne',sans-serif",fontSize:'0.6rem',fontWeight:700,color:'#3B82F6',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:'0.4rem'}}>🛠️ TÜM EKONOMİ ARAÇLARI</div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'0.4rem'}}>
+              {[
+                {icon:'🏦',label:'Banka',fn:()=>setSub('bank')},
+                {icon:'🛒',label:'Market',fn:()=>{}},
+                {icon:'⛏️',label:'Madencilik',fn:()=>{}},
+                {icon:'🏢',label:'Holdinglar',fn:()=>{}},
+                {icon:'📈',label:'Borsa',fn:()=>setSub('stocks')},
+                {icon:'🏭',label:'Fabrika',fn:()=>{}},
+                {icon:'⚒️',label:'Crafting',fn:()=>{}},
+                {icon:'🪨',label:'Hammadde',fn:()=>{}},
+                {icon:'🔨',label:'Açık Artırma',fn:()=>{}},
+                {icon:'🏘️',label:'Gayrimenkul',fn:()=>{}},
+                {icon:'🌾',label:'Tarım',fn:()=>setSub('farm')},
+                {icon:'🛡️',label:'Sigorta',fn:()=>{}},
+              ].map((item,i)=>(
+                <button key={i} onClick={item.fn}
+                  style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'10px',padding:'0.65rem 0.3rem',display:'flex',flexDirection:'column',alignItems:'center',gap:'0.25rem',cursor:'pointer',WebkitTapHighlightColor:'transparent',transition:'all 0.15s'}}>
+                  <span style={{fontSize:'1.3rem',lineHeight:1}}>{item.icon}</span>
+                  <span style={{fontSize:'0.6rem',fontWeight:700,color:'#6A7A8A',textAlign:'center',lineHeight:1.2}}>{item.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -3220,6 +3371,34 @@ function ProfilePage({ profile, setProfile, onLogout, showNotif }) {
   const [editModal, setEditModal] = useState(false);
   const [editForm, setEditForm] = useState({ username: profile?.username||'', city: profile?.city||'İstanbul' });
   const [tab, setTab] = useState('stats');
+  const [photoUrlInput, setPhotoUrlInput] = useState(profile?.photoUrl||'');
+  const [avatarUrlInput, setAvatarUrlInput] = useState(profile?.avatarUrl||'');
+  const [bannerUrlInput, setBannerUrlInput] = useState(profile?.bannerUrl||'');
+  const inputSt = {width:'100%',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'10px',padding:'0.65rem 0.9rem',color:'#E8EDF2',fontFamily:"'DM Sans',sans-serif",fontSize:'16px',outline:'none',boxSizing:'border-box'};
+  const savePhotoUrl = async () => {
+    const u = {...profile, photoUrl: photoUrlInput.trim()};
+    setProfile(u); localStorage.setItem('rep_userProfile', JSON.stringify(u));
+    if (u.uid) await saveUserProfile(u.uid, u);
+    showNotif('✅ Profil fotoğrafı güncellendi', 'success');
+  };
+  const saveAvatarUrl = async () => {
+    const u = {...profile, avatarUrl: avatarUrlInput.trim()};
+    setProfile(u); localStorage.setItem('rep_userProfile', JSON.stringify(u));
+    if (u.uid) await saveUserProfile(u.uid, u);
+    showNotif('✅ GIF avatar güncellendi', 'success');
+  };
+  const saveVipFrame = async (frameId) => {
+    const u = {...profile, vipFrame: frameId};
+    setProfile(u); localStorage.setItem('rep_userProfile', JSON.stringify(u));
+    if (u.uid) await saveUserProfile(u.uid, u);
+    showNotif(`✅ Çerçeve seçildi: ${frameId||'Yok'}`, 'success');
+  };
+  const saveBannerUrl = async () => {
+    const u = {...profile, bannerUrl: bannerUrlInput.trim()};
+    setProfile(u); localStorage.setItem('rep_userProfile', JSON.stringify(u));
+    if (u.uid) await saveUserProfile(u.uid, u);
+    showNotif('✅ Banner güncellendi', 'success');
+  };
 
   const saveProfile = async () => {
     if (!editForm.username.trim()) { showNotif('Kullanıcı adı boş olamaz', 'error'); return; }
@@ -3245,30 +3424,37 @@ function ProfilePage({ profile, setProfile, onLogout, showNotif }) {
   return (
     <div style={{padding:'0.7rem'}}>
       {/* Profil kartı */}
-      <Card style={{marginBottom:'0.75rem',textAlign:'center',padding:'1.5rem 1rem',background:'linear-gradient(135deg,rgba(11,21,39,0.95),rgba(15,31,54,0.9))'}}>
-        <div style={{marginBottom:'0.75rem'}}>
-          <Avatar profile={profile} size={72} />
-        </div>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'0.4rem',marginBottom:'0.2rem'}}>
-          <div style={{fontWeight:900,fontSize:'1.15rem',color:'#E8EDF2'}}>{profile?.username || 'Oyuncu'}</div>
-          {profile?.premium && <span style={{background:'linear-gradient(90deg,#F59E0B,#D97706)',color:'#000',fontSize:'0.55rem',fontWeight:800,padding:'2px 6px',borderRadius:'8px'}}>VIP</span>}
-        </div>
-        <div style={{fontSize:'0.75rem',color:'#5A7089',marginBottom:'0.75rem'}}>{lvl.title} • {profile?.city} • Üye: {profile?.registeredAt ? new Date(profile.registeredAt).toLocaleDateString('tr-TR') : '-'}</div>
-        <div style={{marginBottom:'0.4rem'}}>
-          <div style={{display:'flex',justifyContent:'space-between',fontSize:'0.65rem',color:'#3B4E63',marginBottom:'0.25rem'}}>
-            <span>Lv.{lvl.lvl}</span><span>{fmt(profile?.xp||0)} / {fmt(lvl.next.xp)} XP</span><span>Lv.{lvl.next.lvl}</span>
+      <div style={{marginBottom:'0.75rem',borderRadius:'16px',overflow:'hidden',border:'1px solid rgba(255,255,255,0.07)',boxShadow:'0 4px 24px rgba(0,0,0,0.35)'}}>
+        {profile?.bannerUrl && (
+          <div style={{height:'80px',backgroundImage:`url(${profile.bannerUrl})`,backgroundSize:'cover',backgroundPosition:'center',position:'relative'}}>
+            <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(0,0,0,0.1),rgba(11,21,39,0.7))'}}/>
           </div>
-          <ProgressBar pct={lvl.pct} color='#3B82F6' h={8} />
+        )}
+        <div style={{textAlign:'center',padding:'1.25rem 1rem',background:'linear-gradient(135deg,rgba(11,21,39,0.97),rgba(15,31,54,0.95))'}}>
+          <div style={{marginBottom:'0.65rem',marginTop:profile?.bannerUrl?'-28px':'0',position:'relative',display:'inline-block'}}>
+            <Avatar profile={profile} size={72} />
+          </div>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'0.4rem',marginBottom:'0.2rem'}}>
+            <div style={{fontWeight:900,fontSize:'1.15rem',color:'#E8EDF2'}}>{profile?.username || 'Oyuncu'}</div>
+            {profile?.premium && <span style={{background:'linear-gradient(90deg,#F59E0B,#D97706)',color:'#000',fontSize:'0.55rem',fontWeight:800,padding:'2px 6px',borderRadius:'8px'}}>VIP</span>}
+          </div>
+          <div style={{fontSize:'0.75rem',color:'#5A7089',marginBottom:'0.65rem'}}>{lvl.title} • {profile?.city} • Üye: {profile?.registeredAt ? new Date(profile.registeredAt).toLocaleDateString('tr-TR') : '-'}</div>
+          <div style={{marginBottom:'0.4rem'}}>
+            <div style={{display:'flex',justifyContent:'space-between',fontSize:'0.65rem',color:'#3B4E63',marginBottom:'0.25rem'}}>
+              <span>Lv.{lvl.lvl}</span><span>{fmt(profile?.xp||0)} / {fmt(lvl.next.xp)} XP</span><span>Lv.{lvl.next.lvl}</span>
+            </div>
+            <ProgressBar pct={lvl.pct} color='#3B82F6' h={8} />
+          </div>
+          <div style={{display:'flex',gap:'0.4rem',justifyContent:'center',marginTop:'0.65rem'}}>
+            <Btn variant='ghost' size='sm' onClick={()=>setEditModal(true)}>✏️ Düzenle</Btn>
+            <Btn variant='danger' size='sm' onClick={onLogout}>🚪 Çıkış</Btn>
+          </div>
         </div>
-        <div style={{display:'flex',gap:'0.4rem',justifyContent:'center',marginTop:'0.75rem'}}>
-          <Btn variant='ghost' size='sm' onClick={()=>setEditModal(true)}>✏️ Düzenle</Btn>
-          <Btn variant='danger' size='sm' onClick={onLogout}>🚪 Çıkış</Btn>
-        </div>
-      </Card>
+      </div>
 
       {/* Tabs */}
       <div style={{display:'flex',gap:'4px',marginBottom:'0.75rem'}}>
-        {[['stats','📊 İstatistik'],['achievements',`🏆 Başarımlar (${earnedCount}/${achievements.length})`],['settings','⚙️ Ayarlar']].map(([v,l])=>(
+        {[['stats','📊 İstatistik'],['achievements',`🏆 (${earnedCount}/${achievements.length})`],['customize','📸 Özelleştir'],['settings','⚙️ Ayarlar']].map(([v,l])=>(
           <button key={v} onClick={()=>setTab(v)} style={{flex:1,padding:'0.4rem 0.4rem',borderRadius:'8px',border:`1px solid ${tab===v?'rgba(59,130,246,0.4)':'rgba(255,255,255,0.07)'}`,background:tab===v?'rgba(59,130,246,0.12)':'rgba(255,255,255,0.03)',color:tab===v?'#60A5FA':'#5A7089',fontFamily:"'DM Sans',sans-serif",fontWeight:700,fontSize:'0.72rem',cursor:'pointer'}}>
             {l}
           </button>
@@ -3343,6 +3529,56 @@ function ProfilePage({ profile, setProfile, onLogout, showNotif }) {
             <Btn variant='primary' size='full' onClick={()=>setEditModal(true)}>✏️ Profili Düzenle</Btn>
           </div>
         </Card>
+      )}
+
+      {tab==='customize' && (
+        <div>
+          <Card style={{marginBottom:'0.65rem'}}>
+            <div style={{fontWeight:700,color:'#E8EDF2',marginBottom:'0.3rem',fontSize:'0.85rem'}}>📸 Profil Fotoğrafı</div>
+            <div style={{fontSize:'0.68rem',color:'#5A7089',marginBottom:'0.5rem'}}>URL gir (.jpg, .png, .gif, .webp)</div>
+            <input value={photoUrlInput} onChange={e=>setPhotoUrlInput(e.target.value)} placeholder="https://resim-url.com/foto.jpg" style={inputSt}/>
+            {photoUrlInput && <img src={photoUrlInput} alt="preview" style={{width:'52px',height:'52px',borderRadius:'50%',objectFit:'cover',marginTop:'0.5rem',border:'2px solid rgba(59,130,246,0.3)',display:'block'}} onError={e=>e.target.style.display='none'}/>}
+            <Btn variant='primary' size='full' onClick={savePhotoUrl} style={{marginTop:'0.5rem'}}>✅ Kaydet</Btn>
+          </Card>
+
+          {profile?.premium ? (
+            <>
+              <Card style={{marginBottom:'0.65rem',background:'linear-gradient(135deg,rgba(139,92,246,0.08),rgba(11,21,39,0.95))'}}>
+                <div style={{fontWeight:700,color:'#A78BFA',marginBottom:'0.55rem',fontSize:'0.85rem'}}>💎 VIP Çerçeve Stili</div>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'0.35rem',marginBottom:'0.5rem'}}>
+                  {[{id:'rainbow',label:'🌈 Gökkuşağı'},{id:'fire',label:'🔥 Ateş'},{id:'ice',label:'❄️ Buz'},{id:'gold',label:'✨ Altın'},{id:'neon',label:'💚 Neon'},{id:'violet',label:'💜 Mor'},{id:'heart',label:'💗 Kalp'},{id:'',label:'⭕ Yok'}].map(({id,label})=>(
+                    <button key={id||'none'} onClick={()=>saveVipFrame(id)}
+                      style={{padding:'0.4rem 0.15rem',borderRadius:'8px',border:`2px solid ${(profile?.vipFrame||'')===(id)?'#A78BFA':'rgba(255,255,255,0.08)'}`,background:(profile?.vipFrame||'')===(id)?'rgba(139,92,246,0.2)':'rgba(255,255,255,0.02)',color:(profile?.vipFrame||'')===(id)?'#A78BFA':'#5A7089',cursor:'pointer',fontSize:'0.6rem',fontWeight:700,fontFamily:"'DM Sans',sans-serif",textAlign:'center',lineHeight:1.3}}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <div style={{fontSize:'0.65rem',color:'#5A7089'}}>Seçili: <span style={{color:'#A78BFA',fontWeight:700}}>{profile?.vipFrame||'Yok'}</span></div>
+              </Card>
+
+              <Card style={{marginBottom:'0.65rem',background:'linear-gradient(135deg,rgba(139,92,246,0.08),rgba(11,21,39,0.95))'}}>
+                <div style={{fontWeight:700,color:'#A78BFA',marginBottom:'0.3rem',fontSize:'0.85rem'}}>🎭 GIF / Animasyonlu Avatar URL</div>
+                <div style={{fontSize:'0.68rem',color:'#5A7089',marginBottom:'0.5rem'}}>Animasyonlu avatar (GIF desteği mevcut)</div>
+                <input value={avatarUrlInput} onChange={e=>setAvatarUrlInput(e.target.value)} placeholder="https://i.giphy.com/xxxx.gif" style={inputSt}/>
+                <Btn variant='ghost' size='full' onClick={saveAvatarUrl} style={{marginTop:'0.5rem'}}>✅ Kaydet</Btn>
+              </Card>
+
+              <Card style={{background:'linear-gradient(135deg,rgba(139,92,246,0.08),rgba(11,21,39,0.95))'}}>
+                <div style={{fontWeight:700,color:'#A78BFA',marginBottom:'0.3rem',fontSize:'0.85rem'}}>🖼️ Profil Banner / Arka Plan</div>
+                <div style={{fontSize:'0.68rem',color:'#5A7089',marginBottom:'0.5rem'}}>Profil kartı arka plan görseli (GIF veya resim URL)</div>
+                <input value={bannerUrlInput} onChange={e=>setBannerUrlInput(e.target.value)} placeholder="https://example.com/banner.gif" style={inputSt}/>
+                <Btn variant='ghost' size='full' onClick={saveBannerUrl} style={{marginTop:'0.5rem'}}>✅ Kaydet</Btn>
+              </Card>
+            </>
+          ) : (
+            <Card style={{textAlign:'center',padding:'1.75rem 1rem',background:'linear-gradient(135deg,rgba(139,92,246,0.08),rgba(11,21,39,0.95))'}}>
+              <div style={{fontSize:'2.2rem',marginBottom:'0.5rem'}}>💎</div>
+              <div style={{fontWeight:800,color:'#A78BFA',fontSize:'0.95rem',marginBottom:'0.3rem'}}>VIP Özelleştirme</div>
+              <div style={{fontSize:'0.75rem',color:'#5A7089',marginBottom:'0.75rem'}}>Çerçeve, GIF avatar ve profil banner için VIP üyelik gereklidir</div>
+              <Btn variant='ghost' onClick={()=>showNotif('Premium sayfasına yönlendiriliyor... 💎','gold')}>💎 VIP Ol</Btn>
+            </Card>
+          )}
+        </div>
       )}
 
       {editModal && (
@@ -5324,6 +5560,7 @@ function App() {
             {page==='achievements' && <AchievementsPage profile={profile} />}
             {page==='crisis'       && <CrisisPage      {...pageProps} />}
             {page==='casino'       && <CasinoPage      {...pageProps} />}
+            {page==='map'          && <TerritoryMapPage {...pageProps} />}
           </div>
 
           <BottomNav page={page} onChange={setPage} items={navItems} notifMap={{ chat: notifications.filter(n=>n.type==='message'&&Date.now()-n.ts<300000).length }} />
@@ -5333,6 +5570,288 @@ function App() {
         </div>
       </div>
     </ThemeCtx.Provider>
+  );
+}
+
+// ═══════════════════════════════════════════════════════
+// HARİTA / BÖLGE SAYFASI
+// ═══════════════════════════════════════════════════════
+function TerritoryMapPage({ profile, showNotif }) {
+  const [districts] = useLs('rep_districts', DEFAULT_DISTRICTS);
+  const [mapMode, setMapMode] = useState('political');
+  const [selected, setSelected] = useState(null);
+  const [tx, setTx] = useState(0);
+  const [ty, setTy] = useState(0);
+  const [scale, setScale] = useState(1);
+  const dragRef = useRef(null);
+  const touchRef = useRef(null);
+  const pinchRef = useRef(null);
+  const velRef = useRef({x:0, y:0});
+  const rafRef = useRef(null);
+  const [dragging, setDragging] = useState(false);
+  const lastPosRef = useRef(null);
+
+  const MAP_MODES = [
+    {id:'political',label:'⚖️ Siyasi'}, {id:'crime',label:'🔪 Suç'},
+    {id:'police',label:'👮 Polis'}, {id:'economic',label:'💰 Ekonomi'}, {id:'revolt',label:'🔥 İsyan'},
+  ];
+
+  const getColor = (d, mode) => {
+    const a = 0.70;
+    if (mode==='political') {
+      if (d.controlBy==='Ordu') return `rgba(239,68,68,${a})`;
+      if (d.controlBy==='Şirketler') return `rgba(16,185,129,${a})`;
+      if (d.controlBy==='Aydınlar') return `rgba(59,130,246,${a})`;
+      if (d.controlBy==='Tüccarlar') return `rgba(234,179,8,${a})`;
+      if (d.controlBy==='Asi Grup') return `rgba(245,158,11,${a})`;
+      return `rgba(55,65,81,${a})`;
+    }
+    if (mode==='crime') {
+      if (d.crime>70) return `rgba(239,68,68,${a})`;
+      if (d.crime>50) return `rgba(245,158,11,${a})`;
+      if (d.crime>30) return `rgba(234,179,8,${a*0.75})`;
+      return `rgba(16,185,129,${a})`;
+    }
+    if (mode==='police') {
+      if (d.alarm>65) return `rgba(59,130,246,${a})`;
+      if (d.alarm>40) return `rgba(96,165,250,${a*0.7})`;
+      return `rgba(30,58,138,${a*0.45})`;
+    }
+    if (mode==='economic') {
+      if (d.income>150000) return `rgba(16,185,129,${a})`;
+      if (d.income>80000)  return `rgba(234,179,8,${a})`;
+      if (d.income>50000)  return `rgba(245,158,11,${a*0.8})`;
+      return `rgba(239,68,68,${a*0.65})`;
+    }
+    if (mode==='revolt') {
+      const risk = (100-d.support)*0.6 + d.crime*0.4;
+      if (risk>60) return `rgba(239,68,68,${a})`;
+      if (risk>40) return `rgba(245,158,11,${a})`;
+      return `rgba(16,185,129,${a})`;
+    }
+    return `rgba(55,65,81,${a})`;
+  };
+
+  const onTouchStart = React.useCallback((e) => {
+    e.preventDefault();
+    cancelAnimationFrame(rafRef.current);
+    velRef.current = {x:0, y:0};
+    if (e.touches.length===1) {
+      touchRef.current = {x:e.touches[0].clientX, y:e.touches[0].clientY, t:Date.now()};
+      lastPosRef.current = {x:e.touches[0].clientX, y:e.touches[0].clientY};
+      setDragging(false);
+    } else if (e.touches.length===2) {
+      const dx=e.touches[0].clientX-e.touches[1].clientX, dy=e.touches[0].clientY-e.touches[1].clientY;
+      pinchRef.current = Math.sqrt(dx*dx+dy*dy);
+    }
+  }, []);
+
+  const onTouchMove = React.useCallback((e) => {
+    e.preventDefault();
+    if (e.touches.length===1 && touchRef.current) {
+      const dx=e.touches[0].clientX-touchRef.current.x, dy=e.touches[0].clientY-touchRef.current.y;
+      if (Math.abs(dx)>5||Math.abs(dy)>5) setDragging(true);
+      const dt=Math.max(1,Date.now()-touchRef.current.t);
+      velRef.current = {x:(dx/dt)*14, y:(dy/dt)*14};
+      setTx(p=>p+dx); setTy(p=>p+dy);
+      touchRef.current = {x:e.touches[0].clientX, y:e.touches[0].clientY, t:Date.now()};
+    } else if (e.touches.length===2 && pinchRef.current) {
+      const dx=e.touches[0].clientX-e.touches[1].clientX, dy=e.touches[0].clientY-e.touches[1].clientY;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      setScale(p=>Math.min(3, Math.max(0.4, p*(d/pinchRef.current))));
+      pinchRef.current=d;
+    }
+  }, []);
+
+  const onTouchEnd = React.useCallback(() => {
+    const inertia = () => {
+      velRef.current = {x:velRef.current.x*0.88, y:velRef.current.y*0.88};
+      if (Math.abs(velRef.current.x)>0.5||Math.abs(velRef.current.y)>0.5) {
+        setTx(p=>p+velRef.current.x); setTy(p=>p+velRef.current.y);
+        rafRef.current = requestAnimationFrame(inertia);
+      } else { setDragging(false); }
+    };
+    rafRef.current = requestAnimationFrame(inertia);
+    touchRef.current=null;
+  }, []);
+
+  const onMouseDown = React.useCallback((e) => {
+    dragRef.current = {x:e.clientX, y:e.clientY, moved:false};
+  }, []);
+  const onMouseMove = React.useCallback((e) => {
+    if (!dragRef.current) return;
+    const dx=e.clientX-dragRef.current.x, dy=e.clientY-dragRef.current.y;
+    if (Math.abs(dx)>4||Math.abs(dy)>4) { dragRef.current.moved=true; setDragging(true); }
+    setTx(p=>p+dx); setTy(p=>p+dy);
+    dragRef.current = {...dragRef.current, x:e.clientX, y:e.clientY};
+  }, []);
+  const onMouseUp = React.useCallback(() => { dragRef.current=null; }, []);
+  const onWheel = React.useCallback((e) => {
+    e.preventDefault();
+    setScale(p=>Math.min(3, Math.max(0.4, p*(e.deltaY>0?0.88:1.13))));
+  }, []);
+
+  const clickDistrict = React.useCallback((d, e) => {
+    e.stopPropagation();
+    if (!dragRef.current?.moved) setSelected(d);
+  }, []);
+
+  React.useEffect(() => () => cancelAnimationFrame(rafRef.current), []);
+
+  const LEGEND = {
+    political:[['#6B7280','Halk'],['#EF4444','Ordu/Güç'],['#10B981','Şirket'],['#3B82F6','Aydınlar'],['#EAB308','Tüccarlar'],['#F59E0B','İsyancı']],
+    crime:[['#10B981','Düşük <30'],['#EAB308','Orta 30-50'],['#F59E0B','Yüksek 50-70'],['#EF4444','Kritik >70']],
+    police:[['#1E3A8A','Güvenli'],['#60A5FA','Devriye'],['#3B82F6','Yüksek Alarm']],
+    economic:[['#EF4444','Düşük <50K'],['#F59E0B','Orta 50-80K'],['#EAB308','İyi 80-150K'],['#10B981','Zengin >150K']],
+    revolt:[['#10B981','Stabil'],['#F59E0B','Gergin'],['#EF4444','İsyan Riski']],
+  };
+
+  return (
+    <div style={{position:'relative',width:'100%',height:'calc(100dvh - 120px)',background:'#020912',overflow:'hidden',userSelect:'none'}}>
+      {/* Mode Bar */}
+      <div style={{position:'absolute',top:0,left:0,right:0,zIndex:20,display:'flex',gap:'4px',padding:'0.4rem 0.5rem',background:'rgba(2,9,18,0.96)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(0,255,80,0.08)',overflowX:'auto',scrollbarWidth:'none',flexShrink:0}}>
+        {MAP_MODES.map(m=>(
+          <button key={m.id} onClick={()=>setMapMode(m.id)} style={{padding:'0.28rem 0.55rem',borderRadius:'8px',border:`1px solid ${mapMode===m.id?'rgba(0,255,80,0.5)':'rgba(255,255,255,0.06)'}`,background:mapMode===m.id?'rgba(0,255,80,0.1)':'rgba(255,255,255,0.02)',color:mapMode===m.id?'#00FF64':'#1A3028',fontFamily:"'DM Sans',sans-serif",fontWeight:700,fontSize:'0.64rem',cursor:'pointer',whiteSpace:'nowrap',flexShrink:0}}>
+            {m.label}
+          </button>
+        ))}
+        <div style={{flex:1}}/>
+        <button onClick={()=>{setTx(0);setTy(0);setScale(1);}} title="Sıfırla" style={{padding:'0.28rem 0.55rem',borderRadius:'8px',border:'1px solid rgba(255,255,255,0.06)',background:'rgba(255,255,255,0.02)',color:'#1A3028',fontSize:'0.78rem',cursor:'pointer',flexShrink:0,fontFamily:"'DM Sans',sans-serif"}}>⊡</button>
+      </div>
+
+      {/* SVG Map */}
+      <svg
+        style={{position:'absolute',left:0,right:0,bottom:0,top:'37px',width:'100%',height:'calc(100% - 37px)',touchAction:'none',cursor:dragging?'grabbing':'grab'}}
+        viewBox="0 0 360 480" preserveAspectRatio="xMidYMid meet"
+        onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
+        onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
+        onWheel={onWheel}
+      >
+        <defs>
+          <filter id="dGlow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <filter id="dGlowSm"><feGaussianBlur stdDeviation="1.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <pattern id="mGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M40 0L0 0 0 40" fill="none" stroke="rgba(0,255,80,0.035)" strokeWidth="0.5"/>
+          </pattern>
+        </defs>
+        <g transform={`translate(${tx},${ty}) scale(${scale})`}>
+          <rect width="360" height="480" fill="#030F1B"/>
+          <rect width="360" height="480" fill="url(#mGrid)"/>
+          {/* district border lines for atmosphere */}
+          {[60,120,180,240,300].map(y=><line key={y} x1="0" y1={y} x2="360" y2={y} stroke="rgba(0,100,50,0.06)" strokeWidth="0.5"/>)}
+          {[90,180,270].map(x=><line key={x} x1={x} y1="0" x2={x} y2="480" stroke="rgba(0,100,50,0.06)" strokeWidth="0.5"/>)}
+
+          {districts.map(d => {
+            const pts = DISTRICT_POLYGONS[d.id];
+            if (!pts) return null;
+            const fill = getColor(d, mapMode);
+            const isSel = selected?.id===d.id;
+            const hasRiot = d.conflicts?.includes('riot');
+            const hasCartel = d.conflicts?.includes('cartel');
+            const hasPoliceDeploy = d.conflicts?.includes('police');
+            const ctr = getCentroid(pts);
+            return (
+              <g key={d.id} onClick={(e)=>clickDistrict(d,e)} style={{cursor:'pointer'}}>
+                <polygon points={pts} fill={fill}
+                  stroke={isSel?'#00FF64':hasRiot?'rgba(239,68,68,0.7)':hasCartel?'rgba(245,158,11,0.5)':'rgba(0,180,60,0.22)'}
+                  strokeWidth={isSel?2.5:1}
+                  filter={isSel?'url(#dGlow)':undefined}
+                />
+                {isSel && <polygon points={pts} fill="rgba(0,255,80,0.07)" stroke="none"/>}
+                {(hasRiot||hasCartel) && (
+                  <polygon points={pts} fill="none" stroke={hasRiot?'rgba(239,68,68,0.7)':'rgba(245,158,11,0.6)'} strokeWidth="1.5">
+                    <animate attributeName="stroke-opacity" values="0.15;0.9;0.15" dur="1.3s" repeatCount="indefinite"/>
+                  </polygon>
+                )}
+                {hasPoliceDeploy && !hasRiot && (
+                  <polygon points={pts} fill="rgba(59,130,246,0.08)" stroke="none">
+                    <animate attributeName="fill-opacity" values="0.04;0.18;0.04" dur="2s" repeatCount="indefinite"/>
+                  </polygon>
+                )}
+                <text x={ctr.x} y={ctr.y-1} textAnchor="middle" dominantBaseline="middle"
+                  fill={isSel?'#00FF64':'rgba(190,225,230,0.88)'} fontSize="8.5" fontWeight="700"
+                  fontFamily="DM Sans,sans-serif" style={{pointerEvents:'none',textShadow:'0 1px 3px #000'}}>
+                  {d.name}
+                </text>
+                {isSel && <circle cx={ctr.x} cy={ctr.y+11} r="2.2" fill="#00FF64" filter="url(#dGlowSm)"><animate attributeName="r" values="1.5;3.5;1.5" dur="1s" repeatCount="indefinite"/></circle>}
+                {(hasRiot||hasCartel) && !isSel && <text x={ctr.x+12} y={ctr.y-8} fontSize="8" style={{pointerEvents:'none'}}>{hasRiot?'🔥':hasCartel?'💀':''}</text>}
+              </g>
+            );
+          })}
+        </g>
+      </svg>
+
+      {/* Legend overlay */}
+      <div style={{position:'absolute',top:'45px',right:'6px',zIndex:15,background:'rgba(2,9,18,0.9)',backdropFilter:'blur(8px)',border:'1px solid rgba(0,255,80,0.1)',borderRadius:'8px',padding:'0.4rem 0.5rem',maxWidth:'88px',pointerEvents:'none'}}>
+        <div style={{fontSize:'0.48rem',color:'#0A3020',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:'3px'}}>Lejant</div>
+        {(LEGEND[mapMode]||[]).map(([c,l])=>(
+          <div key={l} style={{display:'flex',alignItems:'center',gap:'4px',marginBottom:'2px'}}>
+            <div style={{width:'7px',height:'7px',borderRadius:'2px',background:c,flexShrink:0,boxShadow:`0 0 4px ${c}80`}}/>
+            <span style={{fontSize:'0.48rem',color:'#1A4030',lineHeight:1.3}}>{l}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Selected district detail panel */}
+      {selected && (
+        <div onClick={()=>setSelected(null)} style={{position:'absolute',inset:0,zIndex:30,background:'rgba(0,0,0,0.5)',backdropFilter:'blur(3px)'}}>
+          <div onClick={e=>e.stopPropagation()} style={{position:'absolute',bottom:0,left:0,right:0,background:'rgba(3,12,24,0.99)',backdropFilter:'blur(24px)',border:'1px solid rgba(0,255,80,0.18)',borderBottom:'none',borderRadius:'22px 22px 0 0',padding:'1rem',boxShadow:'0 -30px 80px rgba(0,0,0,0.65)',maxHeight:'70vh',overflowY:'auto',animation:'slideUp 0.22s ease'}}>
+            <div style={{width:'32px',height:'3px',borderRadius:'2px',background:'rgba(255,255,255,0.08)',margin:'0 auto 0.7rem'}}/>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'0.7rem'}}>
+              <div>
+                <div style={{fontWeight:900,color:'#00FF64',fontSize:'1.05rem',fontFamily:"'Syne',sans-serif",textShadow:'0 0 12px rgba(0,255,80,0.5)',marginBottom:'0.12rem'}}>{selected.name}</div>
+                <div style={{display:'flex',gap:'0.35rem',alignItems:'center'}}>
+                  <div style={{width:'7px',height:'7px',borderRadius:'50%',background:selected.controlColor||'#6B7280',boxShadow:`0 0 5px ${selected.controlColor}`}}/>
+                  <span style={{fontSize:'0.66rem',color:'#2A4A3A'}}>{selected.controlBy} • {(selected.population||0).toLocaleString('tr-TR')} nüfus</span>
+                </div>
+              </div>
+              <button onClick={()=>setSelected(null)} style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'50%',width:'26px',height:'26px',color:'#2A4A3A',cursor:'pointer',fontSize:'0.8rem',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.35rem',marginBottom:'0.6rem'}}>
+              {[
+                ['💰','Yasal Gelir',fmtWord(selected.legalIncome||0),'#10B981'],
+                ['🌑','Yeraltı',fmtWord(selected.illegalIncome||0),'#EF4444'],
+                ['🔪','Suç Oranı',`%${selected.crime}`,'#F59E0B'],
+                ['👮','Alarm Seviyesi',`%${selected.alarm}`,'#3B82F6'],
+                ['❤️','Halk Desteği',`%${selected.support}`,'#EC4899'],
+                ['⚡','Nüfuz Puanı',`%${selected.influence}`,'#8B5CF6'],
+              ].map(([ic,lb,v,c])=>(
+                <div key={lb} style={{background:'rgba(255,255,255,0.025)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'10px',padding:'0.45rem 0.5rem'}}>
+                  <div style={{fontSize:'0.53rem',color:'#0A2A1A',textTransform:'uppercase',marginBottom:'1px'}}>{ic} {lb}</div>
+                  <div style={{fontWeight:800,color:c,fontSize:'0.82rem',fontFamily:"'JetBrains Mono',monospace"}}>{v}</div>
+                </div>
+              ))}
+            </div>
+            {selected.conflicts?.length>0 && (
+              <div style={{background:'rgba(239,68,68,0.07)',border:'1px solid rgba(239,68,68,0.18)',borderRadius:'8px',padding:'0.5rem',marginBottom:'0.5rem'}}>
+                <div style={{fontSize:'0.65rem',fontWeight:800,color:'#FCA5A5',marginBottom:'0.2rem'}}>⚡ Aktif Olaylar</div>
+                <div style={{display:'flex',gap:'0.3rem',flexWrap:'wrap'}}>
+                  {selected.conflicts.map(c=>(
+                    <span key={c} style={{padding:'2px 6px',borderRadius:'6px',background:'rgba(239,68,68,0.12)',border:'1px solid rgba(239,68,68,0.2)',color:'#FCA5A5',fontSize:'0.65rem',fontWeight:700}}>
+                      {c==='riot'?'🔥 İsyan':c==='cartel'?'💀 Kartel':c==='police'?'👮 Operasyon':'⚡ '+c}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {[['Halk Desteği',selected.support,'#EC4899'],['Güvenlik Skoru',100-selected.alarm,'#3B82F6'],['Ekonomik Güç',Math.min(100,Math.round((selected.income||0)/3000)),'#10B981']].map(([lb,v,c])=>(
+              <div key={lb} style={{marginBottom:'0.28rem'}}>
+                <div style={{display:'flex',justifyContent:'space-between',fontSize:'0.55rem',color:'#0A2A1A',marginBottom:'2px'}}><span>{lb}</span><span>{v}%</span></div>
+                <div style={{height:'3px',background:'rgba(255,255,255,0.06)',borderRadius:'2px'}}>
+                  <div style={{height:'100%',width:`${v}%`,background:`linear-gradient(90deg,${c}80,${c})`,borderRadius:'2px',transition:'width 0.5s'}}/>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!selected && (
+        <div style={{position:'absolute',bottom:'10px',left:'50%',transform:'translateX(-50%)',background:'rgba(2,9,18,0.85)',backdropFilter:'blur(8px)',border:'1px solid rgba(0,255,80,0.1)',borderRadius:'20px',padding:'0.28rem 0.85rem',fontSize:'0.6rem',color:'#0A3020',fontWeight:700,zIndex:10,pointerEvents:'none',whiteSpace:'nowrap'}}>
+          👆 Bölgeye dokun → Detay &nbsp;•&nbsp; 🤏 Sıkıştır → Zoom
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -5357,6 +5876,13 @@ styleEl.textContent = `
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
   @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
   @keyframes notifIn { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes vipRainbow { 0%{filter:hue-rotate(0deg)} 100%{filter:hue-rotate(360deg)} }
+  @keyframes vipFire { 0%,100%{box-shadow:0 0 8px #FF4500,0 0 16px rgba(255,69,0,0.4)} 50%{box-shadow:0 0 14px #FFD700,0 0 28px rgba(255,215,0,0.5)} }
+  @keyframes vipIce { 0%,100%{box-shadow:0 0 8px #00BFFF,0 0 16px rgba(0,191,255,0.4)} 50%{box-shadow:0 0 14px #E0FFFF,0 0 28px rgba(224,255,255,0.6)} }
+  @keyframes vipGold { 0%,100%{box-shadow:0 0 8px #FFD700,0 0 16px rgba(255,215,0,0.4)} 50%{box-shadow:0 0 16px #FFA500,0 0 32px rgba(255,165,0,0.5)} }
+  @keyframes vipNeon { 0%,100%{box-shadow:0 0 8px #00FF64,0 0 16px rgba(0,255,100,0.4)} 50%{box-shadow:0 0 14px #00FF64,0 0 28px rgba(0,255,100,0.7)} }
+  @keyframes vipViolet { 0%,100%{box-shadow:0 0 8px #8B5CF6,0 0 16px rgba(139,92,246,0.4)} 50%{box-shadow:0 0 14px #A78BFA,0 0 28px rgba(167,139,250,0.6)} }
+  @keyframes vipHeart { 0%,100%{box-shadow:0 0 8px #EC4899,0 0 16px rgba(236,72,153,0.4)} 50%{box-shadow:0 0 14px #F43F5E,0 0 28px rgba(244,63,94,0.6)} }
 `;
 document.head.appendChild(styleEl);
 
