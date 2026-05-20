@@ -664,6 +664,7 @@ function AdminPanel({allUsers,setAllUsers,notify,cu,user,economy,setEconomy,gang
     {id:"announce",icon:"📢", label:"Duyurular"},
     {id:"edupkg", icon:"📦", label:"Eğitim Paketi"},
     {id:"fiyat",  icon:"💲", label:"Fiyat & Gelir"},
+    {id:"milletvekili", icon:"🏛️", label:"Milletvekili Ata"},
     {id:"support", icon:"🆘", label:"Destek", badge:(Array.isArray(supportMsgs)?supportMsgs.filter(m=>m.status==='pending').length:0)||undefined},
     {id:"cezalar", icon:"⚖️", label:"Cezalar"},
   ];
@@ -1878,6 +1879,125 @@ function OrtakliIslerPage({cu, allUsers, setAllUsers, collabRequests, setCollabR
               </div>
             </div>
           )}
+
+          {/* ─── TAB: MİLLETVEKİLİ ATA ─── */}
+          {aTab==="milletvekili"&&(()=>{
+            const [mvSearch, setMvSearch] = React.useState("");
+            const [mvFilter, setMvFilter] = React.useState("all");
+            const realPlayers = allUsers.filter(u=>!u.isBot&&u.role!=="bot"&&(!mvSearch||u.username.toLowerCase().includes(mvSearch.toLowerCase())));
+            const currentMVs = allUsers.filter(u=>u.position==="Milletvekili");
+            const usedCities = currentMVs.map(u=>u.milletCity||u.city||"").filter(Boolean);
+            const assignMV = (targetUser, city) => {
+              const finalCity = city || TURKISH_CITIES[Math.floor(Math.random()*TURKISH_CITIES.length)];
+              updateUser({...targetUser, position:"Milletvekili", milletCity:finalCity});
+              setAllUsers(prev=>prev.map(u=>u.id===targetUser.id?{...u,position:"Milletvekili",milletCity:finalCity}:u));
+              notify(`✅ ${targetUser.username} → Milletvekili (${finalCity})`);
+            };
+            const removeMV = (targetUser) => {
+              updateUser({...targetUser, position:null, milletCity:null});
+              setAllUsers(prev=>prev.map(u=>u.id===targetUser.id?{...u,position:null,milletCity:null}:u));
+              notify(`❌ ${targetUser.username} milletvekilliğinden alındı.`);
+            };
+            const assignAllRandom = () => {
+              const candidates = realPlayers.filter(u=>u.position!=="Milletvekili");
+              if(candidates.length===0) return notify("Atanacak aday yok!");
+              const shuffled=[...TURKISH_CITIES].sort(()=>Math.random()-0.5);
+              let updated=[...allUsers];
+              candidates.forEach((u,i)=>{
+                const city=shuffled[i%shuffled.length];
+                updated=updated.map(x=>x.id===u.id?{...x,position:"Milletvekili",milletCity:city}:x);
+              });
+              setAllUsers(updated);
+              notify(`✅ ${candidates.length} oyuncuya rastgele il milletvekilliği atandı!`);
+            };
+            return (
+              <div>
+                {/* Stats row */}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"0.45rem",marginBottom:"0.75rem"}}>
+                  <div style={{...cardStyle,marginBottom:0,textAlign:"center",padding:"0.6rem"}}>
+                    <div style={{fontSize:"1.3rem",fontWeight:900,color:"#A78BFA"}}>{currentMVs.length}</div>
+                    <div style={{fontSize:"0.6rem",color:"#5E7390",textTransform:"uppercase"}}>Mevcut Vekil</div>
+                  </div>
+                  <div style={{...cardStyle,marginBottom:0,textAlign:"center",padding:"0.6rem"}}>
+                    <div style={{fontSize:"1.3rem",fontWeight:900,color:"#60A5FA"}}>{TURKISH_CITIES.length}</div>
+                    <div style={{fontSize:"0.6rem",color:"#5E7390",textTransform:"uppercase"}}>Toplam İl</div>
+                  </div>
+                  <div style={{...cardStyle,marginBottom:0,textAlign:"center",padding:"0.6rem"}}>
+                    <div style={{fontSize:"1.3rem",fontWeight:900,color:"#10D9A0"}}>{realPlayers.length}</div>
+                    <div style={{fontSize:"0.6rem",color:"#5E7390",textTransform:"uppercase"}}>Toplam Oyuncu</div>
+                  </div>
+                </div>
+
+                {/* Toplu rastgele atama */}
+                <div style={{...cardStyle,borderColor:"rgba(167,139,250,0.3)",marginBottom:"0.75rem"}}>
+                  <div style={{fontFamily:"Syne,sans-serif",color:"#A78BFA",fontWeight:700,fontSize:"0.85rem",marginBottom:"0.5rem"}}>⚡ Toplu Atama</div>
+                  <div style={{fontSize:"0.72rem",color:"#666",marginBottom:"0.5rem"}}>Tüm oyunculara rastgele il atar. Zaten milletvekili olanlar atlanır.</div>
+                  <button style={{...btnStyle("#A78BFA"),width:"100%"}} onClick={assignAllRandom}>🎲 Tümüne Rastgele İl Ata</button>
+                </div>
+
+                {/* Filtre & arama */}
+                <div style={{display:"flex",gap:"0.4rem",marginBottom:"0.6rem",flexWrap:"wrap"}}>
+                  <div style={{...cardStyle,marginBottom:0,flex:1,padding:"0.4rem 0.6rem",display:"flex",alignItems:"center",gap:"0.3rem"}}>
+                    <span style={{color:"#5E7390",fontSize:"0.85rem"}}>🔍</span>
+                    <input value={mvSearch} onChange={e=>setMvSearch(e.target.value)} placeholder="Oyuncu ara..."
+                      style={{background:"none",border:"none",outline:"none",color:"var(--text)",flex:1,fontSize:"0.82rem",fontFamily:"Nunito,sans-serif"}}/>
+                  </div>
+                  {["all","mv","nomv"].map(f=>(
+                    <button key={f} onClick={()=>setMvFilter(f)}
+                      style={{padding:"0.4rem 0.65rem",borderRadius:20,border:"none",fontSize:"0.7rem",fontWeight:700,cursor:"pointer",fontFamily:"Nunito,sans-serif",
+                        background:mvFilter===f?"#A78BFA":"rgba(255,255,255,0.06)",color:mvFilter===f?"#000":"#8899AA",whiteSpace:"nowrap"}}>
+                      {f==="all"?"Tümü":f==="mv"?"Vekillerden":f==="nomv"?"Vekilsizler":""}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Oyuncu listesi */}
+                {realPlayers
+                  .filter(u=>mvFilter==="mv"?u.position==="Milletvekili":mvFilter==="nomv"?u.position!=="Milletvekili":true)
+                  .map(u=>{
+                    const isMV=u.position==="Milletvekili";
+                    const mvCity=u.milletCity||u.city||"—";
+                    return (
+                      <div key={u.id} style={{...cardStyle,marginBottom:"0.5rem",borderColor:isMV?"rgba(167,139,250,0.35)":"rgba(255,255,255,0.07)"}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.4rem"}}>
+                          <div style={{display:"flex",alignItems:"center",gap:"0.4rem"}}>
+                            {u.profilePhoto?<img src={u.profilePhoto} style={{width:28,height:28,borderRadius:"50%",objectFit:"cover"}}/>
+                              :<div style={{width:28,height:28,borderRadius:"50%",background:"rgba(167,139,250,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"0.8rem"}}>👤</div>}
+                            <div>
+                              <div style={{fontWeight:700,fontSize:"0.85rem",color:"#fff"}}>{u.username}</div>
+                              <div style={{fontSize:"0.65rem",color:"#5E7390"}}>{u.educationLevel||"—"} · {u.city||"—"}</div>
+                            </div>
+                          </div>
+                          {isMV&&<div style={{background:"rgba(167,139,250,0.15)",border:"1px solid rgba(167,139,250,0.4)",borderRadius:6,padding:"0.2rem 0.5rem",fontSize:"0.65rem",fontWeight:800,color:"#A78BFA"}}>🏛️ {mvCity}</div>}
+                        </div>
+                        <div style={{display:"flex",gap:"0.35rem",flexWrap:"wrap"}}>
+                          {!isMV?(
+                            <>
+                              <button style={{...btnStyle("#A78BFA"),fontSize:"0.72rem",padding:"0.3rem 0.6rem",flex:1}}
+                                onClick={()=>assignMV(u,null)}>🎲 Rastgele İl Ata</button>
+                              <select style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,color:"#ccc",fontSize:"0.7rem",padding:"0.3rem 0.5rem",flex:1,minWidth:0}}
+                                defaultValue="" onChange={e=>{ if(e.target.value) assignMV(u,e.target.value); e.target.value=""; }}>
+                                <option value="">Manuel İl Seç…</option>
+                                {TURKISH_CITIES.map(c=><option key={c} value={c}>{c}</option>)}
+                              </select>
+                            </>
+                          ):(
+                            <>
+                              <select style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(167,139,250,0.3)",borderRadius:8,color:"#ccc",fontSize:"0.7rem",padding:"0.3rem 0.5rem",flex:1,minWidth:0}}
+                                value={mvCity} onChange={e=>assignMV(u,e.target.value)}>
+                                {TURKISH_CITIES.map(c=><option key={c} value={c}>{c}</option>)}
+                              </select>
+                              <button style={{...btnStyle("#EF4444"),fontSize:"0.72rem",padding:"0.3rem 0.6rem"}}
+                                onClick={()=>removeMV(u)}>✕ Kaldır</button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            );
+          })()}
 })()}
     </div>
   );
@@ -2847,6 +2967,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
   const [friendReqInput, setFriendReqInput] = useState("");
   // Page-specific state (moved from IIFEs to fix React Rules of Hooks)
   const [pTab, setPTab] = useState("list");
+  const [eduTab, setEduTab] = useState("ders");
   const [liveHistory, setLiveHistory] = useState(()=>{
     const saved = S.load("econHistory", null);
     if(saved && saved.length >= 20) return saved;
@@ -8246,6 +8367,93 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
         {/* ===== EDUCATION ===== */}
         {currentPage==="education"&&(
           <div style={{maxWidth:600,margin:"0 auto"}}>
+            {/* Eğitim Sekmeler */}
+            <div style={{display:"flex",gap:"0.35rem",marginBottom:"0.75rem"}}>
+              {[{id:"ders",icon:"📚",label:"Ders"},
+                {id:"leaderboard",icon:"🏆",label:"Sıralama"}
+              ].map(t=>(
+                <button key={t.id} onClick={()=>setEduTab(t.id)}
+                  style={{flex:1,padding:"0.55rem",borderRadius:12,border:"none",
+                    background:eduTab===t.id?"var(--accent)":"rgba(255,255,255,0.05)",
+                    color:eduTab===t.id?"#000":"#8899AA",fontSize:"0.8rem",fontWeight:700,
+                    cursor:"pointer",fontFamily:"Nunito,sans-serif",minHeight:40,
+                    WebkitTapHighlightColor:"transparent"}}>
+                  {t.icon} {t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* ── TAB: SIRALAMASI ── */}
+            {eduTab==="leaderboard"&&(
+              <div className="card" style={{marginBottom:"1rem"}}>
+                <div className="card-title">🏆 Eğitim Puanı Sıralaması</div>
+                <div style={{fontSize:"0.65rem",color:"#666",marginBottom:"0.75rem"}}>Tüm oyuncular toplam eğitim puanına göre sıralanır. Her tıklama başına puan kazanılır.</div>
+                {[...allUsers]
+                  .filter(u=>!u.isBot&&u.role!=="bot")
+                  .sort((a,b)=>(b.eduPuan||0)-(a.eduPuan||0))
+                  .slice(0,10)
+                  .map((u,idx)=>{
+                    const maxPuan=[...allUsers].filter(x=>!x.isBot).reduce((m,x)=>Math.max(m,x.eduPuan||0),1);
+                    const pct=Math.round(((u.eduPuan||0)/maxPuan)*100);
+                    const medal=idx===0?"🥇":idx===1?"🥈":idx===2?"🥉":`${idx+1}.`;
+                    const isMe=u.id===cu?.id;
+                    const eduLvlIdx=EDU_LEVEL_INDEX(u.educationLevel||"İlkokul");
+                    const levelColor=["#94A3B8","#60A5FA","#10B981","#F59E0B","#A78BFA","#EF4444","#FFD700"][eduLvlIdx]||"#aaa";
+                    return (
+                      <div key={u.id} style={{padding:"0.6rem 0.75rem",borderRadius:12,marginBottom:"0.4rem",
+                        background:isMe?"rgba(255,184,0,0.06)":"rgba(255,255,255,0.02)",
+                        border:`1px solid ${isMe?"rgba(255,184,0,0.3)":"rgba(255,255,255,0.05)"}`}}>
+                        <div style={{display:"flex",alignItems:"center",gap:"0.5rem",marginBottom:"0.3rem"}}>
+                          <span style={{fontSize:"0.85rem",width:24,textAlign:"center",flexShrink:0}}>{medal}</span>
+                          {u.profilePhoto
+                            ?<img src={u.profilePhoto} style={{width:26,height:26,borderRadius:"50%",objectFit:"cover",flexShrink:0}}/>
+                            :<div style={{width:26,height:26,borderRadius:"50%",background:"rgba(255,255,255,0.08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"0.75rem",flexShrink:0}}>👤</div>
+                          }
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{display:"flex",alignItems:"center",gap:"0.35rem"}}>
+                              <span style={{fontSize:"0.82rem",fontWeight:700,color:isMe?"#FFD700":"#ccc",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.username}</span>
+                              {isMe&&<span style={{fontSize:"0.55rem",background:"rgba(255,184,0,0.15)",color:"#FFB800",padding:"1px 4px",borderRadius:3,fontWeight:800,flexShrink:0}}>SEN</span>}
+                            </div>
+                            <div style={{fontSize:"0.62rem",color:levelColor,marginTop:"0.05rem"}}>{u.educationLevel||"İlkokul"}{u.educationCompleted?" 🎓":""}</div>
+                          </div>
+                          <div style={{textAlign:"right",flexShrink:0}}>
+                            <div style={{fontSize:"0.85rem",fontWeight:900,color:"#60A5FA",fontFamily:"JetBrains Mono,monospace"}}>{(u.eduPuan||0).toLocaleString()}</div>
+                            <div style={{fontSize:"0.58rem",color:"#555"}}>edu puan</div>
+                          </div>
+                        </div>
+                        <div style={{height:4,background:"rgba(255,255,255,0.05)",borderRadius:2,overflow:"hidden",marginLeft:48}}>
+                          <div style={{height:"100%",width:`${pct}%`,background:`linear-gradient(90deg,#3B82F6,#8B5CF6)`,borderRadius:2}}/>
+                        </div>
+                      </div>
+                    );
+                  })}
+                {allUsers.filter(u=>!u.isBot&&u.role!=="bot").length===0&&(
+                  <div style={{textAlign:"center",color:"#555",padding:"1rem",fontSize:"0.8rem"}}>Henüz kayıtlı oyuncu yok.</div>
+                )}
+                {/* Kendi sırası top-10 dışındaysa göster */}
+                {(()=>{
+                  const ranked=[...allUsers].filter(u=>!u.isBot&&u.role!=="bot").sort((a,b)=>(b.eduPuan||0)-(a.eduPuan||0));
+                  const myRank=ranked.findIndex(u=>u.id===cu?.id);
+                  if(myRank>=10){
+                    const me=ranked[myRank];
+                    return (
+                      <div style={{marginTop:"0.5rem",borderTop:"1px solid rgba(255,255,255,0.05)",paddingTop:"0.5rem"}}>
+                        <div style={{fontSize:"0.65rem",color:"#555",marginBottom:"0.35rem",textAlign:"center"}}>Senin Sıran</div>
+                        <div style={{padding:"0.5rem 0.75rem",borderRadius:12,background:"rgba(255,184,0,0.06)",border:"1px solid rgba(255,184,0,0.25)",display:"flex",alignItems:"center",gap:"0.5rem"}}>
+                          <span style={{fontSize:"0.8rem",fontWeight:800,color:"#FFB800",width:24,textAlign:"center"}}>{myRank+1}.</span>
+                          <span style={{flex:1,fontSize:"0.82rem",fontWeight:700,color:"#FFD700"}}>{me?.username}</span>
+                          <span style={{fontSize:"0.82rem",fontWeight:900,color:"#60A5FA",fontFamily:"JetBrains Mono,monospace"}}>{(me?.eduPuan||0).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+            )}
+
+            {/* ── TAB: DERS ── */}
+            {eduTab==="ders"&&(
             <div className="card" style={{marginBottom:"1rem"}}>
               <div className="card-title">📚 Eğitim Sistemi</div>
               {(()=>{
@@ -8408,6 +8616,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 </div>
               )}
             </div>
+            )}
           </div>
         )}
 
