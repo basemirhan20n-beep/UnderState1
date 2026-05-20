@@ -4798,7 +4798,9 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
       const prestige = xpData.prestige||0;
       const posScore = uData.score||0;
       const eduBonus = ["İlkokul","Ortaokul","Lise","Üniversite","Yüksek Lisans","Doktora"].indexOf(uData.educationLevel||"İlkokul")*500;
-      return s + prestige + posScore + eduBonus;
+      const tradeBonus = Math.floor((uData.tradePoints||0)/5);
+      const eduProgressBonus = Math.floor((uData.educationProgress||0)/50);
+      return s + prestige + posScore + eduBonus + tradeBonus + eduProgressBonus;
     },0);
     const budgetBonus = Math.sqrt(party.budget||0)/50;
     const adBonus = (party.adBonus||0)*200;
@@ -6641,7 +6643,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
   const payPartySalary = (party, salaryPerMember) => {
     if(!party) return notify("❌ Parti bulunamadı!");
     if(party.leader!==cu.username) return notify("❌ Sadece lider maaş ödeyebilir!");
-    const members = (party.members||[]).filter(m=>m!==cu.username);
+    const members = (party.members||[]);
     const total = salaryPerMember * members.length;
     if((party.budget||0)<total) return notify(`❌ Parti kasası yetersiz! Gereken: ₺${total.toLocaleString()}`);
     if(members.length===0) return notify("❌ Maaş ödenecek üye yok!");
@@ -6654,6 +6656,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
     setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>
       members.includes(u.username)?{...u,money:(u.money||0)+salaryPerMember}:u
     ));
+    if(members.includes(cu.username)) updateUser({money:(cu.money||0)+salaryPerMember});
     const logUpd = {...partySalaryLog,[party.id]:{lastPaid:today,amount:salaryPerMember,total,paidBy:cu.username}};
     setPartySalaryLog(logUpd);
     S.save("partySalaryLog", logUpd);
@@ -8406,7 +8409,13 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
             <div className="card" style={{marginBottom:"1rem"}}>
               <div className="card-title">🏛️ Devlet Kadrosu</div>
               <p style={{color:"#bbb",fontSize:"0.85rem",marginBottom:"0.75rem"}}>Makamlar seçimle belirlenir. Admin panelinden atama yapılabilir. Her makam için eğitim şartı aranmaktadır.</p>
-              <button className="btn btn-sm" style={{background:"rgba(59,130,246,0.1)",color:"#60A5FA",border:"1px solid rgba(59,130,246,0.3)",fontWeight:700}} onClick={()=>setCurrentPage("parliament")}>🏛️ Meclis Koltuk Dağılımına Git →</button>
+              <button
+                style={{width:"100%",padding:"0.75rem",borderRadius:14,border:"1px solid rgba(59,130,246,0.4)",background:"linear-gradient(135deg,rgba(59,130,246,0.15),rgba(99,102,241,0.1))",color:"#60A5FA",fontWeight:800,cursor:"pointer",fontSize:"0.88rem",display:"flex",alignItems:"center",justifyContent:"center",gap:"0.6rem",fontFamily:"inherit"}}
+                onClick={()=>setCurrentPage("parliament")}>
+                🏛️ Meclis &amp; Koltuk Dağılımı
+                <span style={{fontSize:"0.65rem",background:"rgba(59,130,246,0.2)",padding:"2px 8px",borderRadius:3,fontWeight:700}}>81 Sandalye</span>
+                <span style={{marginLeft:"auto",fontSize:"0.8rem"}}>→</span>
+              </button>
             </div>
             <div className="grid-auto">
               {GOV_POSITIONS.map((pos,i)=>(
@@ -8537,6 +8546,38 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 </div>
               )}
             </div>
+            {/* Milletvekili Ata */}
+            {(cu.role==="admin"||cu.position==="Devlet Başkanı")&&Object.keys(partySeatMap).length>0&&(
+              <div style={{background:"rgba(245,158,11,0.06)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:14,padding:"0.85rem",marginBottom:"1rem"}}>
+                <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,color:"#F59E0B",fontSize:"0.88rem",marginBottom:"0.5rem"}}>⚡ Milletvekili Ataması</div>
+                <div style={{fontSize:"0.75rem",color:"#888",marginBottom:"0.6rem"}}>Seçim sonuçlarına göre her partiden koltuk sayısı kadar üye Milletvekili atanır. Atanan üyelerin prestijiyle sıralama yapılır.</div>
+                <button
+                  style={{width:"100%",padding:"0.65rem",borderRadius:10,border:"1px solid rgba(245,158,11,0.4)",background:"rgba(245,158,11,0.12)",color:"#F59E0B",fontWeight:800,cursor:"pointer",fontSize:"0.82rem",fontFamily:"inherit"}}
+                  onClick={()=>{
+                    let assignedCount=0;
+                    const updUsers=[...(Array.isArray(allUsers)?allUsers:[])].map(u=>u.position==="Milletvekili"?{...u,position:"Vatandaş"}:u);
+                    Object.entries(partySeatMap).forEach(([partyId,seatCount])=>{
+                      if(partyId==="__bagımsız") return;
+                      const party=(Array.isArray(parties)?parties:[]).find(p=>p.id===partyId);
+                      if(!party) return;
+                      const partyMembers=(Array.isArray(party.members)?party.members:[])
+                        .map(m=>updUsers.find(u=>u.username===m)||{username:m})
+                        .sort((a,b)=>((xpLog[b.username]||{}).prestige||0)-((xpLog[a.username]||{}).prestige||0))
+                        .slice(0,seatCount);
+                      partyMembers.forEach(u=>{
+                        const idx=updUsers.findIndex(uu=>uu.username===u.username);
+                        if(idx>=0){updUsers[idx]={...updUsers[idx],position:"Milletvekili"};assignedCount++;}
+                      });
+                    });
+                    setAllUsers(updUsers);
+                    S.save("rep_users",updUsers);
+                    addHistory(`🏛️ Seçim sonuçlarına göre ${assignedCount} Milletvekili atandı (D'Hondt yöntemi).`);
+                    notify(`✅ ${assignedCount} milletvekili atandı!`);
+                  }}>
+                  🏛️ Milletvekili Ata (D'Hondt Yöntemi)
+                </button>
+              </div>
+            )}
             {/* Meclis bilgi kartları */}
             <div className="grid-2" style={{marginBottom:"1rem"}}>
               <div className="card">
@@ -8824,7 +8865,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                           {icon:"🏛️",label:"Parti Kongre İşlemleri",color:"#8B5CF6",bg:"rgba(139,92,246,0.1)",action:kongre,leaderOnly:true},
                           {icon:"✏️",label:"Parti Adı Değiştirme",color:"#A78BFA",bg:"rgba(167,139,250,0.1)",action:renameParty,leaderOnly:true},
                           {icon:"📋",label:"Yönetim Kurulu Başvuru",color:"#60A5FA",bg:"rgba(96,165,250,0.1)",action:boardApplication},
-                          {icon:"🏛️",label:cu.position==="Devlet Başkanı"?"Bakan Ata":"Bakan Ataması",color:cu.position==="Devlet Başkanı"?"#F59E0B":"#6B7280",bg:cu.position==="Devlet Başkanı"?"rgba(245,158,11,0.1)":"rgba(107,114,128,0.08)",action:()=>cu.position==="Devlet Başkanı"?assignCabinet("Maliye Bakanı"):notify("❌ Bakan atama yetkisi yalnızca Devlet Başkanı'nındır!")},
+                          {icon:"🏛️",label:"Meclis Koltuk Dağılımı",color:"#60A5FA",bg:"rgba(96,165,250,0.1)",action:()=>setCurrentPage("parliament")},
                           {icon:"💸",label:"Kasadan Para Gönder",color:"#10D9A0",bg:"rgba(16,217,160,0.1)",action:()=>partyTreasuryTransfer(myP),leaderOnly:true},
                           {icon:"⚖️",label:"Parti Disiplin İşlemleri",color:"#F97316",bg:"rgba(249,115,22,0.1)",action:disiplin,leaderOnly:true},
                           {icon:"🎖️",label:"Rol Ata",color:"#FFB800",bg:"rgba(255,184,0,0.1)",action:()=>{
@@ -8919,6 +8960,37 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                   ══════════════════════════════════════ */}
               {pTab==="list"&&(
                 <div>
+                  {/* Parti Güç Sıralaması */}
+                  {parties.length>0&&(
+                    <div style={{background:"rgba(167,139,250,0.06)",border:"1px solid rgba(167,139,250,0.2)",borderRadius:14,padding:"0.85rem",marginBottom:"1rem"}}>
+                      <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,color:"#A78BFA",fontSize:"0.82rem",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:"0.6rem"}}>🏆 Parti Güç Sıralaması</div>
+                      <div style={{fontSize:"0.65rem",color:"#666",marginBottom:"0.55rem"}}>Üyelerin ticaret puanı + eğitim ilerlemesi + prestij toplamıyla hesaplanır.</div>
+                      {[...parties].sort((a,b)=>calculatePartyPower(b)-calculatePartyPower(a)).map((p,idx)=>{
+                        const pc=p.color||"#A78BFA";
+                        const power=calculatePartyPower(p);
+                        const coeff=getPartyCoefficient(p);
+                        const maxPow=calculatePartyPower([...parties].sort((a,b)=>calculatePartyPower(b)-calculatePartyPower(a))[0]);
+                        const pct=maxPow>0?Math.round(power/maxPow*100):0;
+                        const medal=idx===0?"🥇":idx===1?"🥈":idx===2?"🥉":`${idx+1}.`;
+                        return(
+                          <div key={p.id} style={{marginBottom:"0.5rem"}}>
+                            <div style={{display:"flex",alignItems:"center",gap:"0.5rem",marginBottom:"0.2rem"}}>
+                              <span style={{fontSize:"0.8rem",width:22,textAlign:"center",flexShrink:0}}>{medal}</span>
+                              <div style={{width:22,height:22,borderRadius:5,background:`${pc}22`,border:`1px solid ${pc}44`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
+                                {p.logo?<img src={p.logo} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:"0.7rem"}}>⚑</span>}
+                              </div>
+                              <span style={{fontSize:"0.78rem",fontWeight:700,color:pc,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
+                              <span style={{fontSize:"0.65rem",fontWeight:900,color:"#A78BFA",fontFamily:"JetBrains Mono,monospace",flexShrink:0}}>{power.toLocaleString()} puan</span>
+                              <span style={{fontSize:"0.65rem",fontWeight:700,color:"#10D9A0",background:"rgba(16,217,160,0.1)",padding:"1px 5px",borderRadius:3,flexShrink:0}}>×{coeff}</span>
+                            </div>
+                            <div style={{height:4,background:"rgba(255,255,255,0.05)",borderRadius:2,overflow:"hidden",marginLeft:22}}>
+                              <div style={{height:"100%",width:`${pct}%`,background:`linear-gradient(90deg,${pc}88,${pc})`,borderRadius:2}}/>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                   {parties.length===0&&<div className="card" style={{textAlign:"center",color:"#555",padding:"2rem"}}>Henüz kurulmuş bir parti yok.</div>}
                   {parties.map(p=>{
                     const mem = Array.isArray(p.members)?p.members:[];
@@ -9388,10 +9460,10 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                         )}
                         {isLeader?(
                           <div>
-                            <div style={{fontSize:"0.72rem",color:pColor,fontWeight:800,marginBottom:"0.4rem"}}>💰 Tüm Üyelere Maaş Öde</div>
+                            <div style={{fontSize:"0.72rem",color:pColor,fontWeight:800,marginBottom:"0.4rem"}}>💰 Tüm Üyelere Maaş Öde (Lider Dahil)</div>
                             <div style={{display:"flex",gap:"0.4rem",marginBottom:"0.4rem"}}>
                               {[5000,10000,25000,50000].map(amt=>{
-                                const members=(myP.members||[]).filter(m=>m!==myP.leader);
+                                const members=(myP.members||[]);
                                 const total=amt*members.length;
                                 const canPay=(myP.budget||0)>=total;
                                 return(<button key={amt} className="btn btn-sm" style={{flex:1,fontSize:"0.68rem",background:canPay?"rgba(16,217,160,0.08)":"rgba(239,68,68,0.06)",color:canPay?"#10D9A0":"#EF4444",border:`1px solid ${canPay?"rgba(16,217,160,0.2)":"rgba(239,68,68,0.2)"}`,padding:"0.35rem 0.2rem"}}
@@ -9432,7 +9504,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                       </div>
                       {/* Üye maaş durumu */}
                       <div style={{background:"rgba(15,28,50,0.9)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:"0.85rem"}}>
-                        <div style={{fontSize:"0.72rem",color:"#aaa",fontWeight:800,marginBottom:"0.55rem"}}>👥 Üyeler ({(myP.members||[]).length})</div>
+                        <div style={{fontSize:"0.72rem",color:"#aaa",fontWeight:800,marginBottom:"0.55rem"}}>👥 Tüm Üyeler — Maaş Alır ({(myP.members||[]).length})</div>
                         <div style={{display:"flex",flexDirection:"column",gap:"0.25rem"}}>
                           {(myP.members||[]).map(m=>{
                             const uData=allUsers.find(u=>u.username===m);
@@ -9444,7 +9516,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                                   <span style={{fontSize:"0.82rem",fontWeight:600,color:"#ccc"}}>{m}</span>
                                   {isLeaderMember&&<span style={{fontSize:"0.55rem",background:"rgba(255,184,0,0.15)",color:"#FFB800",padding:"1px 4px",borderRadius:2,fontWeight:800}}>LİDER</span>}
                                 </div>
-                                <span style={{fontSize:"0.72rem",color:isLeaderMember?"#666":"#10D9A0",fontFamily:"JetBrains Mono,monospace"}}>{isLeaderMember?"maaş almaz":"maaş alır"}</span>
+                                <span style={{fontSize:"0.72rem",color:"#10D9A0",fontFamily:"JetBrains Mono,monospace"}}>✓ maaş alır</span>
                               </div>
                             );
                           })}
