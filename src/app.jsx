@@ -2492,6 +2492,8 @@ function App() {
   // 3. Kanun sistemi
   const [laws, setLaws] = useState(()=>S.load("laws",[]));
   const [lawProposals, setLawProposals] = useState(()=>S.load("lawProposals",[]));
+  const [showLawModal, setShowLawModal] = useState(false);
+  const [lawForm, setLawForm] = useState({title:"",desc:"",category:"ekonomi"});
   const [referandumlar, setReferandumlar] = useState(()=>{
     const v=S.load("referandumlar",[]);
     const arr=Array.isArray(v)?v:[];
@@ -5389,29 +5391,44 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
   // KANUN SİSTEMİ
   const proposeLaw = () => {
     if(cu.position!=="Milletvekili"&&cu.position!=="Meclis Başkanı"&&cu.role!=="admin") return notify("❌ Sadece milletvekilleri yasa önerebilir!");
-    const title = prompt("Yasa başlığı:");
-    if(!title) return;
-    const desc = prompt("Yasa açıklaması (ne değiştirecek?):");
-    if(!desc) return;
-    const p = {id:Date.now(),title,desc,proposer:cu.username,votes:{for:[],against:[]},status:"Oylamada",date:new Date().toLocaleDateString("tr-TR")};
-    setLawProposals(prev=>[p,...prev]);
-    addHistory(`📜 ${cu.username}, "${title}" yasa teklifini sundu.`);
+    setLawForm({title:"",desc:"",category:"ekonomi"});
+    setShowLawModal(true);
+  };
+
+  const submitLawProposal = () => {
+    if(!lawForm.title.trim()) return notify("❌ Yasa başlığı boş olamaz!");
+    if(!lawForm.desc.trim()) return notify("❌ Yasa açıklaması boş olamaz!");
+    const p = {
+      id:Date.now(), title:lawForm.title.trim(), desc:lawForm.desc.trim(),
+      category:lawForm.category||"ekonomi",
+      proposer:cu.username, proposerParty:(Array.isArray(parties)?parties:[]).find(p=>(Array.isArray(p.members)?p.members:[]).includes(cu.username))?.name||"Bağımsız",
+      votes:{for:[],against:[],abstain:[]}, status:"Oylamada",
+      date:new Date().toLocaleDateString("tr-TR"), createdAt:Date.now(),
+      deadline:Date.now()+(48*60*60*1000)
+    };
+    setLawProposals(prev=>[p,...(Array.isArray(prev)?prev:[])]);
+    addHistory(`📜 ${cu.username}, "${p.title}" yasa teklifini sundu.`);
     notify("✅ Yasa teklifi Meclis'e sunuldu!");
+    setShowLawModal(false);
   };
 
   const voteLaw = (lid, type) => {
     const prop = (Array.isArray(lawProposals)?lawProposals:[]).find(l=>l.id===lid);
     if(!prop||prop.status!=="Oylamada") return notify("❌ Bu yasa artık oylamada değil!");
-    if(prop.votes.for.includes(cu.username)||prop.votes.against.includes(cu.username)) return notify("❌ Bu yasa için zaten oy kullandınız!");
+    const allVoted = [...(prop.votes.for||[]),...(prop.votes.against||[]),...(prop.votes.abstain||[])];
+    if(allVoted.includes(cu.username)) return notify("❌ Bu yasa için zaten oy kullandınız!");
     if(cu.position!=="Milletvekili"&&cu.position!=="Meclis Başkanı"&&cu.role!=="admin") return notify("❌ Sadece milletvekilleri oy kullanabilir!");
+    const totalDeputies = (Array.isArray(allUsers)?allUsers:[]).filter(u=>u.position==="Milletvekili"||u.position==="Meclis Başkanı").length;
+    const threshold = Math.max(3, Math.ceil(totalDeputies/2)+1);
     setLawProposals(prev=>(Array.isArray(prev)?prev:[]).map(l=>{
       if(l.id!==lid) return l;
-      const newVotes = {...l.votes,[type]:[...l.votes[type],cu.username]};
-      const totalFor = newVotes.for.length;
-      const totalAgainst = newVotes.against.length;
+      const newFor = type==="for"?[...(l.votes.for||[]),cu.username]:(l.votes.for||[]);
+      const newAgainst = type==="against"?[...(l.votes.against||[]),cu.username]:(l.votes.against||[]);
+      const newAbstain = type==="abstain"?[...(l.votes.abstain||[]),cu.username]:(l.votes.abstain||[]);
+      const newVotes = {for:newFor,against:newAgainst,abstain:newAbstain};
       let status = "Oylamada";
-      if(totalFor>=3) { status="Kabul Edildi"; setLaws(pp=>[...pp,{...l,status:"Yürürlükte",effectDate:new Date().toLocaleDateString("tr-TR")}]); addHistory(`✅ "${l.title}" yasası kabul edildi!`); notify(`✅ "${l.title}" yasası kabul edildi!`); }
-      else if(totalAgainst>=3) { status="Reddedildi"; addHistory(`❌ "${l.title}" yasası reddedildi.`); }
+      if(newFor.length>=threshold){ status="Kabul Edildi"; setLaws(pp=>[...(Array.isArray(pp)?pp:[]),{...l,votes:newVotes,status:"Yürürlükte",effectDate:new Date().toLocaleDateString("tr-TR")}]); addHistory(`✅ "${l.title}" yasası kabul edildi!`); notify(`✅ "${l.title}" yasası ${threshold} oyla kabul edildi!`); }
+      else if(newAgainst.length>=threshold){ status="Reddedildi"; addHistory(`❌ "${l.title}" yasası ${threshold} ret oyuyla reddedildi.`); notify(`❌ "${l.title}" yasası reddedildi.`); }
       return {...l,votes:newVotes,status};
     }));
   };
@@ -8893,6 +8910,63 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 </div>
               </div>
             )}
+            {/* ===== MECLİS AKTİF OYLAMALAR PANELİ ===== */}
+            {(()=>{
+              const activeProposals = (Array.isArray(lawProposals)?lawProposals:[]).filter(l=>l.status==="Oylamada");
+              if(activeProposals.length===0) return null;
+              const totalDeputies = (Array.isArray(allUsers)?allUsers:[]).filter(u=>u.position==="Milletvekili"||u.position==="Meclis Başkanı").length;
+              const threshold = Math.max(3, Math.ceil(totalDeputies/2)+1);
+              const isDeputy = cu.position==="Milletvekili"||cu.position==="Meclis Başkanı"||cu.role==="admin";
+              return (
+                <div style={{background:"rgba(255,215,0,0.04)",border:"1px solid rgba(255,215,0,0.15)",borderRadius:14,padding:"0.9rem",marginTop:"0.75rem"}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"0.65rem"}}>
+                    <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,color:"#FFD700",fontSize:"0.82rem",letterSpacing:"0.05em"}}>⚖️ AKTİF YASA OYLAMALARI</div>
+                    <span style={{background:"rgba(255,184,0,0.15)",color:"#FFB800",borderRadius:20,padding:"0.1rem 0.5rem",fontSize:"0.65rem",fontWeight:800}}>{activeProposals.length} aktif</span>
+                  </div>
+                  {activeProposals.map(l=>{
+                    const forCount=(l.votes?.for||[]).length;
+                    const againstCount=(l.votes?.against||[]).length;
+                    const abstainCount=(l.votes?.abstain||[]).length;
+                    const total=forCount+againstCount+abstainCount;
+                    const allVoted=[...(l.votes?.for||[]),...(l.votes?.against||[]),...(l.votes?.abstain||[])];
+                    const myVote=allVoted.includes(cu.username)?((l.votes?.for||[]).includes(cu.username)?"for":(l.votes?.against||[]).includes(cu.username)?"against":"abstain"):null;
+                    const forPct=total>0?Math.round(forCount/total*100):0;
+                    const againstPct=total>0?Math.round(againstCount/total*100):0;
+                    const LAW_CATS={ekonomi:{color:"#10D9A0",icon:"💰"},guvenlik:{color:"#EF4444",icon:"🛡️"},sosyal:{color:"#A78BFA",icon:"🤝"},egitim:{color:"#60A5FA",icon:"📚"},ticaret:{color:"#F59E0B",icon:"📈"},diger:{color:"#94A3B8",icon:"📋"}};
+                    const cat=LAW_CATS[l.category||"diger"]||LAW_CATS.diger;
+                    return (
+                      <div key={l.id} style={{background:"rgba(0,0,0,0.3)",borderRadius:10,padding:"0.7rem",marginBottom:"0.5rem",border:"1px solid rgba(255,255,255,0.05)"}}>
+                        <div style={{display:"flex",gap:"0.4rem",alignItems:"center",marginBottom:"0.35rem",flexWrap:"wrap"}}>
+                          <span style={{fontSize:"0.7rem",color:cat.color}}>{cat.icon}</span>
+                          <span style={{fontWeight:700,fontSize:"0.82rem",color:"#f0f0f0",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.title}</span>
+                          <span style={{fontSize:"0.62rem",color:"#555",flexShrink:0}}>Eşik: <span style={{color:"#FFB800"}}>{threshold}</span></span>
+                        </div>
+                        {/* Mini progress bar */}
+                        <div style={{height:5,borderRadius:3,overflow:"hidden",background:"rgba(255,255,255,0.04)",display:"flex",marginBottom:"0.35rem"}}>
+                          <div style={{width:`${forPct}%`,background:"#10B981",transition:"width 0.4s"}}/>
+                          <div style={{width:`${100-forPct-againstPct}%`,background:"rgba(148,163,184,0.15)",transition:"width 0.4s"}}/>
+                          <div style={{width:`${againstPct}%`,background:"#EF4444",transition:"width 0.4s"}}/>
+                        </div>
+                        <div style={{display:"flex",justifyContent:"space-between",fontSize:"0.6rem",color:"#555",marginBottom:"0.45rem"}}>
+                          <span style={{color:"#10B981"}}>✅ {forCount}</span>
+                          <span>⬜ {abstainCount}</span>
+                          <span style={{color:"#EF4444"}}>❌ {againstCount}</span>
+                        </div>
+                        {isDeputy&&!myVote&&(
+                          <div style={{display:"flex",gap:"0.3rem"}}>
+                            <button onClick={()=>voteLaw(l.id,"for")} style={{flex:1,padding:"0.38rem",borderRadius:7,border:"1px solid rgba(16,185,129,0.4)",background:"rgba(16,185,129,0.08)",color:"#10B981",fontWeight:700,cursor:"pointer",fontSize:"0.72rem",fontFamily:"inherit"}}>✅ Lehte</button>
+                            <button onClick={()=>voteLaw(l.id,"abstain")} style={{flex:1,padding:"0.38rem",borderRadius:7,border:"1px solid rgba(148,163,184,0.2)",background:"rgba(148,163,184,0.04)",color:"#94A3B8",fontWeight:700,cursor:"pointer",fontSize:"0.72rem",fontFamily:"inherit"}}>⬜</button>
+                            <button onClick={()=>voteLaw(l.id,"against")} style={{flex:1,padding:"0.38rem",borderRadius:7,border:"1px solid rgba(239,68,68,0.35)",background:"rgba(239,68,68,0.07)",color:"#EF4444",fontWeight:700,cursor:"pointer",fontSize:"0.72rem",fontFamily:"inherit"}}>❌ Aleyhte</button>
+                          </div>
+                        )}
+                        {myVote&&<div style={{textAlign:"center",fontSize:"0.68rem",color:myVote==="for"?"#10B981":myVote==="against"?"#EF4444":"#94A3B8",fontWeight:700}}>{myVote==="for"?"✅ Lehte oyladınız":myVote==="against"?"❌ Aleyhte oyladınız":"⬜ Çekimser kaldınız"}</div>}
+                      </div>
+                    );
+                  })}
+                  <button onClick={()=>setCurrentPage("laws")} style={{width:"100%",padding:"0.4rem",borderRadius:8,border:"1px solid rgba(255,215,0,0.15)",background:"transparent",color:"#FFD700",fontSize:"0.72rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginTop:"0.2rem"}}>📜 Tüm Yasama → Git</button>
+                </div>
+              );
+            })()}
           </div>
           );
         })()}
@@ -12466,63 +12540,140 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
           </div>
           );
         })()}
-        {currentPage==="laws"&&(
+        {currentPage==="laws"&&(()=>{
+          const totalDeputies = (Array.isArray(allUsers)?allUsers:[]).filter(u=>u.position==="Milletvekili"||u.position==="Meclis Başkanı").length;
+          const threshold = Math.max(3, Math.ceil(totalDeputies/2)+1);
+          const isDeputy = cu.position==="Milletvekili"||cu.position==="Meclis Başkanı"||cu.role==="admin";
+          const LAW_CATS = {ekonomi:{label:"Ekonomi",color:"#10D9A0",icon:"💰"},guvenlik:{label:"Güvenlik",color:"#EF4444",icon:"🛡️"},sosyal:{label:"Sosyal",color:"#A78BFA",icon:"🤝"},egitim:{label:"Eğitim",color:"#60A5FA",icon:"📚"},ticaret:{label:"Ticaret",color:"#F59E0B",icon:"📈"},diger:{label:"Diğer",color:"#94A3B8",icon:"📋"}};
+          const activeProps = (Array.isArray(lawProposals)?lawProposals:[]).filter(l=>l.status==="Oylamada");
+          const rejectedProps = (Array.isArray(lawProposals)?lawProposals:[]).filter(l=>l.status==="Reddedildi");
+          const LawVoteCard = ({l}) => {
+            const forCount = (l.votes?.for||[]).length;
+            const againstCount = (l.votes?.against||[]).length;
+            const abstainCount = (l.votes?.abstain||[]).length;
+            const totalVoted = forCount+againstCount+abstainCount;
+            const allVoted = [...(l.votes?.for||[]),...(l.votes?.against||[]),...(l.votes?.abstain||[])];
+            const myVote = allVoted.includes(cu.username) ? ((l.votes?.for||[]).includes(cu.username)?"for":(l.votes?.against||[]).includes(cu.username)?"against":"abstain") : null;
+            const forPct = totalVoted>0?Math.round(forCount/totalVoted*100):0;
+            const againstPct = totalVoted>0?Math.round(againstCount/totalVoted*100):0;
+            const cat = LAW_CATS[l.category||"diger"]||LAW_CATS.diger;
+            const deadlineSecs = l.deadline ? Math.max(0, Math.ceil((l.deadline-now)/1000)) : null;
+            const deadlineH = deadlineSecs!=null ? Math.floor(deadlineSecs/3600) : null;
+            const deadlineM = deadlineSecs!=null ? Math.floor((deadlineSecs%3600)/60) : null;
+            const expired = l.deadline && now > l.deadline;
+            return (
+              <div style={{background:"rgba(15,28,55,0.9)",border:"1px solid rgba(255,215,0,0.2)",borderRadius:16,padding:"0.9rem",marginBottom:"0.75rem"}}>
+                {/* Header */}
+                <div style={{display:"flex",alignItems:"flex-start",gap:"0.5rem",marginBottom:"0.6rem"}}>
+                  <div style={{background:`${cat.color}18`,border:`1px solid ${cat.color}44`,borderRadius:6,padding:"0.2rem 0.5rem",fontSize:"0.62rem",fontWeight:800,color:cat.color,whiteSpace:"nowrap",flexShrink:0}}>{cat.icon} {cat.label}</div>
+                  {expired&&<div style={{background:"rgba(239,68,68,0.12)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:6,padding:"0.2rem 0.5rem",fontSize:"0.62rem",fontWeight:800,color:"#EF4444",whiteSpace:"nowrap",flexShrink:0}}>⏰ Süresi Doldu</div>}
+                  {!expired&&deadlineH!=null&&<div style={{background:"rgba(255,184,0,0.1)",borderRadius:6,padding:"0.2rem 0.5rem",fontSize:"0.62rem",color:"#FFB800",whiteSpace:"nowrap",flexShrink:0}}>⏳ {deadlineH}s {deadlineM}dk</div>}
+                </div>
+                <div style={{fontWeight:800,fontSize:"0.92rem",color:"#fff",marginBottom:"0.3rem"}}>{l.title}</div>
+                <div style={{fontSize:"0.78rem",color:"#999",marginBottom:"0.5rem",lineHeight:1.5}}>{l.desc}</div>
+                <div style={{fontSize:"0.65rem",color:"#555",marginBottom:"0.65rem"}}>Öneren: <span style={{color:"#A78BFA"}}>{l.proposer}</span>{l.proposerParty&&l.proposerParty!=="Bağımsız"&&<span style={{color:"#60A5FA"}}> · {l.proposerParty}</span>} · {l.date} · Eşik: <span style={{color:"#FFB800"}}>{threshold} oy</span></div>
+                {/* Oy çubukları */}
+                <div style={{marginBottom:"0.6rem"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:"0.68rem",marginBottom:"0.25rem"}}>
+                    <span style={{color:"#10B981"}}>✅ Lehte: {forCount}</span>
+                    <span style={{color:"#94A3B8"}}>⬜ Çekimser: {abstainCount}</span>
+                    <span style={{color:"#EF4444"}}>❌ Aleyhte: {againstCount}</span>
+                  </div>
+                  <div style={{height:8,borderRadius:4,overflow:"hidden",background:"rgba(255,255,255,0.05)",display:"flex"}}>
+                    <div style={{width:`${forPct}%`,background:"linear-gradient(90deg,#059669,#10B981)",transition:"width 0.4s"}}/>
+                    <div style={{width:`${100-forPct-againstPct}%`,background:"rgba(148,163,184,0.2)",transition:"width 0.4s"}}/>
+                    <div style={{width:`${againstPct}%`,background:"linear-gradient(90deg,#EF4444,#DC2626)",transition:"width 0.4s"}}/>
+                  </div>
+                  <div style={{display:"flex",gap:"0.2rem",marginTop:"0.3rem",justifyContent:"space-between"}}>
+                    <div style={{height:3,flex:forCount,background:"#10B981",borderRadius:2,transition:"flex 0.4s"}}/>
+                    <div style={{fontSize:"0.58rem",color:"#555",flexShrink:0,lineHeight:"3px",padding:"0 2px"}}>{threshold} gerekli</div>
+                    <div style={{height:3,flex:againstCount,background:"#EF4444",borderRadius:2,transition:"flex 0.4s"}}/>
+                  </div>
+                </div>
+                {/* Oy kullananlar */}
+                {totalVoted>0&&(
+                  <div style={{fontSize:"0.62rem",color:"#444",marginBottom:"0.55rem",display:"flex",flexWrap:"wrap",gap:"0.2rem"}}>
+                    {(l.votes?.for||[]).map(v=><span key={v} style={{background:"rgba(16,185,129,0.12)",color:"#10B981",padding:"1px 5px",borderRadius:4}}>✅ {v}</span>)}
+                    {(l.votes?.against||[]).map(v=><span key={v} style={{background:"rgba(239,68,68,0.1)",color:"#EF4444",padding:"1px 5px",borderRadius:4}}>❌ {v}</span>)}
+                    {(l.votes?.abstain||[]).map(v=><span key={v} style={{background:"rgba(148,163,184,0.08)",color:"#94A3B8",padding:"1px 5px",borderRadius:4}}>⬜ {v}</span>)}
+                  </div>
+                )}
+                {/* Oy düğmeleri */}
+                {isDeputy&&!myVote&&!expired&&(
+                  <div style={{display:"flex",gap:"0.4rem"}}>
+                    <button onClick={()=>voteLaw(l.id,"for")} style={{flex:1,padding:"0.45rem",borderRadius:8,border:"1px solid rgba(16,185,129,0.5)",background:"rgba(16,185,129,0.1)",color:"#10B981",fontWeight:700,cursor:"pointer",fontSize:"0.78rem",fontFamily:"inherit"}}>✅ Lehte</button>
+                    <button onClick={()=>voteLaw(l.id,"abstain")} style={{flex:1,padding:"0.45rem",borderRadius:8,border:"1px solid rgba(148,163,184,0.3)",background:"rgba(148,163,184,0.06)",color:"#94A3B8",fontWeight:700,cursor:"pointer",fontSize:"0.78rem",fontFamily:"inherit"}}>⬜ Çekimser</button>
+                    <button onClick={()=>voteLaw(l.id,"against")} style={{flex:1,padding:"0.45rem",borderRadius:8,border:"1px solid rgba(239,68,68,0.4)",background:"rgba(239,68,68,0.08)",color:"#EF4444",fontWeight:700,cursor:"pointer",fontSize:"0.78rem",fontFamily:"inherit"}}>❌ Aleyhte</button>
+                  </div>
+                )}
+                {myVote&&(
+                  <div style={{textAlign:"center",fontSize:"0.72rem",fontWeight:700,color:myVote==="for"?"#10B981":myVote==="against"?"#EF4444":"#94A3B8",background:myVote==="for"?"rgba(16,185,129,0.06)":myVote==="against"?"rgba(239,68,68,0.06)":"rgba(148,163,184,0.05)",border:`1px solid ${myVote==="for"?"rgba(16,185,129,0.2)":myVote==="against"?"rgba(239,68,68,0.2)":"rgba(148,163,184,0.15)"}`,borderRadius:8,padding:"0.4rem"}}>
+                    {myVote==="for"?"✅ Lehte oy kullandınız":myVote==="against"?"❌ Aleyhte oy kullandınız":"⬜ Çekimser kaldınız"}
+                  </div>
+                )}
+                {!isDeputy&&<div style={{fontSize:"0.72rem",color:"#555",textAlign:"center"}}>Oy kullanmak için Milletvekili olmanız gerekir.</div>}
+              </div>
+            );
+          };
+          return (
           <div>
-            <div className="ministry-header">📜 Yasama Meclisi</div>
-            {(cu.position==="Milletvekili"||cu.position==="Meclis Başkanı"||cu.role==="admin")&&(
-              <div style={{display:"flex",gap:"0.5rem",marginBottom:"1rem"}}>
-                <button className="btn btn-primary" onClick={proposeLaw}>📜 Yasa Teklifi Ver</button>
-                {(cu.role==="admin"||cu.position==="Meclis Başkanı")&&(Array.isArray(lawProposals)?lawProposals:[]).filter(l=>l.status==="Oylamada").length>0&&(
-                  <button className="btn btn-blue btn-sm" onClick={()=>sendLawVoteNotification((Array.isArray(lawProposals)?lawProposals:[]).find(l=>l.status==="Oylamada")?.title||"Yeni Yasa")}>🔔 Milletvekillere Bildirim Gönder</button>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"1rem",gap:"0.5rem",flexWrap:"wrap"}}>
+              <div style={{fontFamily:"Syne,sans-serif",fontSize:"1.05rem",fontWeight:900,color:"var(--accent)"}}>📜 Yasama Meclisi</div>
+              <div style={{display:"flex",gap:"0.4rem",flexWrap:"wrap"}}>
+                {isDeputy&&<button style={{padding:"0.45rem 0.85rem",borderRadius:8,border:"1px solid rgba(255,184,0,0.4)",background:"rgba(255,184,0,0.1)",color:"#FFB800",fontWeight:700,cursor:"pointer",fontSize:"0.78rem",fontFamily:"inherit"}} onClick={proposeLaw}>📜 Teklif Ver</button>}
+                {(cu.role==="admin"||cu.position==="Meclis Başkanı")&&activeProps.length>0&&(
+                  <button style={{padding:"0.45rem 0.85rem",borderRadius:8,border:"1px solid rgba(96,165,250,0.4)",background:"rgba(96,165,250,0.1)",color:"#60A5FA",fontWeight:700,cursor:"pointer",fontSize:"0.78rem",fontFamily:"inherit"}} onClick={()=>sendLawVoteNotification(activeProps[0]?.title||"Yeni Yasa")}>🔔 Bildirim Gönder</button>
                 )}
               </div>
+            </div>
+            {/* İstatistik çubuğu */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"0.4rem",marginBottom:"1rem"}}>
+              {[["⏳",activeProps.length,"Oylamada","#FFB800"],["✅",(Array.isArray(laws)?laws:[]).length,"Yürürlükte","#10B981"],["❌",rejectedProps.length,"Reddedildi","#EF4444"],["👥",totalDeputies,"Vekil","#A78BFA"]].map(([icon,val,lbl,clr])=>(
+                <div key={lbl} style={{background:`${clr}0a`,border:`1px solid ${clr}22`,borderRadius:10,padding:"0.5rem",textAlign:"center"}}>
+                  <div style={{fontSize:"0.85rem",fontWeight:900,color:clr,fontFamily:"JetBrains Mono,monospace"}}>{icon} {val}</div>
+                  <div style={{fontSize:"0.55rem",color:"#555",textTransform:"uppercase",marginTop:"0.1rem"}}>{lbl}</div>
+                </div>
+              ))}
+            </div>
+            {/* Aktif oylamalar */}
+            {activeProps.length>0&&(
+              <div style={{marginBottom:"1.25rem"}}>
+                <div style={{fontFamily:"Syne,sans-serif",color:"#FFD700",fontSize:"0.82rem",fontWeight:800,letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:"0.6rem"}}>⏳ Aktif Oylamalar ({activeProps.length})</div>
+                {activeProps.map(l=><LawVoteCard key={l.id} l={l}/>)}
+              </div>
             )}
-            {lawProposals.length>0&&(
-              <div style={{marginBottom:"1.5rem"}}>
-                <div style={{fontFamily:"Syne,sans-serif",color:"#FFD700",marginBottom:"0.75rem"}}>⏳ Oylamadaki Teklifler</div>
-                {(Array.isArray(lawProposals)?lawProposals:[]).filter(l=>l.status==="Oylamada").map(l=>(
-                  <div key={l.id} className="card" style={{marginBottom:"0.75rem",borderColor:"rgba(255,215,0,0.3)"}}>
-                    <div style={{fontWeight:700,marginBottom:"0.25rem"}}>{l.title}</div>
-                    <div style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.5rem"}}>{l.desc}</div>
-                    <div style={{fontSize:"0.75rem",color:"#bbb",marginBottom:"0.5rem"}}>Öneren: {l.proposer} · {l.date}</div>
-                    <div style={{display:"flex",gap:"0.5rem",fontSize:"0.8rem",marginBottom:"0.75rem"}}>
-                      <span style={{color:"#10B981"}}>✅ Lehte: {l.votes.for.length}</span>
-                      <span style={{color:"#EF4444"}}>❌ Aleyhte: {l.votes.against.length}</span>
-                      <span style={{color:"#bbb"}}>(3 oy gerekli)</span>
-                    </div>
-                    {(cu.position==="Milletvekili"||cu.position==="Meclis Başkanı"||cu.role==="admin")&&
-                      !l.votes.for.includes(cu.username)&&!l.votes.against.includes(cu.username)&&(
-                      <div style={{display:"flex",gap:"0.5rem"}}>
-                        <button className="btn btn-green btn-sm" onClick={()=>voteLaw(l.id,"for")}>✅ Lehte Oy</button>
-                        <button className="btn btn-primary btn-sm" onClick={()=>voteLaw(l.id,"against")}>❌ Aleyhte Oy</button>
-                      </div>
-                    )}
+            {activeProps.length===0&&<div style={{textAlign:"center",color:"#444",fontSize:"0.82rem",padding:"1.5rem 0",marginBottom:"1rem"}}>Şu an aktif yasa teklifi yok.</div>}
+            {/* Yürürlükteki yasalar */}
+            <div style={{fontFamily:"Syne,sans-serif",color:"#10B981",fontSize:"0.82rem",fontWeight:800,letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:"0.6rem"}}>✅ Yürürlükteki Yasalar ({(Array.isArray(laws)?laws:[]).length})</div>
+            {(Array.isArray(laws)?laws:[]).length===0&&<div style={{textAlign:"center",color:"#333",fontSize:"0.78rem",padding:"1rem 0",marginBottom:"0.5rem"}}>Henüz yürürlükte yasa yok.</div>}
+            {(Array.isArray(laws)?laws:[]).map(l=>{
+              const cat=LAW_CATS[l.category||"diger"]||LAW_CATS.diger;
+              return (
+                <div key={l.id} style={{background:"rgba(16,185,129,0.04)",border:"1px solid rgba(16,185,129,0.18)",borderRadius:12,padding:"0.75rem",marginBottom:"0.45rem"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:"0.4rem",marginBottom:"0.3rem"}}>
+                    <span style={{fontSize:"0.65rem",background:`${cat.color}18`,color:cat.color,padding:"1px 5px",borderRadius:4,fontWeight:700}}>{cat.icon} {cat.label}</span>
+                    <span style={{fontWeight:700,fontSize:"0.85rem",color:"#d1fae5"}}>{l.title}</span>
+                  </div>
+                  <div style={{fontSize:"0.78rem",color:"#6EE7B7",marginBottom:"0.25rem"}}>{l.desc}</div>
+                  <div style={{fontSize:"0.62rem",color:"#444"}}>Kabul: {l.effectDate} · Öneren: {l.proposer}</div>
+                </div>
+              );
+            })}
+            {/* Reddedilen teklifler */}
+            {rejectedProps.length>0&&(
+              <div style={{marginTop:"1rem"}}>
+                <div style={{fontFamily:"Syne,sans-serif",color:"#EF4444",fontSize:"0.78rem",fontWeight:800,letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:"0.5rem"}}>❌ Reddedilen Teklifler ({rejectedProps.length})</div>
+                {rejectedProps.map(l=>(
+                  <div key={l.id} style={{background:"rgba(239,68,68,0.03)",border:"1px solid rgba(239,68,68,0.12)",borderRadius:10,padding:"0.6rem",marginBottom:"0.35rem",opacity:0.7}}>
+                    <div style={{fontWeight:700,fontSize:"0.8rem",color:"#fca5a5"}}>{l.title}</div>
+                    <div style={{fontSize:"0.65rem",color:"#555"}}>{l.proposer} · {l.date}</div>
                   </div>
                 ))}
               </div>
-            )}
-            <div style={{fontFamily:"Syne,sans-serif",color:"#10B981",marginBottom:"0.75rem"}}>✅ Yürürlükteki Yasalar</div>
-            {laws.length===0&&<div className="card" style={{textAlign:"center",color:"#aaa"}}>Henüz yürürlükte yasa yok.</div>}
-            {(Array.isArray(laws)?laws:[]).map(l=>(
-              <div key={l.id} className="card card-green" style={{marginBottom:"0.5rem"}}>
-                <div style={{fontWeight:700}}>{l.title}</div>
-                <div style={{fontSize:"0.85rem",color:"#bbb"}}>{l.desc}</div>
-                <div style={{fontSize:"0.75rem",color:"#bbb"}}>Kabul: {l.effectDate} · Öneren: {l.proposer}</div>
-              </div>
-            ))}
-            {(Array.isArray(lawProposals)?lawProposals:[]).filter(l=>l.status!=="Oylamada").length>0&&(
-              <>
-                <div style={{fontFamily:"Syne,sans-serif",color:"#EF4444",margin:"1rem 0 0.5rem"}}>❌ Reddedilen Teklifler</div>
-                {(Array.isArray(lawProposals)?lawProposals:[]).filter(l=>l.status==="Reddedildi").map(l=>(
-                  <div key={l.id} className="card" style={{marginBottom:"0.5rem",opacity:0.6}}>
-                    <div style={{fontWeight:700}}>{l.title}</div>
-                    <div style={{fontSize:"0.75rem",color:"#bbb"}}>{l.proposer} · {l.date}</div>
-                  </div>
-                ))}
-              </>
             )}
           </div>
-        )}
+          );
+        })()}
 
         {/* ===== MAHKEME ===== */}
         {(currentPage==="court")&&(
@@ -23448,6 +23599,48 @@ if(cityDevTab==="build") return(
                 🏙️ Belediye Başkanı
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== YASA TEKLİFİ MODALI ===== */}
+      {showLawModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:9100,display:"flex",alignItems:"flex-end",justifyContent:"center",padding:"0"}} onClick={()=>setShowLawModal(false)}>
+          <div style={{background:"#080D1C",border:"1px solid rgba(255,215,0,0.3)",borderRadius:"20px 20px 0 0",padding:"1.5rem 1.25rem",width:"100%",maxWidth:560,maxHeight:"80vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.1rem"}}>
+              <div style={{fontFamily:"Syne,sans-serif",fontSize:"1.05rem",fontWeight:900,color:"#FFD700"}}>📜 Yasa Teklifi Ver</div>
+              <button onClick={()=>setShowLawModal(false)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,color:"#aaa",cursor:"pointer",fontSize:"0.85rem",padding:"0.3rem 0.6rem",fontFamily:"inherit"}}>✕ Kapat</button>
+            </div>
+            {/* Kategori */}
+            <div style={{marginBottom:"0.85rem"}}>
+              <div style={{fontSize:"0.7rem",color:"#888",fontWeight:700,marginBottom:"0.4rem",textTransform:"uppercase",letterSpacing:"0.07em"}}>Kategori</div>
+              <div style={{display:"flex",gap:"0.35rem",flexWrap:"wrap"}}>
+                {[{id:"ekonomi",label:"💰 Ekonomi",color:"#10D9A0"},{id:"guvenlik",label:"🛡️ Güvenlik",color:"#EF4444"},{id:"sosyal",label:"🤝 Sosyal",color:"#A78BFA"},{id:"egitim",label:"📚 Eğitim",color:"#60A5FA"},{id:"ticaret",label:"📈 Ticaret",color:"#F59E0B"},{id:"diger",label:"📋 Diğer",color:"#94A3B8"}].map(c=>(
+                  <button key={c.id} onClick={()=>setLawForm(f=>({...f,category:c.id}))}
+                    style={{padding:"0.35rem 0.65rem",borderRadius:20,border:`1px solid ${lawForm.category===c.id?c.color:c.color+"33"}`,background:lawForm.category===c.id?`${c.color}22`:"transparent",color:lawForm.category===c.id?c.color:"#666",fontSize:"0.72rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",transition:"all 0.15s"}}>
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Başlık */}
+            <div style={{marginBottom:"0.75rem"}}>
+              <div style={{fontSize:"0.7rem",color:"#888",fontWeight:700,marginBottom:"0.35rem",textTransform:"uppercase",letterSpacing:"0.07em"}}>Yasa Başlığı</div>
+              <input value={lawForm.title} onChange={e=>setLawForm(f=>({...f,title:e.target.value}))} placeholder="Örn: Vergi indirimi yasası..." maxLength={80}
+                style={{width:"100%",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,215,0,0.2)",borderRadius:10,padding:"0.6rem 0.8rem",color:"#fff",fontSize:"0.88rem",fontFamily:"Nunito,sans-serif",outline:"none",boxSizing:"border-box"}}/>
+              <div style={{fontSize:"0.6rem",color:"#555",marginTop:"0.2rem",textAlign:"right"}}>{lawForm.title.length}/80</div>
+            </div>
+            {/* Açıklama */}
+            <div style={{marginBottom:"1rem"}}>
+              <div style={{fontSize:"0.7rem",color:"#888",fontWeight:700,marginBottom:"0.35rem",textTransform:"uppercase",letterSpacing:"0.07em"}}>Açıklama (Ne değiştirecek?)</div>
+              <textarea value={lawForm.desc} onChange={e=>setLawForm(f=>({...f,desc:e.target.value}))} placeholder="Yasa ne amaçlıyor, oyunculara etkisi nedir..." maxLength={300} rows={4}
+                style={{width:"100%",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,215,0,0.15)",borderRadius:10,padding:"0.6rem 0.8rem",color:"#ccc",fontSize:"0.82rem",fontFamily:"Nunito,sans-serif",outline:"none",resize:"none",boxSizing:"border-box"}}/>
+              <div style={{fontSize:"0.6rem",color:"#555",marginTop:"0.2rem",textAlign:"right"}}>{lawForm.desc.length}/300</div>
+            </div>
+            <div style={{fontSize:"0.68rem",color:"#444",marginBottom:"0.85rem"}}>⏰ Oylama süresi: 48 saat · Geçerli oy eşiği mevcut milletvekili sayısına göre otomatik ayarlanır.</div>
+            <button onClick={submitLawProposal} style={{width:"100%",padding:"0.75rem",borderRadius:12,border:"1px solid rgba(255,215,0,0.4)",background:"linear-gradient(135deg,rgba(255,215,0,0.15),rgba(255,184,0,0.08))",color:"#FFD700",fontWeight:800,cursor:"pointer",fontSize:"0.88rem",fontFamily:"inherit"}}>
+              📜 Meclis'e Sun
+            </button>
           </div>
         </div>
       )}
