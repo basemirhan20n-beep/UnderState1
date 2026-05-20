@@ -2,7 +2,7 @@
 let socket = null;
 let socketConnected = false;
 
-export function initSocket(serverUrl = 'https://understate-server.onrender.com') {
+export function initSocket(serverUrl = 'https://understate1.onrender.com') {
   if (socket) return socket;
   
   socket = io(serverUrl, {
@@ -12,26 +12,26 @@ export function initSocket(serverUrl = 'https://understate-server.onrender.com')
     reconnectionAttempts: 5,
     transports: ['websocket', 'polling']
   });
-
+  
   // Bağlantı olayları
   socket.on('connect', () => {
     socketConnected = true;
     console.log('✓ Socket.IO bağlandı:', socket.id);
     window.dispatchEvent(new CustomEvent('socket-connected', { detail: { socketId: socket.id } }));
   });
-
+  
   socket.on('disconnect', () => {
     socketConnected = false;
     console.log('✗ Socket.IO bağlantı kesildi');
     window.dispatchEvent(new CustomEvent('socket-disconnected'));
   });
-
+  
   socket.on('reconnect', () => {
     socketConnected = true;
     console.log('↻ Socket.IO yeniden bağlandı');
     window.dispatchEvent(new CustomEvent('socket-reconnected'));
   });
-
+  
   // Chat mesajları
   socket.on('chat', (data) => {
     console.log('💬 Yeni mesaj:', data);
@@ -58,7 +58,7 @@ export function initSocket(serverUrl = 'https://understate-server.onrender.com')
       console.warn('Chat mesaj hatası:', e);
     }
   });
-
+  
   // Oyuncu durumu güncellemeleri
   socket.on('playerUpdate', (data) => {
     console.log('👤 Oyuncu güncellemesi:', data);
@@ -76,7 +76,7 @@ export function initSocket(serverUrl = 'https://understate-server.onrender.com')
       console.warn('Oyuncu güncellemesi hatası:', e);
     }
   });
-
+  
   // Online oyuncu sayısı
   socket.on('onlineCount', (count) => {
     console.log('👥 Online oyuncu sayısı:', count);
@@ -85,7 +85,7 @@ export function initSocket(serverUrl = 'https://understate-server.onrender.com')
       detail: { key: 'onlineCount', value: count }
     }));
   });
-
+  
   // Genel broadcast
   socket.on('broadcast', (data) => {
     console.log('📢 Broadcast:', data);
@@ -93,7 +93,7 @@ export function initSocket(serverUrl = 'https://understate-server.onrender.com')
       detail: data
     }));
   });
-
+  
   return socket;
 }
 
