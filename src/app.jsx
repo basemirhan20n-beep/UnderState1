@@ -9387,36 +9387,123 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 </div>
               )}
             </div>
-            {/* Milletvekili Ata */}
-            {(cu.role==="admin"||cu.position==="Devlet Başkanı")&&Object.keys(partySeatMap).length>0&&(
+            {/* Milletvekili / Meclis Başkanı Yönetimi */}
+            {(cu.role==="admin"||cu.position==="Devlet Başkanı")&&(
               <div style={{background:"rgba(245,158,11,0.06)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:14,padding:"0.85rem",marginBottom:"1rem"}}>
-                <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,color:"#F59E0B",fontSize:"0.88rem",marginBottom:"0.5rem"}}>⚡ Milletvekili Ataması</div>
-                <div style={{fontSize:"0.75rem",color:"#888",marginBottom:"0.6rem"}}>Seçim sonuçlarına göre her partiden koltuk sayısı kadar üye Milletvekili atanır. Atanan üyelerin prestijiyle sıralama yapılır.</div>
-                <button
-                  style={{width:"100%",padding:"0.65rem",borderRadius:10,border:"1px solid rgba(245,158,11,0.4)",background:"rgba(245,158,11,0.12)",color:"#F59E0B",fontWeight:800,cursor:"pointer",fontSize:"0.82rem",fontFamily:"inherit"}}
-                  onClick={()=>{
-                    let assignedCount=0;
-                    const updUsers=[...(Array.isArray(allUsers)?allUsers:[])].map(u=>u.position==="Milletvekili"?{...u,position:"Vatandaş"}:u);
-                    Object.entries(partySeatMap).forEach(([partyId,seatCount])=>{
-                      if(partyId==="__bagımsız") return;
-                      const party=(Array.isArray(parties)?parties:[]).find(p=>p.id===partyId);
-                      if(!party) return;
-                      const partyMembers=(Array.isArray(party.members)?party.members:[])
-                        .map(m=>updUsers.find(u=>u.username===m)||{username:m})
-                        .sort((a,b)=>((xpLog[b.username]||{}).prestige||0)-((xpLog[a.username]||{}).prestige||0))
-                        .slice(0,seatCount);
-                      partyMembers.forEach(u=>{
-                        const idx=updUsers.findIndex(uu=>uu.username===u.username);
-                        if(idx>=0){updUsers[idx]={...updUsers[idx],position:"Milletvekili"};assignedCount++;}
-                      });
-                    });
-                    setAllUsers(updUsers);
-                    S.save("rep_users",updUsers);
-                    addHistory(`🏛️ Seçim sonuçlarına göre ${assignedCount} Milletvekili atandı (D'Hondt yöntemi).`);
-                    notify(`✅ ${assignedCount} milletvekili atandı!`);
-                  }}>
-                  🏛️ Milletvekili Ata (D'Hondt Yöntemi)
-                </button>
+                <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,color:"#F59E0B",fontSize:"0.88rem",marginBottom:"0.5rem"}}>⚡ Meclis Yönetimi</div>
+                {/* D'Hondt otomatik atama */}
+                {Object.keys(partySeatMap).length>0&&(
+                  <>
+                    <div style={{fontSize:"0.75rem",color:"#888",marginBottom:"0.6rem"}}>Seçim sonuçlarına göre her partiden koltuk sayısı kadar üye Milletvekili atanır. Atanan üyelerin prestijiyle sıralama yapılır.</div>
+                    <button
+                      style={{width:"100%",padding:"0.65rem",borderRadius:10,border:"1px solid rgba(245,158,11,0.4)",background:"rgba(245,158,11,0.12)",color:"#F59E0B",fontWeight:800,cursor:"pointer",fontSize:"0.82rem",fontFamily:"inherit",marginBottom:"0.75rem"}}
+                      onClick={()=>{
+                        let assignedCount=0;
+                        const updUsers=[...(Array.isArray(allUsers)?allUsers:[])].map(u=>u.position==="Milletvekili"?{...u,position:"Vatandaş"}:u);
+                        Object.entries(partySeatMap).forEach(([partyId,seatCount])=>{
+                          if(partyId==="__bagımsız") return;
+                          const party=(Array.isArray(parties)?parties:[]).find(p=>p.id===partyId);
+                          if(!party) return;
+                          const partyMembers=(Array.isArray(party.members)?party.members:[])
+                            .map(m=>updUsers.find(u=>u.username===m)||{username:m})
+                            .sort((a,b)=>((xpLog[b.username]||{}).prestige||0)-((xpLog[a.username]||{}).prestige||0))
+                            .slice(0,seatCount);
+                          partyMembers.forEach(u=>{
+                            const idx=updUsers.findIndex(uu=>uu.username===u.username);
+                            if(idx>=0){updUsers[idx]={...updUsers[idx],position:"Milletvekili"};assignedCount++;}
+                          });
+                        });
+                        setAllUsers(updUsers);
+                        S.save("rep_users",updUsers);
+                        addHistory(`🏛️ Seçim sonuçlarına göre ${assignedCount} Milletvekili atandı (D'Hondt yöntemi).`);
+                        notify(`✅ ${assignedCount} milletvekili atandı!`);
+                      }}>
+                      🏛️ Milletvekili Ata (D'Hondt Yöntemi)
+                    </button>
+                  </>
+                )}
+                {/* Manuel Makam Atama / Kaldırma */}
+                <div style={{borderTop:"1px solid rgba(245,158,11,0.15)",paddingTop:"0.65rem"}}>
+                  <div style={{fontSize:"0.72rem",color:"#888",fontWeight:700,marginBottom:"0.5rem",textTransform:"uppercase",letterSpacing:"0.06em"}}>Manuel Makam Yönetimi</div>
+                  <div style={{display:"flex",gap:"0.4rem",flexWrap:"wrap",marginBottom:"0.6rem"}}>
+                    {["Milletvekili","Meclis Başkanı"].map(pos=>(
+                      <button key={pos}
+                        style={{padding:"0.4rem 0.8rem",borderRadius:8,border:"1px solid rgba(245,158,11,0.35)",background:"rgba(245,158,11,0.1)",color:"#F59E0B",fontWeight:700,cursor:"pointer",fontSize:"0.75rem",fontFamily:"inherit"}}
+                        onClick={async()=>{
+                          const eligible = (Array.isArray(allUsers)?allUsers:[]).filter(u=>!u.isBot&&u.username);
+                          const list = eligible.map((u,i)=>`${i+1}. ${u.username} (${u.position||"Vatandaş"})`).join("
+");
+                          const pick = await gPrompt(`🏛️ ${pos} Ata`,list,"Numara","number",{min:1,max:eligible.length});
+                          if(!pick) return;
+                          const target = eligible[(parseInt(pick)||1)-1];
+                          if(!target) return;
+                          const updUsers=(Array.isArray(allUsers)?allUsers:[]).map(u=>{
+                            if(pos==="Meclis Başkanı"&&u.position==="Meclis Başkanı") return {...u,position:"Milletvekili"};
+                            if(u.id===target.id) return {...u,position:pos};
+                            return u;
+                          });
+                          setAllUsers(updUsers); S.save("rep_users",updUsers);
+                          if(cu.id===target.id) updateUser({position:pos});
+                          addHistory(`🏛️ ${target.username} → ${pos} atandı.`);
+                          notify(`✅ ${target.username} → ${pos}`);
+                        }}>➕ {pos} Ata</button>
+                    ))}
+                    <button
+                      style={{padding:"0.4rem 0.8rem",borderRadius:8,border:"1px solid rgba(239,68,68,0.35)",background:"rgba(239,68,68,0.08)",color:"#EF4444",fontWeight:700,cursor:"pointer",fontSize:"0.75rem",fontFamily:"inherit"}}
+                      onClick={async()=>{
+                        const deputies=(Array.isArray(allUsers)?allUsers:[]).filter(u=>u.position==="Milletvekili"||u.position==="Meclis Başkanı");
+                        if(!deputies.length) return notify("❌ Görevde milletvekili yok!");
+                        const list=deputies.map((u,i)=>`${i+1}. ${u.username} (${u.position})`).join("
+");
+                        const pick=await gPrompt("🔴 Makam Kaldır",list,"Numara","number",{min:1,max:deputies.length});
+                        if(!pick) return;
+                        const target=deputies[(parseInt(pick)||1)-1];
+                        if(!target) return;
+                        const updUsers=(Array.isArray(allUsers)?allUsers:[]).map(u=>u.id===target.id?{...u,position:"Vatandaş"}:u);
+                        setAllUsers(updUsers); S.save("rep_users",updUsers);
+                        if(cu.id===target.id) updateUser({position:"Vatandaş"});
+                        addHistory(`🔴 ${target.username} makamından alındı (${target.position}).`);
+                        notify(`🔴 ${target.username} makamından alındı`);
+                      }}>🔴 Makam Kaldır</button>
+                    <button
+                      style={{padding:"0.4rem 0.8rem",borderRadius:8,border:"1px solid rgba(239,68,68,0.4)",background:"rgba(239,68,68,0.1)",color:"#EF4444",fontWeight:700,cursor:"pointer",fontSize:"0.75rem",fontFamily:"inherit"}}
+                      onClick={async()=>{
+                        const gir=await gPrompt("⚠️ Tüm Milletvekili Makamlarını Sıfırla","Bu işlem TÜM Milletvekili ve Meclis Başkanı makamlarını kaldırır!
+Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
+                        if(!gir||gir.trim().toUpperCase()!=="SİFİRLA") return;
+                        const updUsers=(Array.isArray(allUsers)?allUsers:[]).map(u=>(u.position==="Milletvekili"||u.position==="Meclis Başkanı")?{...u,position:"Vatandaş"}:u);
+                        setAllUsers(updUsers); S.save("rep_users",updUsers);
+                        addHistory("🔴 Tüm milletvekili makamları sıfırlandı.");
+                        notify("🔴 Tüm milletvekili makamları kaldırıldı!");
+                      }}>🔴 Tümünü Sıfırla</button>
+                  </div>
+                  {/* Aktif Milletvekilleri listesi */}
+                  {(()=>{
+                    const deps=(Array.isArray(allUsers)?allUsers:[]).filter(u=>u.position==="Milletvekili"||u.position==="Meclis Başkanı");
+                    if(!deps.length) return <div style={{fontSize:"0.75rem",color:"#555",textAlign:"center",padding:"0.5rem"}}>Henüz atanmış milletvekili yok.</div>;
+                    return (
+                      <div style={{display:"flex",flexDirection:"column",gap:"0.3rem",maxHeight:200,overflowY:"auto"}}>
+                        {deps.map(u=>(
+                          <div key={u.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0.35rem 0.6rem",background:"rgba(245,158,11,0.05)",border:"1px solid rgba(245,158,11,0.1)",borderRadius:8}}>
+                            <div>
+                              <span style={{fontSize:"0.8rem",fontWeight:700,color:"#ddd"}}>{u.username}</span>
+                              <span style={{fontSize:"0.65rem",color:"#F59E0B",marginLeft:"0.4rem"}}>{u.position}</span>
+                            </div>
+                            <button
+                              style={{padding:"0.2rem 0.5rem",borderRadius:5,border:"1px solid rgba(239,68,68,0.4)",background:"rgba(239,68,68,0.1)",color:"#EF4444",cursor:"pointer",fontSize:"0.68rem",fontFamily:"inherit"}}
+                              onClick={()=>{
+                                const updUsers=(Array.isArray(allUsers)?allUsers:[]).map(uu=>uu.id===u.id?{...uu,position:"Vatandaş"}:uu);
+                                setAllUsers(updUsers); S.save("rep_users",updUsers);
+                                if(cu.id===u.id) updateUser({position:"Vatandaş"});
+                                addHistory(`🔴 ${u.username} ${u.position} makamından alındı.`);
+                                notify(`🔴 ${u.username} makamından alındı`);
+                              }}>✕ Kaldır</button>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
               </div>
             )}
             {/* Meclis bilgi kartları */}
@@ -20073,82 +20160,6 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
         </div>
       )}
 
-      {/* ===== KLAN SOHBET ODALARI ===== */}
-      {currentPage==="klanchat"&&cu&&(()=>{
-        const myGangObj = (Array.isArray(gangs)?gangs:[]).find(g=>(Array.isArray(g.members)?g.members:[]).includes(cu.id)||g.leader===cu.id);
-        const myFamilyObj = (Array.isArray(families)?families:[]).find(f=>(Array.isArray(f.members)?f.members:[]).includes(cu.id)||f.leader===cu.id);
-        const myPartyObj = (Array.isArray(parties)?parties:[]).find(p=>(Array.isArray(p.members)?p.members:[]).includes(cu.username));
-        const rooms = [
-          myGangObj&&{id:"gang_"+myGangObj.id, label:myGangObj.name||"Çetem", icon:"🔫", color:"#EF4444", group:myGangObj},
-          myFamilyObj&&{id:"family_"+myFamilyObj.id, label:myFamilyObj.name||"Ailem", icon:"👪", color:"#F59E0B", group:myFamilyObj},
-          myPartyObj&&{id:"party_"+myPartyObj.id, label:myPartyObj.name||"Partim", icon:"⚑", color:myPartyObj.color||"#A78BFA", group:myPartyObj},
-        ].filter(Boolean);
-        const [activeRoom, setActiveRoom] = React.useState(rooms[0]?.id||null);
-        const currentRoom = rooms.find(r=>r.id===activeRoom);
-        const roomMsgs = (klanChat||[]).filter(m=>m.roomId===activeRoom);
-        const sendMsg = () => {
-          if(!klanChatInput.trim()||!activeRoom) return;
-          const msg = {id:Date.now(), roomId:activeRoom, senderId:cu.id, senderName:cu.username, text:klanChatInput.trim(), time:new Date().toLocaleTimeString("tr-TR"), avatar:cu.profilePhoto||""};
-          const upd = [...(klanChat||[]), msg].slice(-500);
-          setKlanChat(upd); S.save("klanChat", upd);
-          setKlanChatInput("");
-        };
-        return (
-          <div className="content">
-            <div className="ministry-header">💬 Klan Sohbet Odaları</div>
-            {rooms.length===0&&(
-              <div className="card" style={{textAlign:"center",padding:"2rem"}}>
-                <div style={{fontSize:"3rem",marginBottom:"0.75rem"}}>💬</div>
-                <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,color:"#aaa"}}>Henüz gruba üye değilsiniz</div>
-                <div style={{fontSize:"0.82rem",color:"#666",marginTop:"0.4rem"}}>Çete, Aile veya Parti'ye katıldığınızda özel sohbet odanıza erişebilirsiniz.</div>
-                <div style={{display:"flex",gap:"0.5rem",justifyContent:"center",marginTop:"1rem"}}>
-                  <button className="btn btn-sm" onClick={()=>setCurrentPage("gangs")} style={{background:"rgba(239,68,68,0.12)",color:"#EF4444",border:"1px solid rgba(239,68,68,0.3)"}}>🔫 Çete</button>
-                  <button className="btn btn-sm" onClick={()=>setCurrentPage("families")} style={{background:"rgba(245,158,11,0.12)",color:"#F59E0B",border:"1px solid rgba(245,158,11,0.3)"}}>👪 Aile</button>
-                  <button className="btn btn-sm" onClick={()=>setCurrentPage("parties")} style={{background:"rgba(167,139,250,0.12)",color:"#A78BFA",border:"1px solid rgba(167,139,250,0.3)"}}>⚑ Parti</button>
-                </div>
-              </div>
-            )}
-            {rooms.length>0&&(
-              <div>
-                <div style={{display:"flex",gap:"0.45rem",marginBottom:"0.75rem",overflowX:"auto",scrollbarWidth:"none"}}>
-                  {rooms.map(r=>(
-                    <button key={r.id} onClick={()=>setActiveRoom(r.id)} style={{flexShrink:0,padding:"0.45rem 1rem",borderRadius:"2rem",border:`1px solid ${activeRoom===r.id?r.color+"bb":"rgba(255,255,255,0.1)"}`,background:activeRoom===r.id?r.color+"18":"transparent",color:activeRoom===r.id?r.color:"#aaa",fontSize:"0.82rem",fontWeight:activeRoom===r.id?700:400,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:"0.3rem"}}>
-                      <span>{r.icon}</span><span>{r.label}</span>
-                    </button>
-                  ))}
-                </div>
-                {currentRoom&&(
-                  <div style={{background:"rgba(5,10,20,0.95)",border:`1px solid ${currentRoom.color}33`,borderRadius:"1rem",overflow:"hidden"}}>
-                    <div style={{padding:"0.75rem 1rem",borderBottom:`1px solid ${currentRoom.color}22`,display:"flex",alignItems:"center",gap:"0.5rem"}}>
-                      <span style={{fontSize:"1.2rem"}}>{currentRoom.icon}</span>
-                      <span style={{fontWeight:700,color:currentRoom.color,fontSize:"0.9rem"}}>{currentRoom.label} — Özel Kanal</span>
-                      <span style={{marginLeft:"auto",fontSize:"0.7rem",color:"#555"}}>🔒 Şifreli</span>
-                    </div>
-                    <div style={{height:320,overflowY:"auto",padding:"0.75rem",display:"flex",flexDirection:"column",gap:"0.4rem"}}>
-                      {roomMsgs.length===0&&<div style={{textAlign:"center",color:"#555",padding:"2rem",fontSize:"0.85rem"}}>İlk mesajı sen gönder! 👋</div>}
-                      {roomMsgs.map(m=>(
-                        <div key={m.id} style={{display:"flex",gap:"0.5rem",flexDirection:m.senderId===cu.id?"row-reverse":"row",alignItems:"flex-end"}}>
-                          <div style={{width:28,height:28,borderRadius:"50%",background:`${currentRoom.color}22`,border:`1px solid ${currentRoom.color}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"0.8rem",flexShrink:0}}>{m.senderName?.[0]?.toUpperCase()||"?"}</div>
-                          <div style={{maxWidth:"72%"}}>
-                            <div style={{fontSize:"0.62rem",color:"#555",marginBottom:"0.15rem",textAlign:m.senderId===cu.id?"right":"left"}}>{m.senderName}</div>
-                            <div style={{background:m.senderId===cu.id?`${currentRoom.color}22`:"rgba(255,255,255,0.05)",border:`1px solid ${m.senderId===cu.id?currentRoom.color+"44":"rgba(255,255,255,0.08)"}`,borderRadius:m.senderId===cu.id?"12px 12px 2px 12px":"12px 12px 12px 2px",padding:"0.45rem 0.65rem",fontSize:"0.82rem",color:m.senderId===cu.id?currentRoom.color:"#ddd"}}>{m.text}</div>
-                            <div style={{fontSize:"0.58rem",color:"#444",textAlign:m.senderId===cu.id?"right":"left",marginTop:"0.1rem"}}>{m.time}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{padding:"0.65rem",borderTop:"1px solid rgba(255,255,255,0.05)",display:"flex",gap:"0.4rem"}}>
-                      <input value={klanChatInput} onChange={e=>setKlanChatInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")sendMsg();}} placeholder="Mesaj yaz..." style={{flex:1,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:"0.5rem",padding:"0.5rem 0.75rem",color:"#E8E8E8",fontFamily:"inherit",fontSize:"0.9rem",outline:"none"}}/>
-                      <button onClick={sendMsg} className="btn btn-sm" style={{background:`${currentRoom.color}22`,color:currentRoom.color,border:`1px solid ${currentRoom.color}55`,flexShrink:0}}>Gönder</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })()}
-
       {/* ===== NPC AI OYUNCULAR ===== */}
       {currentPage==="npcplayers"&&cu&&(()=>{
         const [selectedNpc, setSelectedNpc] = React.useState(null);
@@ -25372,7 +25383,6 @@ if(cityDevTab==="build") return(
                     {icon:"📱",label:"Sosyal Medya",page:"social"},
                     {icon:"💬",label:"Dunya Sohbet",page:"globalchat"},
                     {icon:"🏙️",label:"Sehir Sohbet",page:"sehirchat"},
-                    {icon:"🔒",label:"Klan Sohbet",page:"klanchat"},
                     {icon:"✉️",label:"Mesajlar",page:"dm"},
                     {icon:"👥",label:"Uyeler",page:"members"},
                     {icon:"🤝",label:"Arkadaslar",page:"friends"},
@@ -25591,7 +25601,7 @@ if(cityDevTab==="build") return(
           const isActive = currentPage===tab.id||
             (tab.id==="m_siyaset"&&["government","parliament","election_v4","election","parties","laws","anket","scandal","budget","alliances","interior","finance","trade","health","adalet","campaign","prestige","taxinfo","positionpanel","referandum","belediye","sehiryonetim"].includes(currentPage))||
             (tab.id==="m_ekonomi"&&["holdings","bank","stock","market2","mining","fabrika","commodity","rawchain","tezgah","ixport","auction","crafting","luxury","sigorta","lottery","ortakliisler","vergimuhasebe","jobs","realestate","tarim","sehirsavasi","hayvan","restaurant"].includes(currentPage))||
-            (tab.id==="m_sosyal"&&["social","globalchat","sehirchat","klanchat","dm","members","friends","newspaper","activityfeed","profile","education","schools","dailytasks","achievements","sinav","flash","techtree","happiness","istatistik","events","eventlist","casino","futbol","muzik","notifcenter","history","wiki","duyurular","npcplayers"].includes(currentPage))||
+            (tab.id==="m_sosyal"&&["social","globalchat","sehirchat","dm","members","friends","newspaper","activityfeed","profile","education","schools","dailytasks","achievements","sinav","flash","techtree","happiness","istatistik","events","eventlist","casino","futbol","muzik","notifcenter","history","wiki","duyurular","npcplayers"].includes(currentPage))||
             (tab.id==="m_dunya"&&["gangs","families","arazi","pvp","spy","court","police","paraliordu","kale","intlwar","army","prison","worldmap","alliances","m_menu"].includes(currentPage));
           return (
             <div key={tab.id}
