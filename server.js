@@ -705,6 +705,24 @@ io.on("connection", (socket) => {
     }
   });
 
+  // ── ADMİN BROADCAST (tüm oyunculara anlık bildirim) ────────
+  socket.on("adminBroadcast", (data) => {
+    const player = connectedPlayers.get(socket.id);
+    if (!player) return;
+    const payload = {
+      type: data.type || "system",
+      title: (data.title || "").slice(0, 120),
+      message: (data.message || "").slice(0, 500),
+      sender: player.username || "Admin",
+      ts: Date.now()
+    };
+    // Göndereni de dahil ederek tüm bağlı oyunculara yayınla
+    io.emit("adminBroadcast", payload);
+    // Supabase'e kaydet (bildirim geçmişi)
+    sb.saveGameState(`broadcast_${payload.ts}`, payload).catch(() => {});
+    console.log(`📢 Broadcast: [${payload.type}] "${payload.title}" — ${player.username}`);
+  });
+
   // ── AYRILIŞ ───────────────────────────────────────────────
   socket.on("disconnect", () => {
     const player = connectedPlayers.get(socket.id);
@@ -1034,6 +1052,25 @@ app.post('/api/mail/bulk', async (req, res) => {
   } catch(e) {
     res.status(500).json({ ok: false, reason: e.message });
   }
+});
+
+// ── ADMİN BROADCAST REST (HTTP üzerinden de broadcast) ─────────
+app.post('/api/admin/broadcast', async (req, res) => {
+  const { type, title, message, sender, ts } = req.body;
+  if (!message) return res.status(400).json({ ok: false, reason: 'Mesaj boş' });
+  const payload = {
+    type: type || 'system',
+    title: (title || '').slice(0, 120),
+    message: message.slice(0, 500),
+    sender: sender || 'Admin',
+    ts: ts || Date.now()
+  };
+  // Tüm socket bağlantılarına yayınla
+  io.emit('adminBroadcast', payload);
+  // Supabase'e kaydet
+  await sb.saveGameState(`broadcast_${payload.ts}`, payload).catch(() => {});
+  console.log(`📢 REST Broadcast: [${payload.type}] "${payload.title}" — ${payload.sender}`);
+  res.json({ ok: true, sent: io.engine.clientsCount });
 });
 
 // ── GIPHY PROXY ────────────────────────────────────────────────

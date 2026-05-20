@@ -530,10 +530,74 @@ function UrlMusicPlayer({ miniMode = false }) {
 function Notification({ msg, onClose }) {
   useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, []);
   if (!msg) return null;
-  const icon = msg.startsWith("✅") ? "✅" : msg.startsWith("❌") ? "❌" : "ℹ️";
   return (
     <div className="notification">
       {msg}
+    </div>
+  );
+}
+
+// ==================== BROADCAST BANNER ====================
+const BROADCAST_TYPES = {
+  system:   { icon:"📢", color:"#60A5FA", bg:"rgba(37,99,235,0.18)", border:"rgba(59,130,246,0.55)", label:"Sistem" },
+  election: { icon:"🗳️", color:"#A78BFA", bg:"rgba(124,58,237,0.18)", border:"rgba(139,92,246,0.55)", label:"Seçim" },
+  law:      { icon:"📜", color:"#34D399", bg:"rgba(16,185,129,0.15)", border:"rgba(16,185,129,0.5)",  label:"Yasa" },
+  city:     { icon:"🏙️", color:"#FBBF24", bg:"rgba(245,158,11,0.15)", border:"rgba(245,158,11,0.5)",  label:"Şehir" },
+  gang:     { icon:"⚔️", color:"#F87171", bg:"rgba(239,68,68,0.15)",  border:"rgba(239,68,68,0.5)",   label:"Çete" },
+  warning:  { icon:"⚠️", color:"#FB923C", bg:"rgba(234,88,12,0.18)",  border:"rgba(234,88,12,0.55)",  label:"Uyarı" },
+  gift:     { icon:"🎁", color:"#F472B6", bg:"rgba(236,72,153,0.15)", border:"rgba(236,72,153,0.5)",  label:"Hediye" },
+};
+
+function BroadcastBanner({ notif, onClose }) {
+  const [prog, setProgress] = React.useState(100);
+  const DURATION = 9000;
+  useEffect(() => {
+    if (!notif) return;
+    const start = Date.now();
+    const iv = setInterval(() => {
+      const elapsed = Date.now() - start;
+      const remaining = Math.max(0, 100 - (elapsed / DURATION) * 100);
+      setProgress(remaining);
+      if (remaining === 0) { clearInterval(iv); onClose(); }
+    }, 80);
+    return () => clearInterval(iv);
+  }, [notif]);
+
+  if (!notif) return null;
+  const t = BROADCAST_TYPES[notif.type] || BROADCAST_TYPES.system;
+
+  return (
+    <div style={{
+      position:"fixed", top:0, left:0, right:0, zIndex:99999,
+      background:t.bg, borderBottom:`2px solid ${t.border}`,
+      backdropFilter:"blur(18px)", WebkitBackdropFilter:"blur(18px)",
+      padding:"0.75rem 1rem 0.55rem",
+      animation:"slideDown 0.35s cubic-bezier(0.34,1.56,0.64,1)"
+    }}>
+      <style>{`@keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
+      <div style={{maxWidth:700,margin:"0 auto",display:"flex",alignItems:"flex-start",gap:"0.65rem"}}>
+        <div style={{fontSize:"1.5rem",lineHeight:1,marginTop:"0.05rem",flexShrink:0}}>{t.icon}</div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:"0.5rem",marginBottom:"0.15rem"}}>
+            <span style={{fontFamily:"Syne,sans-serif",fontWeight:800,color:t.color,fontSize:"0.72rem",
+              textTransform:"uppercase",letterSpacing:"0.1em"}}>{t.label}</span>
+            {notif.sender&&<span style={{fontSize:"0.65rem",color:"rgba(255,255,255,0.4)"}}>· {notif.sender}</span>}
+            <span style={{fontSize:"0.62rem",color:"rgba(255,255,255,0.3)",marginLeft:"auto",flexShrink:0}}>
+              {new Date(notif.ts||Date.now()).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})}
+            </span>
+          </div>
+          {notif.title&&<div style={{fontWeight:700,color:"#fff",fontSize:"0.88rem",marginBottom:"0.15rem",fontFamily:"Syne,sans-serif"}}>{notif.title}</div>}
+          <div style={{color:"rgba(255,255,255,0.82)",fontSize:"0.82rem",lineHeight:1.45,wordBreak:"break-word"}}>{notif.message}</div>
+        </div>
+        <button onClick={onClose} style={{
+          background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
+          borderRadius:7,color:"rgba(255,255,255,0.6)",cursor:"pointer",padding:"0.3rem 0.55rem",
+          fontSize:"0.78rem",flexShrink:0,marginTop:"0.1rem",WebkitTapHighlightColor:"transparent"
+        }}>✕</button>
+      </div>
+      {/* İlerleme çubuğu */}
+      <div style={{position:"absolute",bottom:0,left:0,height:3,background:`linear-gradient(90deg,${t.color},${t.border})`,
+        width:`${prog}%`,transition:"width 0.08s linear",borderRadius:"0 2px 0 0"}} />
     </div>
   );
 }
@@ -663,6 +727,7 @@ function AdminPanel({allUsers,setAllUsers,notify,cu,user,economy,setEconomy,gang
     {id:"isler",   icon:"🤝", label:"İşler"},
     {id:"tools",   icon:"🔧", label:"Araçlar"},
     {id:"announce",icon:"📢", label:"Duyurular"},
+    {id:"broadcast",icon:"🔔", label:"Bildirim Gönder"},
     {id:"edupkg", icon:"📦", label:"Eğitim Paketi"},
     {id:"fiyat",  icon:"💲", label:"Fiyat & Gelir"},
     {id:"milletvekili", icon:"🏛️", label:"Milletvekili Ata"},
@@ -1336,6 +1401,153 @@ function AdminPanel({allUsers,setAllUsers,notify,cu,user,economy,setEconomy,gang
             })()}
           </div>
         )}
+
+        {/* ─── TAB: BİLDİRİM GÖNDER ─── */}
+        {aTab==="broadcast"&&(()=>{
+          const [bType,setBType] = React.useState("system");
+          const [bTitle,setBTitle] = React.useState("");
+          const [bMsg,setBMsg] = React.useState("");
+          const [bSending,setBSending] = React.useState(false);
+          const [bHistory,setBHistory] = React.useState(()=>{try{return JSON.parse(localStorage.getItem("broadcastHistory")||"[]");}catch{return[];}});
+
+          const doSend = async () => {
+            if(!bMsg.trim()) return notify("❌ Mesaj boş olamaz!");
+            setBSending(true);
+            try {
+              const payload = {
+                type:bType, title:bTitle.trim()||Object.entries({system:"Sistem Bildirimi",election:"Seçim Duyurusu",law:"Yasa Bildirimi",city:"Şehir Haberi",gang:"Çete Haberi",warning:"Uyarı",gift:"Hediye"})[Object.keys({system:1,election:1,law:1,city:1,gang:1,warning:1,gift:1}).indexOf(bType)][1],
+                message:bMsg.trim(), sender:cu?.username||"Admin", ts:Date.now()
+              };
+              // Socket üzerinden tüm bağlı oyunculara gönder
+              if(window._socket) window._socket.emit("adminBroadcast", payload);
+              // REST endpoint'ten de gönder (kalıcı)
+              await fetch("/api/admin/broadcast",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).catch(()=>{});
+              const updated=[payload,...bHistory].slice(0,50);
+              setBHistory(updated);
+              try{localStorage.setItem("broadcastHistory",JSON.stringify(updated));}catch{}
+              setBMsg(""); setBTitle("");
+              notify(`✅ Bildirim ${Object.keys({system:1,election:1,law:1,city:1,gang:1,warning:1,gift:1}).length} kanalından gönderildi!`);
+            } catch(e){ notify("❌ Gönderilemedi: "+e.message); }
+            setBSending(false);
+          };
+
+          const typeList = [
+            {id:"system",icon:"📢",label:"Sistem",color:"#60A5FA"},
+            {id:"election",icon:"🗳️",label:"Seçim",color:"#A78BFA"},
+            {id:"law",icon:"📜",label:"Yasa",color:"#34D399"},
+            {id:"city",icon:"🏙️",label:"Şehir",color:"#FBBF24"},
+            {id:"gang",icon:"⚔️",label:"Çete",color:"#F87171"},
+            {id:"warning",icon:"⚠️",label:"Uyarı",color:"#FB923C"},
+            {id:"gift",icon:"🎁",label:"Hediye",color:"#F472B6"},
+          ];
+          const selType = typeList.find(x=>x.id===bType)||typeList[0];
+
+          return (
+            <div>
+              {/* Bildirim Gönder Kartı */}
+              <div style={{...cardStyle,borderColor:`rgba(96,165,250,0.3)`,background:"rgba(13,24,44,0.95)"}}>
+                <div style={{fontFamily:"Syne,sans-serif",color:"#60A5FA",fontWeight:800,fontSize:"0.88rem",
+                  letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:"0.8rem",display:"flex",alignItems:"center",gap:"0.5rem"}}>
+                  🔔 Tüm Oyunculara Bildirim Gönder
+                  <span style={{background:"rgba(16,185,129,0.15)",border:"1px solid rgba(16,185,129,0.3)",borderRadius:8,
+                    padding:"0.1rem 0.45rem",fontSize:"0.6rem",color:"#34D399",fontWeight:700}}>CANLI</span>
+                </div>
+
+                {/* Tip seçici */}
+                <div style={{display:"flex",flexWrap:"wrap",gap:"0.35rem",marginBottom:"0.75rem"}}>
+                  {typeList.map(t=>(
+                    <button key={t.id} onClick={()=>setBType(t.id)}
+                      style={{padding:"0.32rem 0.65rem",borderRadius:20,border:`1px solid ${bType===t.id?t.color:"rgba(255,255,255,0.08)"}`,
+                        background:bType===t.id?`rgba(${t.color.replace(/[^\d,]/g,"")},0.15)`:"rgba(255,255,255,0.04)",
+                        color:bType===t.id?t.color:"#6B7280",fontSize:"0.72rem",fontWeight:700,cursor:"pointer",
+                        whiteSpace:"nowrap",WebkitTapHighlightColor:"transparent",fontFamily:"Nunito,sans-serif",minHeight:30}}>
+                      {t.icon} {t.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Başlık */}
+                <input value={bTitle} onChange={e=>setBTitle(e.target.value)}
+                  placeholder={`Başlık (opsiyonel) — ör: "${selType.label} Duyurusu"`}
+                  style={{width:"100%",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",
+                    borderRadius:9,padding:"0.55rem 0.75rem",color:"#fff",fontSize:"0.85rem",marginBottom:"0.5rem",
+                    outline:"none",boxSizing:"border-box",fontFamily:"Nunito,sans-serif"}}/>
+
+                {/* Mesaj */}
+                <textarea value={bMsg} onChange={e=>setBMsg(e.target.value)} rows={4}
+                  placeholder="Oyunculara iletmek istediğiniz mesajı yazın..."
+                  style={{width:"100%",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",
+                    borderRadius:9,padding:"0.55rem 0.75rem",color:"#fff",fontSize:"0.85rem",marginBottom:"0.75rem",
+                    outline:"none",resize:"vertical",boxSizing:"border-box",fontFamily:"Nunito,sans-serif"}}/>
+
+                {/* Önizleme */}
+                {bMsg.trim()&&(
+                  <div style={{background:`rgba(${selType.color.replace(/[^\d,]/g,"")},0.08)`,
+                    border:`1px solid ${selType.color}44`,borderRadius:10,padding:"0.6rem 0.8rem",marginBottom:"0.75rem"}}>
+                    <div style={{fontSize:"0.65rem",color:"#6B7280",marginBottom:"0.25rem",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em"}}>Önizleme</div>
+                    <div style={{display:"flex",gap:"0.5rem",alignItems:"flex-start"}}>
+                      <span style={{fontSize:"1.2rem"}}>{selType.icon}</span>
+                      <div>
+                        {bTitle&&<div style={{fontWeight:700,color:"#fff",fontSize:"0.82rem"}}>{bTitle.trim()}</div>}
+                        <div style={{color:"rgba(255,255,255,0.75)",fontSize:"0.78rem"}}>{bMsg.trim()}</div>
+                        <div style={{fontSize:"0.65rem",color:"#6B7280",marginTop:"0.2rem"}}>Gönderen: {cu?.username||"Admin"}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <button onClick={doSend} disabled={bSending||!bMsg.trim()}
+                  style={{width:"100%",padding:"0.7rem",borderRadius:10,
+                    border:`1px solid ${bMsg.trim()?"rgba(96,165,250,0.5)":"rgba(255,255,255,0.1)"}`,
+                    background:bMsg.trim()?"rgba(37,99,235,0.25)":"rgba(255,255,255,0.04)",
+                    color:bMsg.trim()?"#60A5FA":"#4B5563",fontWeight:800,fontSize:"0.88rem",
+                    cursor:bMsg.trim()?"pointer":"not-allowed",fontFamily:"Syne,sans-serif",letterSpacing:"0.05em",
+                    minHeight:48,WebkitTapHighlightColor:"transparent",
+                    transition:"all 0.2s"}}>
+                  {bSending?"⏳ Gönderiliyor...":"📡 Tüm Oyunculara Gönder"}
+                </button>
+                <div style={{fontSize:"0.68rem",color:"#4B5563",textAlign:"center",marginTop:"0.4rem"}}>
+                  Bildirim tüm çevrimiçi oyuncuların ekranında görünür. Cihaz izni verilmişse push bildirimi de gönderilir.
+                </div>
+              </div>
+
+              {/* Geçmiş bildirimler */}
+              {bHistory.length>0&&(
+                <div style={cardStyle}>
+                  <div style={{fontFamily:"Syne,sans-serif",color:"#9CA3AF",fontWeight:700,fontSize:"0.75rem",
+                    letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:"0.6rem"}}>📋 Gönderim Geçmişi</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:"0.35rem"}}>
+                    {bHistory.slice(0,15).map((h,i)=>{
+                      const ht=typeList.find(x=>x.id===h.type)||typeList[0];
+                      return(
+                        <div key={i} style={{display:"flex",gap:"0.6rem",alignItems:"flex-start",
+                          padding:"0.5rem",background:"rgba(255,255,255,0.03)",borderRadius:8,
+                          border:"1px solid rgba(255,255,255,0.06)"}}>
+                          <span style={{fontSize:"1rem",flexShrink:0}}>{ht.icon}</span>
+                          <div style={{flex:1,minWidth:0}}>
+                            {h.title&&<div style={{fontWeight:700,fontSize:"0.78rem",color:"#D1D5DB",marginBottom:"0.1rem"}}>{h.title}</div>}
+                            <div style={{fontSize:"0.75rem",color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h.message}</div>
+                            <div style={{fontSize:"0.62rem",color:"#6B7280",marginTop:"0.15rem"}}>
+                              {h.sender||"Admin"} · {new Date(h.ts||Date.now()).toLocaleString("tr-TR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}
+                            </div>
+                          </div>
+                          <span style={{fontSize:"0.62rem",background:`rgba(${ht.color.replace(/[^\d,]/g,"")},0.15)`,color:ht.color,
+                            padding:"0.15rem 0.45rem",borderRadius:5,fontWeight:700,flexShrink:0}}>{ht.label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <button onClick={()=>{setBHistory([]);localStorage.removeItem("broadcastHistory");notify("🗑️ Geçmiş temizlendi.");}}
+                    style={{marginTop:"0.5rem",width:"100%",padding:"0.4rem",borderRadius:8,
+                      border:"1px solid rgba(239,68,68,0.3)",background:"rgba(239,68,68,0.06)",
+                      color:"#9CA3AF",cursor:"pointer",fontSize:"0.72rem",WebkitTapHighlightColor:"transparent"}}>
+                    🗑️ Geçmişi Temizle
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {aTab==="edupkg"&&(
           <div>
@@ -2081,6 +2293,8 @@ function App() {
   const [taxDeclarations, setTaxDeclarations] = useState(() => S.load("taxDeclarations",[]));
   const [taxDeadline, setTaxDeadline] = useState(() => S.load("taxDeadline",Date.now()+7*86400000));
   const [adminAnn, setAdminAnn] = useState({title:"",body:"",type:"info"});
+  const [broadcastNotif, setBroadcastNotif] = useState(null);
+  const [broadcastHistory, setBroadcastHistory] = useState(()=>{ try{return JSON.parse(localStorage.getItem("broadcastHistory")||"[]");}catch{return[];} });
 
   // Apply theme to body
   React.useEffect(()=>{
@@ -4664,6 +4878,25 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
         sock.on("parliamentUpdate", (data)=>{ if(Array.isArray(data)) window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"parliamentMsgs",value:data}})); });
         sock.on("usersSnapshot", (users)=>{ if(Array.isArray(users)) window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"allUsers",value:users}})); });
         sock.on("serverAction", (data)=>{ if(data&&data.key==="money") window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"serverMoney",value:data.value}})); });
+        sock.on("adminBroadcast", (data)=>{
+          if(!data||!data.message) return;
+          setBroadcastNotif({...data, ts:data.ts||Date.now()});
+          setBroadcastHistory(prev=>{
+            const updated=[{...data,ts:data.ts||Date.now()},...prev].slice(0,50);
+            try{localStorage.setItem("broadcastHistory",JSON.stringify(updated));}catch{}
+            return updated;
+          });
+          // Browser push bildirimi (uygulama arka plandaysa)
+          try{
+            if(typeof Notification!=="undefined"&&Notification.permission==="granted"){
+              const bt=BROADCAST_TYPES[data.type]||BROADCAST_TYPES.system;
+              new Notification(`${bt.icon} UnderState – ${data.title||bt.label}`,{
+                body:data.message, icon:"/icon-192.png", tag:"adminBroadcast",
+                renotify:true, badge:"/icon-72.png"
+              });
+            }
+          }catch(e){}
+        });
       };
       const _emitPlayerJoin = (sock, pl) => {
         sock.emit("playerJoin", { userId:pl.id, username:pl.username, level:pl.level||1, money:pl.money||0, city:pl.city||"İstanbul", gender:pl.gender||"erkek", party:pl.partyId||null, gang:pl.gangId||null });
@@ -7299,6 +7532,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
           )}
         </div>
         {notification && <Notification msg={notification} onClose={()=>setNotification(null)} />}
+        <BroadcastBanner notif={broadcastNotif} onClose={()=>setBroadcastNotif(null)} />
         <audio ref={audioRef} loop preload="auto" src={window._US_AUDIO_SRC||""} />
         <button className={`music-btn ${musicPlaying?"playing":""}`} onClick={toggleMusic} title={musicPlaying?"Müziği Durdur":"Müziği Başlat"}>{musicPlaying?"🔊":"🔇"}</button>
 
