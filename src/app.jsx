@@ -16369,7 +16369,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 {id:"overview",icon:"📊",label:"Genel",color:"#F59E0B"},
                 {id:"units",icon:"🪖",label:"Birlikler",color:"#EF4444"},
                 {id:"tech",icon:"🔬",label:"Teknoloji",color:"#A78BFA"},
-                {id:"darbe",icon:"🏛️",label:"Darbe",color:"#F97316"},
+                {id:"darbe",icon:"🏛 ��",label:"Darbe",color:"#F97316"},
                 {id:"alliance",icon:"🤝",label:"Ittifak",color:"#60A5FA"},
                 {id:"ops",icon:"📋",label:"Operasyon",color:"#10B981"},
               ];
@@ -17409,7 +17409,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 {s:"Deniz savaşında 'amfibik harekât' ne anlama gelir?",c:["Denizaltı saldırısı","Karaya çıkartma operasyonu","Deniz mayını temizleme","Filo tatbikatı"],d:1},
                 {s:"Türk Deniz Kuvvetleri'nin günümüzdeki amiral rütbesi kaç çeşittir?",c:["2","3","4","5"],d:2},
                 {s:"Deniz mili nedir?",c:["1,852 metre","1,609 metre","1,000 metre","2,000 metre"],d:0},
-                {s:"Savaş gemisinde 'iskele' yönü hangi taraftır?",c:["Sağ","Sol","Ön","Arka"],d:1},
+                {s:"Savaş gemisinde 'iskele' yönü hangi taraftır?",c:["Sağ","Sol"," �n","Arka"],d:1},
                 {s:"NATO'nun deniz kuvvetleri tatbikat bölgesi nerede yapılır?",c:["Sadece Atlantik","Sadece Akdeniz","Her iki alanda da","Sadece Pasifik"],d:2},
               ]
             }
