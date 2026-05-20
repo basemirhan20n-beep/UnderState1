@@ -4623,6 +4623,22 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
     setAllUsers(updatedUsers);
     S.save("users", updatedUsers);
     if(window._fbFlush) setTimeout(()=>window._fbFlush(false), 200);
+    // Supabase'e kaydet (arka planda)
+    try {
+      fetch('/api/player', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: baseUser.id, userId: baseUser.id,
+          username: baseUser.username,
+          email: baseUser.email,
+          level: 1, money: baseUser.money,
+          city: baseUser.city, gender: baseUser.gender,
+          created_at: new Date().toISOString(),
+          last_seen: new Date().toISOString()
+        })
+      }).catch(()=>{});
+    } catch(e) {}
     notify("✅ Kayıt başarılı! Giriş yapabilirsiniz.");
     S.save("newPlayerTutorial_"+baseUser.id, true);
     setLoginForm({ user: regForm.user, pass: regForm.pass });
