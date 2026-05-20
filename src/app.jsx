@@ -9522,58 +9522,153 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
               {/* ══ YÖNETİM KOLTUKLARİ ══ */}
               {pTab==="yonetim"&&(
                 <div>
-                  <div style={{background:"rgba(245,200,66,0.06)",border:"1px solid rgba(245,200,66,0.2)",borderRadius:14,padding:"0.85rem",marginBottom:"1rem"}}>
-                    <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,color:"#F5C842",fontSize:"0.88rem",marginBottom:"0.35rem"}}>🏛️ Parti Yönetim Koltukları</div>
-                    <div style={{fontSize:"0.75rem",color:"#888",lineHeight:1.6}}>Parti lider tarafından 3 yönetim koltuğu atanabilir: Eş Genel Başkan, Genel Sekreter ve Sözcü.</div>
-                  </div>
                   {!myP?(
                     <div className="card" style={{textAlign:"center",color:"#555",padding:"2rem"}}>Önce bir partiye katılın.</div>
-                  ):(
-                    <div>
-                      {PARTY_MGMT_SEATS.map(seat=>{
-                        const holder=(partyMgmtRoles[myP.id]||{})[seat]||null;
-                        const holderData=allUsers.find(u=>u.username===holder)||null;
-                        return (
-                          <div key={seat} style={{background:"rgba(15,28,50,0.9)",border:`1px solid ${holder?pColor+"44":"rgba(255,255,255,0.07)"}`,borderRadius:14,padding:"0.85rem",marginBottom:"0.5rem"}}>
-                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                              <div>
-                                <div style={{fontWeight:800,color:holder?pColor:"#666",fontSize:"0.85rem"}}>🪑 {seat}</div>
-                                {holder?(
-                                  <div style={{display:"flex",alignItems:"center",gap:"0.4rem",marginTop:"0.4rem"}}>
-                                    {holderData?.profilePhoto?<img src={holderData.profilePhoto} style={{width:28,height:28,borderRadius:"50%",objectFit:"cover"}}/>:<div style={{width:28,height:28,borderRadius:"50%",background:`${pColor}22`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"0.9rem"}}>👤</div>}
-                                    <div>
-                                      <div style={{fontWeight:700,color:"#ddd",fontSize:"0.82rem"}}>{holder}</div>
-                                      <div style={{fontSize:"0.62rem",color:"#666"}}>{holderData?.position||"Vatandaş"}</div>
-                                    </div>
-                                  </div>
-                                ):(
-                                  <div style={{color:"#444",fontSize:"0.75rem",marginTop:"0.25rem"}}>Atanmamış</div>
-                                )}
+                  ):(()=>{
+                    const leaderData=allUsers.find(u=>u.username===myP.leader)||{};
+                    const mgmt=partyMgmtRoles[myP.id]||{};
+                    const SEAT_META=[
+                      {key:"Eş Genel Başkan",icon:"🤝",color:"#F5C842"},
+                      {key:"Genel Sekreter",  icon:"📋",color:"#60A5FA"},
+                      {key:"Parti Sözcüsü",   icon:"📢",color:"#A78BFA"},
+                    ];
+                    const allMembersList=(myP.members||[]).filter(m=>m!==myP.leader&&!Object.values(mgmt).includes(m));
+
+                    const OrgNode=({username,role,icon,color,size="md",isLeaderNode=false})=>{
+                      const uData=allUsers.find(u=>u.username===username)||{};
+                      const sz=size==="lg"?52:size==="sm"?32:40;
+                      const fz=size==="lg"?"0.88rem":size==="sm"?"0.7rem":"0.78rem";
+                      return (
+                        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"0.3rem",minWidth:size==="lg"?80:60}}>
+                          <div style={{position:"relative"}}>
+                            <div style={{width:sz,height:sz,borderRadius:"50%",background:username?`${color}22`:"rgba(255,255,255,0.04)",border:`2px solid ${username?color+"88":"rgba(255,255,255,0.1)"}`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",boxShadow:username?`0 0 12px ${color}44`:"none"}}>
+                              {username&&uData.profilePhoto?<img src={uData.profilePhoto} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:
+                               username?<span style={{fontSize:size==="lg"?"1.4rem":size==="sm"?"1rem":"1.2rem"}}>👤</span>:
+                               <span style={{fontSize:"1rem",opacity:0.3}}>?</span>}
+                            </div>
+                            {isLeaderNode&&<div style={{position:"absolute",top:-4,right:-4,background:"#FFB800",borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"0.6rem",border:"1.5px solid #050a14"}}>👑</div>}
+                          </div>
+                          <div style={{textAlign:"center"}}>
+                            <div style={{fontSize:fz,fontWeight:700,color:username?"#ddd":"#444",whiteSpace:"nowrap",maxWidth:72,overflow:"hidden",textOverflow:"ellipsis"}}>{username||"—"}</div>
+                            <div style={{fontSize:"0.58rem",color:username?color:"#333",fontWeight:800,whiteSpace:"nowrap"}}>{icon} {role}</div>
+                          </div>
+                        </div>
+                      );
+                    };
+
+                    return (
+                      <div>
+                        {/* ── Parti kimliği + logo yükle ── */}
+                        <div style={{background:`linear-gradient(135deg,${pColor}12,rgba(0,0,0,0))`,border:`1px solid ${pColor}33`,borderRadius:16,padding:"1rem",marginBottom:"1rem"}}>
+                          <div style={{display:"flex",gap:"0.85rem",alignItems:"center"}}>
+                            {/* Logo + yükle butonu */}
+                            <div style={{position:"relative",flexShrink:0}}>
+                              <div style={{width:64,height:64,borderRadius:14,background:`${pColor}18`,border:`2px solid ${pColor}55`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+                                {myP.logo?<img src={myP.logo} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:"2rem"}}>⚑</span>}
                               </div>
                               {isLeader&&(
-                                <button className="btn btn-sm" style={{background:`${pColor}15`,color:pColor,border:`1px solid ${pColor}33`,fontSize:"0.72rem"}}
-                                  onClick={()=>assignPartySeat(myP,seat)}>{holder?"Değiştir":"Ata"}</button>
+                                <button
+                                  onClick={uploadPartyLogo}
+                                  title="Logo Yükle"
+                                  style={{position:"absolute",bottom:-6,right:-6,width:22,height:22,borderRadius:"50%",background:"rgba(110,231,183,0.9)",border:"2px solid #050a14",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:"0.65rem",padding:0,lineHeight:1}}>
+                                  📷
+                                </button>
                               )}
                             </div>
-                          </div>
-                        );
-                      })}
-                      {/* Mevcut rol tablosu */}
-                      <div style={{background:"rgba(15,28,50,0.9)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:"0.85rem",marginTop:"0.5rem"}}>
-                        <div style={{fontSize:"0.7rem",color:"#888",fontWeight:800,marginBottom:"0.55rem"}}>👥 Tüm Üye Rolleri</div>
-                        {(myP.members||[]).map(m=>{
-                          const uData=allUsers.find(u=>u.username===m)||{};
-                          const seat=Object.entries(partyMgmtRoles[myP.id]||{}).find(([s,u])=>u===m)?.[0]||null;
-                          return (
-                            <div key={m} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"0.3rem 0.5rem",borderRadius:8,background:"rgba(255,255,255,0.02)",marginBottom:"0.2rem"}}>
-                              <span style={{fontSize:"0.82rem",color:"#ccc"}}>{m}{m===myP.leader&&" 👑"}</span>
-                              <span style={{fontSize:"0.65rem",color:seat?pColor:"#555",fontWeight:seat?700:400,background:seat?`${pColor}14`:"transparent",padding:"1px 6px",borderRadius:3}}>{m===myP.leader?"Genel Başkan":seat||uData.partyRole||"Üye"}</span>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontFamily:"Syne,sans-serif",fontWeight:900,fontSize:"1.05rem",color:pColor,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{myP.name}</div>
+                              <div style={{fontSize:"0.72rem",color:"#888",marginTop:"0.1rem"}}>{myP.ideology||"İdeoloji belirlenmemiş"}</div>
+                              <div style={{display:"flex",gap:"0.35rem",marginTop:"0.35rem",flexWrap:"wrap"}}>
+                                <span style={{fontSize:"0.6rem",background:"rgba(255,184,0,0.1)",color:"#FFB800",padding:"1px 6px",borderRadius:3,fontWeight:700}}>{(myP.members||[]).length} üye</span>
+                                <span style={{fontSize:"0.6rem",background:"rgba(167,139,250,0.1)",color:"#A78BFA",padding:"1px 6px",borderRadius:3,fontWeight:700}}>×{getPartyCoefficient(myP)} katsayı</span>
+                                <span style={{fontSize:"0.6rem",background:"rgba(16,217,160,0.1)",color:"#10D9A0",padding:"1px 6px",borderRadius:3,fontWeight:700}}>{calculatePartyPower(myP).toLocaleString()} puan</span>
+                              </div>
                             </div>
-                          );
-                        })}
+                          </div>
+                        </div>
+
+                        {/* ══ ORG CHART ŞEMASİ ══ */}
+                        <div style={{background:"rgba(10,18,40,0.95)",border:`1px solid ${pColor}22`,borderRadius:16,padding:"1.2rem 0.75rem",marginBottom:"1rem",overflowX:"auto"}}>
+
+                          {/* Katman 1: Genel Başkan */}
+                          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:0}}>
+                            <OrgNode username={myP.leader} role="Genel Başkan" icon="👑" color="#FFB800" size="lg" isLeaderNode={true}/>
+
+                            {/* Dikey bağlantı çizgisi */}
+                            <div style={{width:2,height:20,background:`linear-gradient(${pColor}88,${pColor}22)`,margin:"0 auto"}}/>
+
+                            {/* Yatay köprü */}
+                            <div style={{position:"relative",width:"100%",display:"flex",justifyContent:"center"}}>
+                              <div style={{position:"absolute",top:0,left:"16%",right:"16%",height:2,background:`linear-gradient(90deg,transparent,${pColor}55,${pColor}55,transparent)`}}/>
+                            </div>
+
+                            {/* Katman 2: 3 Yönetim Koltuğu */}
+                            <div style={{display:"flex",gap:"0.5rem",justifyContent:"center",paddingTop:"0.1rem",width:"100%"}}>
+                              {SEAT_META.map((s,si)=>{
+                                const holder=mgmt[s.key]||null;
+                                const colLine=s.color;
+                                return (
+                                  <div key={s.key} style={{display:"flex",flexDirection:"column",alignItems:"center",flex:1,minWidth:0}}>
+                                    {/* Dikey çizgi yukarıdan */}
+                                    <div style={{width:2,height:16,background:`${colLine}66`}}/>
+                                    {/* Koltuk kutusu */}
+                                    <div style={{background:`${colLine}0e`,border:`1px solid ${colLine}${holder?"55":"22"}`,borderRadius:12,padding:"0.65rem 0.4rem",width:"100%",display:"flex",flexDirection:"column",alignItems:"center",gap:"0.3rem",cursor:isLeader?"pointer":"default",transition:"all 0.15s"}}
+                                      onClick={()=>isLeader&&assignPartySeat(myP,s.key)}>
+                                      <OrgNode username={holder} role={s.key} icon={s.icon} color={colLine} size="sm"/>
+                                      {isLeader&&(
+                                        <div style={{fontSize:"0.55rem",color:holder?colLine:"#444",fontWeight:700,background:`${colLine}11`,padding:"1px 6px",borderRadius:3,marginTop:"0.15rem"}}>
+                                          {holder?"✏️ Değiştir":"➕ Ata"}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* Katman 3 bağlantısı */}
+                            {allMembersList.length>0&&<>
+                              <div style={{width:2,height:16,background:`rgba(255,255,255,0.1)`,margin:"0 auto"}}/>
+                              <div style={{width:"80%",height:2,background:"rgba(255,255,255,0.06)",margin:"0 auto"}}/>
+                            </>}
+
+                            {/* Katman 3: Diğer Üyeler */}
+                            {allMembersList.length>0&&(
+                              <div style={{display:"flex",gap:"0.5rem",flexWrap:"wrap",justifyContent:"center",paddingTop:"0.75rem",width:"100%"}}>
+                                {allMembersList.map(m=>{
+                                  const uData=allUsers.find(u=>u.username===m)||{};
+                                  return (
+                                    <div key={m} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"0.2rem"}}>
+                                      <div style={{width:2,height:10,background:"rgba(255,255,255,0.08)"}}/>
+                                      <div style={{width:36,height:36,borderRadius:"50%",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+                                        {uData.profilePhoto?<img src={uData.profilePhoto} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:"1rem"}}>👤</span>}
+                                      </div>
+                                      <div style={{fontSize:"0.58rem",color:"#888",textAlign:"center",maxWidth:52,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m}</div>
+                                      <div style={{fontSize:"0.52rem",color:"#444",fontWeight:700}}>{uData.partyRole||"Üye"}</div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* ── Logo yükleme kartı (lider için) ── */}
+                        {isLeader&&(
+                          <div style={{background:"rgba(110,231,183,0.05)",border:"1px solid rgba(110,231,183,0.2)",borderRadius:12,padding:"0.75rem",marginBottom:"0.75rem",display:"flex",alignItems:"center",gap:"0.75rem"}}>
+                            <div style={{width:40,height:40,borderRadius:10,background:"rgba(110,231,183,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.3rem",flexShrink:0}}>🖼️</div>
+                            <div style={{flex:1}}>
+                              <div style={{fontSize:"0.78rem",fontWeight:700,color:"#6EE7B7",marginBottom:"0.15rem"}}>Parti Logosu</div>
+                              <div style={{fontSize:"0.65rem",color:"#555"}}>Maks. 500KB · JPG / PNG / GIF</div>
+                            </div>
+                            <button className="btn btn-sm" style={{background:"rgba(110,231,183,0.12)",color:"#6EE7B7",border:"1px solid rgba(110,231,183,0.3)",flexShrink:0}} onClick={uploadPartyLogo}>
+                              {myP.logo?"Değiştir":"Yükle"}
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
               )}
 
