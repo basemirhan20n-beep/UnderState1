@@ -2,7 +2,7 @@
 let socket = null;
 let socketConnected = false;
 
-export function initSocket(serverUrl = window.location.origin) {
+export function initSocket(serverUrl = 'https://understate-server.onrender.com') {
   if (socket) return socket;
   
   socket = io(serverUrl, {
