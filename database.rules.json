@@ -1,0 +1,68 @@
+{
+  "rules": {
+    "games": {
+      "$gameId": {
+        /* ============ MESAJLAR - Herkese okuma/yazma ============ */
+        "messages": {
+          ".read": true,
+          ".write": true,
+          "$msgId": {
+            ".validate": "newData.hasChildren(['id', 'sender', 'text', 'timestamp', 'channel'])",
+            "id": { ".validate": "newData.isString()" },
+            "sender": { ".validate": "newData.isString()" },
+            "text": { ".validate": "newData.isString()" },
+            "timestamp": { ".validate": "newData.isNumber()" },
+            "channel": { ".validate": "newData.isString()" }
+          }
+        },
+
+        /* ============ CİHAZ KAYITLARI - Kullanıcıya özel ============ */
+        "userDevices": {
+          "$userId": {
+            "$deviceId": {
+              ".read": "auth.uid === $userId || root.child('games').child($gameId).child('presence').child(auth.uid).exists()",
+              ".write": "auth.uid === $userId",
+              ".validate": "newData.hasChildren(['deviceId', 'deviceName'])",
+              "deviceId": { ".validate": "newData.isString()" },
+              "deviceName": { ".validate": "newData.isString()" },
+              "lastActive": { ".validate": "newData.isNumber() || newData.val() === null" },
+              "browser": { ".validate": "newData.isString()" },
+              "os": { ".validate": "newData.isString()" }
+            }
+          }
+        },
+
+        /* ============ PRESENCE (Online Durumu) - Herkese okuma ============ */
+        "presence": {
+          ".read": true,
+          "$userId": {
+            ".write": "auth.uid === $userId",
+            ".validate": "newData.hasChildren(['username', 'lastSeen'])",
+            "username": { ".validate": "newData.isString()" },
+            "lastSeen": { ".validate": "newData.isNumber()" },
+            "at": { ".validate": "newData.isNumber()" },
+            "deviceId": { ".validate": "newData.isString() || !newData.exists()" },
+            "online": { ".validate": "newData.isBoolean() || !newData.exists()" }
+          }
+        },
+
+        /* ============ REALTIME STATE - Oyun verileri ============ */
+        "realtime": {
+          ".read": true,
+          ".write": true,
+          ".validate": "newData.isObject()"
+        },
+
+        /* ============ HEARTBEAT (Canlılık sinyali) - Hızlı güncelleme ============ */
+        "heartbeat": {
+          ".read": true,
+          "$userId": {
+            ".write": "auth.uid === $userId",
+            ".validate": "newData.isNumber()",
+            ".priority": -1
+          }
+        }
+      }
+    }
+  }
+}

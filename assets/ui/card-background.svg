@@ -1,0 +1,10 @@
+<svg width="400" height="200" viewBox="0 0 400 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="200" rx="12" fill="url(#cardGradient)"/>
+  <rect x="1" y="1" width="398" height="198" rx="11" stroke="rgba(0, 201, 255, 0.15)" stroke-width="1"/>
+  <defs>
+    <linearGradient id="cardGradient" x1="0" y1="0" x2="400" y2="200" gradientUnits="userSpaceOnUse">
+      <stop stop-color="rgba(10, 10, 10, 0.95)"/>
+      <stop offset="1" stop-color="rgba(20, 20, 20, 0.85)"/>
+    </linearGradient>
+  </defs>
+</svg>

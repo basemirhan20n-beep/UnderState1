@@ -1,0 +1,25 @@
+node_modules/
+.DS_Store
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+.env.local
+.env.*.local
+dist/
+build/
+
+# Replit internals
+.replit
+.cache/
+.local/
+
+# Uploaded assets (not part of source)
+attached_assets/
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
