@@ -135,7 +135,8 @@ const LOAN_TIERS = [
 // ==================== CONSTANTS ====================
 const RARITY_COLORS={common:"#94A3B8",rare:"#60A5FA",epic:"#A78BFF",legendary:"#F5C842",uncommon:"#10B981"};
 const EDU_LEVELS = ["İlkokul","Ortaokul","Lise","Üniversite","Yüksek Lisans","Doktora","Profesör"];
-const EDU_COST   = [100, 200, 300, 400, 1000, 1500, 2000];
+const EDU_COST   = [5000, 10000, 20000, 50000, 100000, 200000, 500000];
+const EDU_PUAN_PER_CLICK = [500, 1000, 2000, 5000, 10000, 20000, 50000]; // %10 of EDU_COST
 const EDU_TOTAL  = [50, 100, 200, 400, 750, 1500, 3000];
 const EDU_TIME   = [5, 5, 5, 5, 10, 10, 10]; // dakika cinsinden (paket alanlara 3sn)
 const EDU_NOTE   = [
@@ -4533,27 +4534,25 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
     if ((cu.money||0)<cost) return notify(`❌ Yeterli para yok! (${cost} TL gerekli)`);
     const newProg = (cu.educationProgress||0)+1;
     const total = EDU_TOTAL[idx];
+    const clickPuan = EDU_PUAN_PER_CLICK[idx] || 500;
     if (newProg>=total) {
       if (idx < EDU_LEVELS.length-1) {
         const newLevel = EDU_LEVELS[idx+1];
-        const isProf = newLevel === "Profesör";
         const isLast = newLevel === "Profesör";
-        const EDU_PUAN_MAP=[200,500,1000,2000,5000,10000];
-        const earnedEduPuan=EDU_PUAN_MAP[idx]||0;
         const updates = {
           money:(cu.money)-cost, educationLevel:newLevel, educationProgress:0, lastEduTime:now,
           educationCompleted:isLast,
           educationCompletionCount: isLast ? (cu.educationCompletionCount||0)+1 : (cu.educationCompletionCount||0),
           underCoin: isLast ? (cu.underCoin||0)+50 : (cu.underCoin||0),
-          eduPuan:(cu.eduPuan||0)+earnedEduPuan,
-          score:(cu.score||0)+earnedEduPuan
+          eduPuan:(cu.eduPuan||0)+clickPuan,
+          score:(cu.score||0)+clickPuan
         };
         updateUser(updates);
-        notify(isLast ? "🎓 Profesör oldunuz! +50 UC kazandınız!" : `✅ ${newLevel} seviyesine geçtiniz!`);
+        notify(isLast ? `🎓 Profesör oldunuz! +50 UC ve +${clickPuan.toLocaleString()} Eğitim Puanı kazandınız!` : `✅ ${newLevel} seviyesine geçtiniz! +${clickPuan.toLocaleString()} Eğitim Puanı`);
         if (EDU_NOTE[idx+1]) notify(EDU_NOTE[idx+1]);
       }
     } else {
-      updateUser({ money:(cu.money)-cost, educationProgress:newProg, lastEduTime:now, eduPuan:(cu.eduPuan||0)+1 });
+      updateUser({ money:(cu.money)-cost, educationProgress:newProg, lastEduTime:now, eduPuan:(cu.eduPuan||0)+clickPuan });
       incrementTaskProgress("study2");
     }
   };
@@ -8377,15 +8376,35 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 );
               })}
               {cu.educationCompleted&&<div style={{textAlign:"center",color:"#10B981",marginTop:"1rem",fontSize:"1.1rem"}}>🎓 Tüm eğitimleri tamamladınız!</div>}
-              {(cu.educationCompletionCount||0)>0&&<div style={{textAlign:"center",color:"#FFD700",fontSize:"0.85rem",marginTop:"0.3rem"}}>🏅 {t("eduCompletedCount").replace("{n}", cu.educationCompletionCount||0)}</div>}
+              {/* ── Mezuniyet Rozetleri ── */}
+              {(cu.educationCompletionCount||0)>0&&(
+                <div style={{marginTop:"0.75rem",background:"rgba(255,215,0,0.05)",border:"1px solid rgba(255,215,0,0.18)",borderRadius:12,padding:"0.75rem"}}>
+                  <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,color:"#FFD700",fontSize:"0.78rem",letterSpacing:"0.05em",marginBottom:"0.5rem"}}>🏅 MEZUNİYET ROZETLER</div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:"0.4rem"}}>
+                    {Array.from({length:cu.educationCompletionCount||0},(_,i)=>{
+                      const medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":"🏅";
+                      const label=i===0?"İlk Mezuniyet":i===1?"2. Mezuniyet":i===2?"3. Mezuniyet":`${i+1}. Mezuniyet`;
+                      const bg=i===0?"rgba(255,184,0,0.15)":i===1?"rgba(192,192,192,0.12)":i===2?"rgba(176,141,87,0.12)":"rgba(167,139,250,0.1)";
+                      const clr=i===0?"#FFB800":i===1?"#C0C0C0":i===2?"#B08D57":"#A78BFA";
+                      return(
+                        <div key={i} style={{background:bg,border:`1px solid ${clr}44`,borderRadius:8,padding:"0.3rem 0.6rem",display:"flex",alignItems:"center",gap:"0.3rem"}}>
+                          <span style={{fontSize:"0.9rem"}}>{medal}</span>
+                          <span style={{fontSize:"0.68rem",fontWeight:800,color:clr}}>{label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{fontSize:"0.62rem",color:"#555",marginTop:"0.4rem"}}>Her mezuniyette eğitim puanlarınız korunur ve üstüne eklenir.</div>
+                </div>
+              )}
               {cu.educationCompleted&&(
                 <div style={{textAlign:"center",marginTop:"1rem"}}>
                   <button className="btn btn-gold" onClick={()=>{
                     if((cu.underCoin||0)<250) return notify("❌ 250 UC gerekiyor!");
-                    updateUser({underCoin:(cu.underCoin||0)-250,educationLevel:"İlkokul",educationProgress:0,educationCompleted:false,lastEduTime:0});
-                    notify("✅ Eğitime sıfırdan başlandı! 250 UC harcandı. Önceki başarılarınız kayıtlıdır.");
+                    updateUser({underCoin:(cu.underCoin||0)-250, educationLevel:"İlkokul", educationProgress:0, educationCompleted:false, lastEduTime:0});
+                    notify("✅ Eğitime sıfırdan başlandı! 250 UC harcandı. Eğitim puanlarınız ve tamamlama rozetleriniz korundu.");
                   }}>{t("restartEdu")} (250 UC)</button>
-                  <div style={{fontSize:"0.75rem",color:"#aaa",marginTop:"0.4rem"}}>Eğitim ilerlemesi sıfırlanır. Önceki tamamlama sayısı korunur.</div>
+                  <div style={{fontSize:"0.75rem",color:"#aaa",marginTop:"0.4rem"}}>Sadece ilerleme sıfırlanır — eğitim puanı ve rozetler korunur.</div>
                 </div>
               )}
             </div>
