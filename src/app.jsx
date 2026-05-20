@@ -745,8 +745,11 @@ function AdminPanel({allUsers,setAllUsers,notify,cu,user,economy,setEconomy,gang
     save: (k,v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
   };
 
-  // Supabase'den tüm oyuncuları yükle (admin paneli için)
-  React.useEffect(() => {
+  const [liveOnlineCount, setLiveOnlineCount] = React.useState(0);
+  const [lastRefresh, setLastRefresh] = React.useState(null);
+
+  // Supabase'den tüm oyuncuları yükle + online durumunu senkronize et
+  const _refreshAdminData = React.useCallback(() => {
     fetch('/api/players').then(r=>r.json()).then(players=>{
       if(!Array.isArray(players)||players.length===0) return;
       setAllUsers(prev => {
@@ -772,9 +775,9 @@ function AdminPanel({allUsers,setAllUsers,notify,cu,user,economy,setEconomy,gang
         return Array.from(localMap.values());
       });
     }).catch(()=>{});
-    // Çevrimiçi oyuncuları da al
     fetch('/api/online-players').then(r=>r.json()).then(list=>{
-      if(Array.isArray(list)&&list.length>0) {
+      if(Array.isArray(list)) {
+        setLiveOnlineCount(list.length);
         setAllUsers(prev=>{
           if(!Array.isArray(prev)) return prev;
           const onlineIds=new Set(list.map(p=>p.userId));
@@ -782,6 +785,60 @@ function AdminPanel({allUsers,setAllUsers,notify,cu,user,economy,setEconomy,gang
         });
       }
     }).catch(()=>{});
+    setLastRefresh(new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",second:"2-digit"}));
+  }, [setAllUsers]);
+
+  React.useEffect(() => {
+    _refreshAdminData();
+    // Her 15 saniyede bir online listeyi güncelle
+    const interval = setInterval(()=>{
+      fetch('/api/online-players').then(r=>r.json()).then(list=>{
+        if(Array.isArray(list)){
+          setLiveOnlineCount(list.length);
+          setAllUsers(prev=>{
+            if(!Array.isArray(prev)) return prev;
+            const onlineIds=new Set(list.map(p=>p.userId));
+            return prev.map(u=>({...u,online:onlineIds.has(u.id)}));
+          });
+        }
+      }).catch(()=>{});
+      if(window._socket) window._socket.emit("requestOnlinePlayers");
+    }, 15000);
+    // Socket: playerUpdate → admin panelde anlık yansıt
+    const _onPlayerUpdate = (upd) => {
+      if(!upd||!upd.userId) return;
+      setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>(u.id===upd.userId||u.userId===upd.userId)?{...u,...upd,online:true}:u));
+    };
+    const _onOnlinePlayers = (list) => {
+      if(!Array.isArray(list)) return;
+      setLiveOnlineCount(list.length);
+      setAllUsers(prev=>{
+        if(!Array.isArray(prev)) return prev;
+        const ids=new Set(list.map(p=>p.userId));
+        return prev.map(u=>({...u,online:ids.has(u.id)}));
+      });
+    };
+    const _onUsersSnapshot = (users) => {
+      if(!Array.isArray(users)) return;
+      setAllUsers(prev=>{
+        const map=new Map((Array.isArray(prev)?prev:[]).map(u=>[u.id||u.userId,u]));
+        users.forEach(u=>{ if(u.id||u.userId) map.set(u.id||u.userId,{...(map.get(u.id||u.userId)||{}),...u}); });
+        return Array.from(map.values());
+      });
+    };
+    if(window._socket){
+      window._socket.on("playerUpdate", _onPlayerUpdate);
+      window._socket.on("onlinePlayers", _onOnlinePlayers);
+      window._socket.on("usersSnapshot", _onUsersSnapshot);
+    }
+    return () => {
+      clearInterval(interval);
+      if(window._socket){
+        window._socket.off("playerUpdate", _onPlayerUpdate);
+        window._socket.off("onlinePlayers", _onOnlinePlayers);
+        window._socket.off("usersSnapshot", _onUsersSnapshot);
+      }
+    };
   }, []);
 
   const btnStyle = (color="var(--accent)") => ({
@@ -830,14 +887,25 @@ function AdminPanel({allUsers,setAllUsers,notify,cu,user,economy,setEconomy,gang
 
       {/* STATS ROW */}
       <div style={{padding:"0.75rem 0.85rem 0",display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.45rem"}}>
-        {statBox(allUsers.filter(u=>!u.banned).length, "Aktif Oyuncu", "#10B981")}
+        {statBox(<span>🟢 {liveOnlineCount}</span>, "Çevrimiçi", "#10B981")}
         {statBox(`${fmtMoney((economy.treasury||0))}`, "Hazine", "#FFB800")}
         {statBox(allUsers.filter(u=>u.banned).length, "Banlı", "#EF4444")}
       </div>
       <div style={{padding:"0 0.85rem 0.75rem",display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.45rem",marginTop:"0.45rem"}}>
+        {statBox(allUsers.filter(u=>!u.banned&&u.role!=="admin").length, "Oyuncu", "#60A5FA")}
         {statBox(parties.length, "Parti", "#A78BFF")}
         {statBox(gangs.length, "Çete", "#F87171")}
-        {statBox(holdings.length, "Holding", "#60A5FA")}
+      </div>
+      {/* Güncelleme zamanı + manuel yenile */}
+      <div style={{padding:"0 0.85rem 0.5rem",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <span style={{fontSize:"0.62rem",color:"#3B4E63"}}>
+          {lastRefresh ? `🕐 Son güncelleme: ${lastRefresh}` : "⏳ Yükleniyor..."}
+        </span>
+        <button onClick={_refreshAdminData}
+          style={{padding:"0.25rem 0.65rem",borderRadius:20,border:"1px solid rgba(0,201,255,0.3)",background:"rgba(0,201,255,0.08)",
+            color:"#00C9FF",fontSize:"0.65rem",fontWeight:700,cursor:"pointer",minHeight:26,WebkitTapHighlightColor:"transparent"}}>
+          🔄 Yenile
+        </button>
       </div>
 
       {/* TABS */}
@@ -876,6 +944,9 @@ function AdminPanel({allUsers,setAllUsers,notify,cu,user,economy,setEconomy,gang
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"0.5rem"}}>
                   <div style={{flex:1}}>
                     <div style={{display:"flex",alignItems:"center",gap:"0.4rem",flexWrap:"wrap"}}>
+                      <span style={{width:8,height:8,borderRadius:"50%",display:"inline-block",flexShrink:0,
+                        background:u.online?"#10B981":"#374151",
+                        boxShadow:u.online?"0 0 6px #10B981":undefined}} title={u.online?"Çevrimiçi":"Çevrimdışı"}/>
                       <span style={{fontWeight:700,color:"#fff",fontSize:"0.9rem"}}>{u.username}</span>
                       {u.role==="admin"&&<span style={{background:"rgba(239,68,68,0.15)",border:"1px solid rgba(239,68,68,0.4)",borderRadius:4,padding:"1px 5px",fontSize:"0.55rem",fontWeight:800,color:"#FF4D6A",letterSpacing:"0.08em"}}>ADMIN</span>}
                       {u.banned&&<span style={{background:"rgba(255,77,106,0.12)",border:"1px solid rgba(255,77,106,0.25)",borderRadius:4,padding:"1px 5px",fontSize:"0.6rem",color:"#FF7088"}}>BANLI</span>}
@@ -884,6 +955,7 @@ function AdminPanel({allUsers,setAllUsers,notify,cu,user,economy,setEconomy,gang
                     </div>
                     <div style={{fontSize:"0.72rem",color:"#5E7390",marginTop:"0.2rem"}}>
                       {fmtMoney((u.money||0))} · {u.underCoin||0} UC · {u.city||"—"} · Lv{u.level||1}
+                      {u.online&&<span style={{color:"#10B981",marginLeft:"0.35rem",fontWeight:700}}>● çevrimiçi</span>}
                     </div>
                     {u.banned&&<div style={{fontSize:"0.7rem",color:"#EF4444",marginTop:"0.15rem"}}>Sebep: {u.banReason||"—"}</div>}
                   </div>
@@ -4872,11 +4944,40 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
         sock.on("onlinePlayers", (list)=>{ window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"onlinePlayers",value:list}})); });
         sock.on("cabinetUpdate", (data)=>{ window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"cabinet",value:data}})); });
         sock.on("electionUpdate", (data)=>{ window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"electionState",value:data}})); });
-        sock.on("partyUpdate", (data)=>{ if(Array.isArray(data)) window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"parties",value:data}})); });
+        // partyUpdate: dizi (toplu) veya tekil parti nesnesi (yeni kurulum)
+        sock.on("partyUpdate", (data)=>{
+          if(Array.isArray(data)){
+            window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"parties",value:data}}));
+          } else if(data&&data.id){
+            setParties(prev=>{ const arr=Array.isArray(prev)?prev:[]; const idx=arr.findIndex(p=>p.id===data.id); if(idx>=0) return arr.map((p,i)=>i===idx?{...p,...data}:p); return [...arr,data]; });
+          }
+        });
         sock.on("lawUpdate", (data)=>{ if(data&&data.proposals) window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"lawProposals",value:data.proposals}})); if(data&&data.laws) window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"laws",value:data.laws}})); });
+        // gangsUpdate: toplu dizi, gangUpdate: tekil çete
         sock.on("gangsUpdate", (data)=>{ if(Array.isArray(data)) window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"gangs",value:data}})); });
+        sock.on("gangUpdate", (data)=>{
+          if(Array.isArray(data)){
+            window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"gangs",value:data}}));
+          } else if(data&&data.id){
+            setGangs(prev=>{ const arr=Array.isArray(prev)?prev:[]; const idx=arr.findIndex(g=>g.id===data.id); if(idx>=0) return arr.map((g,i)=>i===idx?{...g,...data}:g); return [...arr,data]; });
+          }
+        });
         sock.on("parliamentUpdate", (data)=>{ if(Array.isArray(data)) window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"parliamentMsgs",value:data}})); });
+        // usersSnapshot: tam kullanıcı listesi (admin sync)
         sock.on("usersSnapshot", (users)=>{ if(Array.isArray(users)) window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"allUsers",value:users}})); });
+        // playerUpdate: tek oyuncu verisi değişti (para, seviye, şehir vb.)
+        sock.on("playerUpdate", (upd)=>{
+          if(!upd||!upd.userId) return;
+          setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>(u.id===upd.userId||u.userId===upd.userId)?{...u,...upd,online:true}:u));
+        });
+        // economyUpdate: ekonomi verileri değişti
+        sock.on("economyUpdate", (data)=>{
+          if(data) window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"economy",value:data}}));
+        });
+        // stateUpdate: saveState ile kaydedilen genel state değişimleri
+        sock.on("stateUpdate", (data)=>{
+          if(data&&data.key) window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:data.key,value:data.value}}));
+        });
         sock.on("serverAction", (data)=>{ if(data&&data.key==="money") window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"serverMoney",value:data.value}})); });
         sock.on("gameEvent", (data)=>{
           if(!data||!data.type) return;
@@ -6177,29 +6278,40 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
     notify("✅ Mesaj Adalet Bakanlığı'na bildirildi. İnceleme bekleniyor.");
   };
 
+  const _adminEmitUsers = (updated) => {
+    try { if(window._socket) window._socket.emit("usersSync", updated); } catch(e){}
+  };
   const banUser = async (uid) => {
     if(cu.role!=="admin") return;
     const reason = await gPrompt("🚫 Ban","Ban nedeni:","Kural ihlali...");
     if(!reason) return;
-    setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.id===uid?{...u,banned:true,banReason:reason}:u));
+    const updated = (Array.isArray(allUsers)?allUsers:[]).map(u=>u.id===uid?{...u,banned:true,banReason:reason}:u);
+    setAllUsers(updated);
+    _adminEmitUsers(updated);
     notify("✅ Kullanıcı banlandı!");
   };
   const unbanUser = (uid) => {
-    setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.id===uid?{...u,banned:false,banReason:null}:u));
+    const updated = (Array.isArray(allUsers)?allUsers:[]).map(u=>u.id===uid?{...u,banned:false,banReason:null}:u);
+    setAllUsers(updated);
+    _adminEmitUsers(updated);
     notify("✅ Ban kaldırıldı!");
   };
   const addMoney = async (uid) => {
     const amtStr = await gPrompt("💰 TL Ekle","Eklenecek miktar (TL):","Miktar","number",{min:0,default:"100000"});
     const amt = parseInt(amtStr)||0;
     if(!amt) return;
-    setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.id===uid?{...u,money:(u.money||0)+amt}:u));
+    const updated = (Array.isArray(allUsers)?allUsers:[]).map(u=>u.id===uid?{...u,money:(u.money||0)+amt}:u);
+    setAllUsers(updated);
+    _adminEmitUsers(updated);
     notify(`✅ ${fmtMoney(amt)} eklendi!`);
   };
   const addRC = async (uid) => {
     const amtStr = await gPrompt("🪙 UC Ekle","Eklenecek UC:","Miktar","number",{min:0,default:"100"});
     const amt = parseInt(amtStr)||0;
     if(!amt) return;
-    setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.id===uid?{...u,underCoin:(u.underCoin||0)+amt}:u));
+    const updated = (Array.isArray(allUsers)?allUsers:[]).map(u=>u.id===uid?{...u,underCoin:(u.underCoin||0)+amt}:u);
+    setAllUsers(updated);
+    _adminEmitUsers(updated);
     notify(`✅ ${amt} UC eklendi!`);
   };
   const [assignModal, setAssignModal] = useState(null); // {uid}
@@ -6220,7 +6332,9 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
     }
     
     // Makam atandığında ilk maaş tarihini set et (hemen maaş alsın)
-    setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.id===uid?{...u,position:posTitle,lastSalaryDate:Date.now()}:u));
+    const updatedForPos = (Array.isArray(allUsers)?allUsers:[]).map(u=>u.id===uid?{...u,position:posTitle,lastSalaryDate:Date.now()}:u);
+    setAllUsers(updatedForPos);
+    _adminEmitUsers(updatedForPos);
     setAssignModal(null);
     if(posTitle) {
       const govPos = GOV_POSITIONS.find(p=>p.title===posTitle);
