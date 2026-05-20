@@ -132,6 +132,25 @@ async function getLeaderboard(limit = 50) {
   }
 }
 
+async function getAllPlayers(limit = 1000) {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('players')
+      .select('*')
+      .order('updated_at', { ascending: false })
+      .limit(limit);
+    if (error) {
+      console.warn('[Supabase getAllPlayers] Hata:', error.message);
+      return [];
+    }
+    return data || [];
+  } catch (e) {
+    console.warn('[Supabase getAllPlayers] İstisna:', e.message);
+    return [];
+  }
+}
+
 // ── ENVANTER SİSTEMİ ─────────────────────────────────────────
 async function getInventory(userId) {
   if (!supabase) return [];
@@ -511,7 +530,7 @@ module.exports = {
   // Chat
   saveMessage, getChatHistory,
   // Oyuncu
-  upsertPlayer, getPlayer, updatePlayerStats, getLeaderboard,
+  upsertPlayer, getPlayer, updatePlayerStats, getLeaderboard, getAllPlayers,
   // Envanter
   getInventory, addInventoryItem, removeInventoryItem, useInventoryItem, transferInventoryItem, buyMarketItem,
   // Borsa

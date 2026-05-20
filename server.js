@@ -664,6 +664,47 @@ io.on("connection", (socket) => {
     io.emit("gameAction", { ...data, socketId: socket.id, ts: Date.now() });
   });
 
+  // ── OYUN STATE SYNC ────────────────────────────────────────
+  socket.on("cabinetUpdate", (data) => {
+    io.emit("cabinetUpdate", data);
+    sb.saveGameState('cabinet', data).catch(() => {});
+  });
+
+  socket.on("electionUpdate", (data) => {
+    io.emit("electionUpdate", data);
+    sb.saveGameState('electionState', data).catch(() => {});
+  });
+
+  socket.on("partyUpdate", (data) => {
+    io.emit("partyUpdate", data);
+  });
+
+  socket.on("lawUpdate", (data) => {
+    io.emit("lawUpdate", data);
+    if (data.proposals) sb.saveGameState('lawProposals', data.proposals).catch(() => {});
+    if (data.laws) sb.saveGameState('laws', data.laws).catch(() => {});
+  });
+
+  socket.on("gangsUpdate", (data) => {
+    io.emit("gangsUpdate", data);
+  });
+
+  socket.on("parliamentUpdate", (data) => {
+    io.emit("parliamentUpdate", data);
+  });
+
+  socket.on("requestOnlinePlayers", () => {
+    socket.emit("onlinePlayers", getOnlineList());
+  });
+
+  socket.on("usersSync", (data) => {
+    // Sadece admin yayınlayabilir — basit kontrol
+    const player = connectedPlayers.get(socket.id);
+    if (player) {
+      io.emit("usersSnapshot", data);
+    }
+  });
+
   // ── AYRILIŞ ───────────────────────────────────────────────
   socket.on("disconnect", () => {
     const player = connectedPlayers.get(socket.id);
@@ -692,6 +733,21 @@ app.get('/api/chat/:channel', async (req, res) => {
   const limit = Math.min(parseInt(req.query.limit) || 100, 200);
   const history = await sb.getChatHistory(channel, limit);
   res.json(history);
+});
+
+// Tüm oyuncular (admin paneli)
+app.get('/api/players', async (req, res) => {
+  try {
+    const players = await sb.getAllPlayers(1000);
+    res.json(players);
+  } catch(e) {
+    res.json([]);
+  }
+});
+
+// Çevrimiçi oyuncular
+app.get('/api/online-players', (req, res) => {
+  res.json(getOnlineList());
 });
 
 // Liderlik tablosu

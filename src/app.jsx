@@ -250,6 +250,7 @@ const GOV_POSITIONS = [
   { title:"Milletvekili",           salary:10000,  period:"hafta",   rc:15,  reqEdu:"Lise",          authority:"Meclise yasa tasarısı sunma" },
   { title:"Meclis Başkanı",         salary:12000,  period:"hafta",   rc:20,  reqEdu:"Üniversite",    authority:"Meclisi yönetir, yasa tasarılarını inceler ve oylamaya sunar" },
   { title:"Belediye Başkanı",       salary:40000,  period:"ay",      rc:30,  reqEdu:"Lise",          authority:"Belediye yönetimi" },
+  { title:"Parti Başkanı",          salary:25000,  period:"hafta",   rc:30,  reqEdu:"Lise",          authority:"Parti liderliği: üye yönetimi, ittifak kurma, kampanya başlatma" },
 ];
 
 const SECTORS = ["Savunma Sanayii","Havayolu","Gıda Sanayii","Alkol","İlaç","Otomotiv","Tekstil","İnşaat","Enerji","Eğitim"];
@@ -678,6 +679,45 @@ function AdminPanel({allUsers,setAllUsers,notify,cu,user,economy,setEconomy,gang
     load: (k,d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
     save: (k,v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
   };
+
+  // Supabase'den tüm oyuncuları yükle (admin paneli için)
+  React.useEffect(() => {
+    fetch('/api/players').then(r=>r.json()).then(players=>{
+      if(!Array.isArray(players)||players.length===0) return;
+      setAllUsers(prev => {
+        const localMap = new Map((Array.isArray(prev)?prev:[]).map(u=>[u.id||u.userId,u]));
+        players.forEach(p => {
+          const pid = p.id||p.userId;
+          if(!pid) return;
+          if(!localMap.has(pid)) {
+            localMap.set(pid, {
+              id:pid, username:p.username||"?", role:p.role||"user",
+              money:p.money||0, level:p.level||1, city:p.city||"—",
+              underCoin:p.under_coin||p.underCoin||0,
+              educationLevel:p.education_level||p.educationLevel||"İlkokul",
+              gender:p.gender||"erkek", email:p.email||"",
+              position:p.position||null, banned:p.banned||false,
+              banReason:p.ban_reason||p.banReason||"",
+              partyId:p.party||p.partyId||null, gangId:p.gang||p.gangId||null,
+              createdAt:p.created_at||"", lastLogin:p.last_seen||"",
+              phone:p.phone||"-", hp:100, inventory:[], holdings:[]
+            });
+          }
+        });
+        return Array.from(localMap.values());
+      });
+    }).catch(()=>{});
+    // Çevrimiçi oyuncuları da al
+    fetch('/api/online-players').then(r=>r.json()).then(list=>{
+      if(Array.isArray(list)&&list.length>0) {
+        setAllUsers(prev=>{
+          if(!Array.isArray(prev)) return prev;
+          const onlineIds=new Set(list.map(p=>p.userId));
+          return prev.map(u=>({...u,online:onlineIds.has(u.id)}));
+        });
+      }
+    }).catch(()=>{});
+  }, []);
 
   const btnStyle = (color="var(--accent)") => ({
     padding:"0.5rem 0.9rem", borderRadius:8, border:`1px solid ${color}`,
@@ -2130,6 +2170,31 @@ function App() {
     window._fbSyncCallbacks["gameEvents"] = (v) => {
       if (Array.isArray(v)) setGameEvents(v);
     };
+    window._fbSyncCallbacks["parties"] = (v) => {
+      if (Array.isArray(v)) setParties(v);
+    };
+    window._fbSyncCallbacks["gangs"] = (v) => {
+      if (Array.isArray(v)) setGangs(v);
+    };
+    window._fbSyncCallbacks["allUsers"] = (v) => {
+      if (Array.isArray(v)) {
+        setAllUsers(prev => {
+          const map = new Map((Array.isArray(prev)?prev:[]).map(u=>[u.id,u]));
+          v.forEach(u=>{ if(u.id) map.set(u.id, {...(map.get(u.id)||{}), ...u}); });
+          return Array.from(map.values());
+        });
+      }
+    };
+    window._fbSyncCallbacks["onlinePlayers"] = (list) => {
+      if (Array.isArray(list)) {
+        setOnlinePlayers(list.length);
+        setAllUsers(prev => {
+          if(!Array.isArray(prev)) return prev;
+          const onlineIds = new Set(list.map(p=>p.userId));
+          return prev.map(u => ({...u, online: onlineIds.has(u.id)}));
+        });
+      }
+    };
 
     // ── AdMob Rewarded Ad: Reklam izleyerek 2x günlük ödül ──
     const handleAdReward = (e) => {
@@ -2162,7 +2227,8 @@ function App() {
       [
         "globalChat","cityChats","parliamentMsgs","supportMsgs","liveNews","announcements",
         "economy","stockMarket","marketDemand","cityStats","cityWelfare","marketCrisis","energyMarket",
-        "laws","lawProposals","cabinet","ohal","elections","electionState","taxSystem","coupSystem","cityMap","gameEvents"
+        "laws","lawProposals","cabinet","ohal","elections","electionState","taxSystem","coupSystem","cityMap","gameEvents",
+        "parties","gangs","allUsers","onlinePlayers"
       ].forEach(k => delete window._fbSyncCallbacks[k]);
       window.removeEventListener("admob-reward", handleAdReward);
     };
@@ -4087,6 +4153,49 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
     return () => { if (typeof cleanup === 'function') cleanup(); };
   }, [cu?.id]);
 
+  // ==================== SOCKET OYUN STATE EMİSYONU ====================
+  // Partiler değiştiğinde diğer oyunculara bildir
+  useEffect(() => {
+    if(!user||!window._socket) return;
+    const t = setTimeout(()=>{ try { window._socket.emit("partyUpdate", Array.isArray(parties)?parties:[]); } catch(e){} }, 500);
+    return ()=>clearTimeout(t);
+  }, [parties]);
+
+  // Kabine değiştiğinde diğer oyunculara bildir
+  useEffect(() => {
+    if(!user||!window._socket) return;
+    const t = setTimeout(()=>{ try { window._socket.emit("cabinetUpdate", cabinet||{}); } catch(e){} }, 500);
+    return ()=>clearTimeout(t);
+  }, [cabinet]);
+
+  // Seçim state değiştiğinde diğer oyunculara bildir
+  useEffect(() => {
+    if(!user||!window._socket) return;
+    const t = setTimeout(()=>{ try { window._socket.emit("electionUpdate", electionState||{}); } catch(e){} }, 1000);
+    return ()=>clearTimeout(t);
+  }, [electionState]);
+
+  // Yasa/önerge değiştiğinde diğer oyunculara bildir
+  useEffect(() => {
+    if(!user||!window._socket) return;
+    const t = setTimeout(()=>{ try { window._socket.emit("lawUpdate", {laws: Array.isArray(laws)?laws:[], proposals: Array.isArray(lawProposals)?lawProposals:[]}); } catch(e){} }, 800);
+    return ()=>clearTimeout(t);
+  }, [laws, lawProposals]);
+
+  // Çeteler değiştiğinde diğer oyunculara bildir
+  useEffect(() => {
+    if(!user||!window._socket) return;
+    const t = setTimeout(()=>{ try { window._socket.emit("gangsUpdate", Array.isArray(gangs)?gangs:[]); } catch(e){} }, 500);
+    return ()=>clearTimeout(t);
+  }, [gangs]);
+
+  // Meclis mesajları değiştiğinde diğer oyunculara bildir
+  useEffect(() => {
+    if(!user||!window._socket) return;
+    const t = setTimeout(()=>{ try { window._socket.emit("parliamentUpdate", Array.isArray(parliamentMsgs)?parliamentMsgs:[]); } catch(e){} }, 300);
+    return ()=>clearTimeout(t);
+  }, [parliamentMsgs]);
+
   // ==================== KULLANICIYA ÖZEL ANLИК BAKIYE SYNC ====================
   useEffect(() => {
     if (!cu?.id) return;
@@ -4544,16 +4653,35 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
       setTimeout(()=>{ setDailyStreak(newData); setShowDailyReward(true); }, 1000);
     }
     try {
+      const _setupSocketListeners = (sock) => {
+        sock.on("onlineCount", (cnt)=>{ window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"onlineCount",value:cnt}})); });
+        sock.on("onlinePlayers", (list)=>{ window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"onlinePlayers",value:list}})); });
+        sock.on("cabinetUpdate", (data)=>{ window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"cabinet",value:data}})); });
+        sock.on("electionUpdate", (data)=>{ window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"electionState",value:data}})); });
+        sock.on("partyUpdate", (data)=>{ if(Array.isArray(data)) window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"parties",value:data}})); });
+        sock.on("lawUpdate", (data)=>{ if(data&&data.proposals) window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"lawProposals",value:data.proposals}})); if(data&&data.laws) window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"laws",value:data.laws}})); });
+        sock.on("gangsUpdate", (data)=>{ if(Array.isArray(data)) window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"gangs",value:data}})); });
+        sock.on("parliamentUpdate", (data)=>{ if(Array.isArray(data)) window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"parliamentMsgs",value:data}})); });
+        sock.on("usersSnapshot", (users)=>{ if(Array.isArray(users)) window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"allUsers",value:users}})); });
+        sock.on("serverAction", (data)=>{ if(data&&data.key==="money") window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"serverMoney",value:data.value}})); });
+      };
+      const _emitPlayerJoin = (sock, pl) => {
+        sock.emit("playerJoin", { userId:pl.id, username:pl.username, level:pl.level||1, money:pl.money||0, city:pl.city||"İstanbul", gender:pl.gender||"erkek", party:pl.partyId||null, gang:pl.gangId||null });
+      };
       if(typeof io !== "undefined" && !window._socket) {
         window._socket = io(window.location.origin, {
           reconnection:true, reconnectionDelay:1000,
           reconnectionAttempts:10, transports:["websocket","polling"]
         });
-        window._socket.on("connect", ()=>{ console.log("✓ Socket.IO bağlandı:", window._socket.id); });
-        window._socket.on("onlineCount", (cnt)=>{ window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"onlineCount",value:cnt}})); });
-        window._socket.emit("playerJoin", { userId: found.id, username: found.username });
+        window._socket.on("connect", ()=>{
+          console.log("✓ Socket.IO bağlandı:", window._socket.id);
+          window._socket.emit("requestOnlinePlayers");
+        });
+        _setupSocketListeners(window._socket);
+        _emitPlayerJoin(window._socket, found);
       } else if(window._socket) {
-        window._socket.emit("playerJoin", { userId: found.id, username: found.username });
+        _emitPlayerJoin(window._socket, found);
+        window._socket.emit("requestOnlinePlayers");
       }
     } catch(e) { console.warn("Socket.IO bağlantı hatası:", e); }
     setUser(found); setPage("app"); S.save("sessionUserId", found.id||found.uid||"");
@@ -4623,7 +4751,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
     setAllUsers(updatedUsers);
     S.save("users", updatedUsers);
     if(window._fbFlush) setTimeout(()=>window._fbFlush(false), 200);
-    // Supabase'e kaydet (arka planda)
+    // Supabase'e kaydet (arka planda — tüm verilerle A'dan Z'ye)
     try {
       fetch('/api/player', {
         method: 'POST',
@@ -4634,6 +4762,17 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
           email: baseUser.email,
           level: 1, money: baseUser.money,
           city: baseUser.city, gender: baseUser.gender,
+          phone: baseUser.phone||"-",
+          role: baseUser.role||"user",
+          under_coin: baseUser.underCoin||50,
+          bank_money: baseUser.bankMoney||0,
+          credit_score: baseUser.creditScore||500,
+          education_level: baseUser.educationLevel||"İlkokul",
+          merit_points: baseUser.meritPoints||0,
+          loyalty_points: baseUser.loyaltyPoints||100,
+          referral_code: baseUser.referralCode||"",
+          inventory: JSON.stringify(baseUser.inventory||[]),
+          stats: JSON.stringify({ hp: baseUser.hp||100, score:0, xp:0 }),
           created_at: new Date().toISOString(),
           last_seen: new Date().toISOString()
         })
@@ -8739,7 +8878,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                   </div>
                 )}
                   <div className="gov-salary">💰 {fmtMoney(pos.salary)} / {pos.period}</div>
-                  <div style={{color:"#FFD700",fontSize:"0.85rem"}}>🪙 +{pos.uc} UC (seçilme ödülü)</div>
+                  <div style={{color:"#FFD700",fontSize:"0.85rem"}}>🪙 +{pos.rc||pos.uc||0} UC (seçilme ödülü)</div>
                   <div className="gov-authority">⚡ {pos.authority}</div>
                   <div className="gov-req">📜 Gerekli eğitim: {pos.reqEdu}</div>
                 </div>
@@ -8758,10 +8897,20 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
             if(party) partyVotes[party.id] = (partyVotes[party.id]||0) + (c.votes||0);
             else partyVotes["__bagımsız"] = (partyVotes["__bagımsız"]||0) + (c.votes||0);
           });
+          const hasRealVotes = Object.values(partyVotes).reduce((s,v)=>s+v,0) > 0;
+          // Oy yoksa kayıtlı parti üye sayısına göre D'Hondt dağılımı yap
+          if(!hasRealVotes && Array.isArray(parties) && parties.length>0) {
+            parties.forEach(p=>{
+              const mc = Array.isArray(p.members)?p.members.length:0;
+              if(mc>0) partyVotes[p.id] = mc;
+            });
+            // Üyesi olmayan partiler için en az 1 koltuk şansı ver
+            parties.forEach(p=>{ if(!partyVotes[p.id]) partyVotes[p.id]=1; });
+          }
           const totalVotes = Object.values(partyVotes).reduce((s,v)=>s+v,0)||1;
           // D'Hondt yöntemiyle koltuk hesabı
           const partySeatMap = {};
-          if(totalVotes>0){
+          if(Object.values(partyVotes).reduce((s,v)=>s+v,0)>0){
             const pList = Object.entries(partyVotes).map(([id,v])=>({id,votes:v,div:v}));
             for(let i=0;i<TOTAL_SEATS;i++){
               const winner = pList.reduce((best,p)=>p.div>best.div?p:best,pList[0]);
@@ -8821,13 +8970,13 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                   <text x="250" y="245" textAnchor="middle" fill="#FFD700" fontSize="7" fontWeight="bold">KÜRSÜ</text>
                 </svg>
               </div>
-              <div style={{textAlign:"center",fontSize:"0.68rem",color:"#555",marginTop:"0.35rem"}}>{TOTAL_SEATS} sandalye · {totalVotes} toplam oy</div>
+              <div style={{textAlign:"center",fontSize:"0.68rem",color:"#555",marginTop:"0.35rem"}}>{TOTAL_SEATS} sandalye · {hasRealVotes?`${totalVotes} oy`:`${(Array.isArray(parties)?parties:[]).length} kayıtlı parti`}</div>
             </div>
             {/* Parti koltuk dağılımı */}
             <div style={{background:"rgba(13,24,44,0.9)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:"0.85rem",marginBottom:"1rem"}}>
-              <div style={{fontFamily:"Syne,sans-serif",fontSize:"0.72rem",fontWeight:800,color:"#60A5FA",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"0.65rem"}}>📊 Koltuk Dağılımı</div>
+              <div style={{fontFamily:"Syne,sans-serif",fontSize:"0.72rem",fontWeight:800,color:"#60A5FA",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"0.65rem"}}>📊 Koltuk Dağılımı {!hasRealVotes&&<span style={{color:"#555",fontWeight:400,textTransform:"none",fontSize:"0.65rem"}}>(üye sayısına göre tahmini)</span>}</div>
               {Object.keys(partySeatMap).length===0?(
-                <div style={{textAlign:"center",color:"#444",fontSize:"0.8rem",padding:"1rem"}}>Seçim sonuçları bekleniyor...</div>
+                <div style={{textAlign:"center",color:"#444",fontSize:"0.8rem",padding:"1rem"}}>Henüz kayıtlı parti yok. Parti kurarak mecliste temsil edilin!</div>
               ):(
                 <div style={{display:"flex",flexDirection:"column",gap:"0.4rem"}}>
                   {Object.entries(partySeatMap).sort((a,b)=>b[1]-a[1]).map(([id,cnt])=>{
