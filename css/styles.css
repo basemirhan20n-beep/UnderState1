@@ -670,9 +670,12 @@
         .header { padding:0.5rem 0.85rem;position:sticky;top:0;z-index:100; }
         .logo-text { font-size:1.05rem;letter-spacing:0.1em;flex:1; }
         .user-greeting { display:none; }
-        .header-stats { display:flex;gap:0;align-items:center;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-wrap:nowrap;max-width:calc(100vw - 180px); }
-        .stat-item { text-align:center;padding:0.22rem 0.45rem;flex-shrink:0; }
-        .stat-item:nth-child(n+8) { display:none; }
+        .header-stats { display:flex;gap:0;align-items:center;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-wrap:nowrap;max-width:calc(100vw - 180px); }
+
+        .stat-item { text-align:center;padding:0.22rem 0.45rem;flex-shrink:0; }
+
+        .stat-item:nth-child(n+8) { display:none; }
+
         .stat-label { font-size:0.48rem; }
         .stat-value { font-size:0.7rem;font-weight:800; }
         .header-actions { display:none; }
@@ -1448,3 +1451,112 @@
         .platform-mini-card { background: #FFFFFF !important; }
         .platform-section-title { color: #1A2233 !important; }
     }
+
+
+/* ═══════════════════════════════════════════════
+   🌙 GECE MODU (Night Mode / Light Mode)
+   Toggle class: body.night-mode
+   ═══════════════════════════════════════════════ */
+body.night-mode {
+    --bg: #F0F4F8;
+    --card-bg: #FFFFFF;
+    --border: rgba(0,0,0,0.10);
+    --text: #1A2233;
+    --text-muted: #4B6080;
+    background: var(--bg) !important;
+    color: var(--text) !important;
+}
+body.night-mode .card {
+    background: #FFFFFF !important;
+    border-color: rgba(0,0,0,0.10) !important;
+    color: #1A2233 !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07) !important;
+}
+body.night-mode .ministry-header {
+    color: #1A2233 !important;
+    border-color: rgba(0,0,0,0.12) !important;
+}
+body.night-mode .card-title {
+    color: #2563EB !important;
+}
+body.night-mode .stat-box {
+    background: #F0F4F8 !important;
+    border-color: rgba(0,0,0,0.10) !important;
+}
+body.night-mode .stat-box .val { color: #1A2233 !important; }
+body.night-mode .stat-box .lbl { color: #4B6080 !important; }
+body.night-mode .btn { color: #1A2233 !important; }
+body.night-mode .btn-primary { background: #2563EB !important; color: #fff !important; border-color: #2563EB !important; }
+body.night-mode .btn-green { background: #10B981 !important; color: #fff !important; }
+body.night-mode input, body.night-mode textarea, body.night-mode select {
+    background: #F0F4F8 !important;
+    border-color: rgba(0,0,0,0.15) !important;
+    color: #1A2233 !important;
+}
+body.night-mode .info-box {
+    background: rgba(0,100,255,0.06) !important;
+    border-color: rgba(0,100,255,0.15) !important;
+    color: #2563EB !important;
+}
+body.night-mode .top-bar {
+    background: rgba(240,244,248,0.97) !important;
+    border-color: rgba(0,0,0,0.10) !important;
+}
+body.night-mode .bottom-nav, body.night-mode .mobile-bottom-nav {
+    background: rgba(240,244,248,0.97) !important;
+    border-color: rgba(0,0,0,0.10) !important;
+}
+body.night-mode .sidebar {
+    background: rgba(240,244,248,0.97) !important;
+    border-color: rgba(0,0,0,0.10) !important;
+}
+body.night-mode .tag { color: #4B6080 !important; }
+body.night-mode .tag-gray { background: rgba(0,0,0,0.07) !important; color: #4B6080 !important; }
+body.night-mode .gang-card {
+    background: #FFFFFF !important;
+    border-color: rgba(0,0,0,0.10) !important;
+    color: #1A2233 !important;
+}
+body.night-mode .modal {
+    background: #FFFFFF !important;
+    color: #1A2233 !important;
+    border-color: rgba(0,0,0,0.15) !important;
+}
+body.night-mode .modal-overlay { background: rgba(0,0,0,0.5) !important; }
+body.night-mode .progress-wrap { background: rgba(0,0,0,0.08) !important; }
+
+/* ===== BUTTON HOVER TRANSITIONS ===== */
+.btn { transition: all 0.18s ease !important; }
+.btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important; }
+.btn:active:not(:disabled) { transform: translateY(0); }
+
+/* ===== SCROLLBAR STYLING ===== */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
+
+/* ===== GANG PAGE ===== */
+.gang-card { transition: border-color 0.2s, background 0.2s; }
+
+/* ===== DAILY TASK CARD ===== */
+.daily-task-card { transition: all 0.2s ease; }
+.daily-task-card:hover { transform: translateX(2px); }
+
+/* ===== NOTIFICATION BADGE PULSE ===== */
+@keyframes badge-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.75; transform: scale(1.15); }
+}
+.notif-badge-pulse { animation: badge-pulse 2s infinite; }
+
+/* ===== MODAL ANIMATION ===== */
+@keyframes modal-in {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.modal { animation: modal-in 0.2s ease; }
+
+/* ===== NIGHT MODE DAILY TASKS ===== */
+body.night-mode .stat-box { background: rgba(0,0,0,0.04) !important; border-color: rgba(0,0,0,0.1) !important; }
+body.night-mode .info-box { background: rgba(0,0,0,0.04) !important; }

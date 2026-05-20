@@ -2331,6 +2331,19 @@ function App() {
   const [armyTab, setArmyTab] = useState("overview");
   const [page, setPage] = useState("login");
   const [authTab, setAuthTab] = useState("login");
+  const [videoPhase, setVideoPhase] = React.useState(()=>{
+    try{ return sessionStorage.getItem("us_videoDone")==="1"?"login":"intro"; }catch{ return "intro"; }
+  });
+  const [adminLoginModal, setAdminLoginModal] = React.useState(false);
+  const [adminPass, setAdminPass] = React.useState("");
+  const [nightMode, setNightMode] = React.useState(()=>{
+    try{
+      const stored = localStorage.getItem("us_nightMode")==="1";
+      // Apply immediately without waiting for render
+      if(stored) setTimeout(()=>{ document.body.classList.add("night-mode"); }, 0);
+      return stored;
+    }catch{ return false; }
+  });
   const [user, setUser] = useState(null);
   const [currentPage, setCurrentPage] = useState(()=>window.innerWidth<=900?"m_home":"dashboard");
 
@@ -4868,6 +4881,24 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
       setEconomy(prev=>({...prev,treasury:prev.treasury+200000}));
       addHistory("🚔 Devasa polis operasyonu! Çete kasaları ve silahları büyük zarar gördü.");
     }},
+    { id:"tourism_festival", title:"🎉 Turizm Festivali!", desc:"Büyük festival tüm turizm holdingllerine büyük kâr getirdi.", effect: () => {
+      setHoldings(prev=>(Array.isArray(prev)?prev:[]).map(h=>h.sector==="Turizm"?{...h,profit:Math.round(h.profit*1.25)}:h));
+      addHistory("🎉 Turizm festivali! Turizm holdingleri %25 daha kârlı oldu.");
+    }},
+    { id:"cyber_attack", title:"🔐 Siber Saldırı!", desc:"Devlet kurumlarına büyük siber saldırı gerçekleşti. Finans sektörü etkilendi.", effect: () => {
+      setHoldings(prev=>(Array.isArray(prev)?prev:[]).map(h=>h.sector==="Finans"?{...h,profit:Math.round(h.profit*0.8)}:h));
+      setEconomy(prev=>({...prev,inflation:prev.inflation+2}));
+      addHistory("🔐 Siber saldırı! Finans holdingleri %20 zarar gördü.");
+    }},
+    { id:"harvest_season", title:"🌾 Bol Hasat Sezonu!", desc:"Bu yıl tarım ürünleri rekor verimi yakaladı.", effect: () => {
+      setHoldings(prev=>(Array.isArray(prev)?prev:[]).map(h=>h.sector==="Tarım"?{...h,profit:Math.round(h.profit*1.4)}:h));
+      addHistory("🌾 Bol hasat! Tarım holdingleri %40 daha kârlı oldu.");
+    }},
+    { id:"sports_victory", title:"🏆 Dünya Şampiyonluğu!", desc:"Ulusal takım şampiyonluğu kazandı, milli ruh yükseldi!", effect: () => {
+      setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>({...u,score:(u.score||0)+500})));
+      addHistory("🏆 Dünya şampiyonluğu! Tüm oyuncular 500 bonus puan kazandı.");
+      notify("🏆 Şampiyonluk! Tüm oyuncular +500 puan kazandı!");
+    }},
   ];
 
   useEffect(() => {
@@ -6175,12 +6206,22 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
 
   // İTTİFAK SİSTEMİ
   const proposeAlliance = () => {
-    if(!userGang&&!userFamily&&cu.role!=="admin") return notify("❌ Çete veya aile liderlerine sahip olmalısınız!");
+    const isGangLeader = userGang && userGang.leader === cu.username;
+    const isFamilyLeader = userFamily && userFamily.leader === cu.username;
+    const isPartyLeader = userParty && userParty.leader === cu.username;
+    if(!isGangLeader && !isFamilyLeader && !isPartyLeader && cu.role !== "admin")
+      return notify("❌ İttifak sadece çete liderleri, aile liderleri veya parti liderleri kurabilir!");
     const targetName = prompt("İttifak teklifini kime göndermek istiyorsunuz? (kullanıcı adı)");
     if(!targetName) return;
     const target = allUsers.find(u=>u.username===targetName);
     if(!target) return notify("❌ Kullanıcı bulunamadı!");
-    const myEntity = userGang?.name || userFamily?.name || "Admin";
+    // Only allow alliances with gang leaders, family leaders, or party leaders
+    const targetGang = gangs.find(g=>g.leader===targetName);
+    const targetFamily = families.find(f=>f.leader===targetName);
+    const targetParty = parties.find(p=>p.leader===targetName);
+    if(!targetGang && !targetFamily && !targetParty && target.role !== "admin")
+      return notify("❌ İttifak yalnızca çete liderleri, aile liderleri veya parti liderleriyle kurulabilir!");
+    const myEntity = userGang?.name || userFamily?.name || userParty?.name || "Admin";
     const a = {id:Date.now(),from:cu.username,fromEntity:myEntity,to:targetName,status:"Bekliyor",type:"İttifak",date:new Date().toLocaleDateString("tr-TR")};
     setAlliances(prev=>[...prev,a]);
     addNotification(target.id,`🤝 ${cu.username} size ittifak teklif ediyor (${myEntity})!`,"info");
@@ -7511,14 +7552,59 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
   }, [currentPage, economy, allUsers, gangs, holdings]);
 
   if (!cu) {
+    // ── VIDEO INTRO PHASE ──
+    if (videoPhase==="intro") {
+      return (
+        <div style={{position:"fixed",inset:0,background:"#000",zIndex:9999,overflow:"hidden"}}>
+          <video
+            src="/login-bg.mp4"
+            autoPlay muted playsInline
+            style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",zIndex:0}}
+            onEnded={()=>{ try{sessionStorage.setItem("us_videoDone","1");}catch(e){} setVideoPhase("login"); }}
+          />
+          {/* Kling watermark cover - solid black bar at bottom */}
+          <div style={{position:"absolute",bottom:0,left:0,right:0,height:"80px",background:"#000",zIndex:2}}/>
+          {/* Gradient overlay for readability */}
+          <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,rgba(0,0,0,0.35) 0%,transparent 40%,rgba(0,0,0,0.6) 100%)",zIndex:1}}/>
+          {/* Game Logo */}
+          <div style={{position:"absolute",top:"clamp(1.5rem,5vh,3rem)",left:0,right:0,textAlign:"center",zIndex:3}}>
+            <div style={{fontFamily:"Syne,sans-serif",fontWeight:900,fontSize:"clamp(2rem,7vw,4rem)",letterSpacing:"0.12em",lineHeight:1}}>
+              <span style={{color:"#D00000"}}>[ </span>
+              <span style={{color:"#D00000"}}>U</span>
+              <span style={{color:"#fff"}}>NDERSTATE</span>
+              <span style={{color:"#D00000"}}> ]</span>
+            </div>
+            <div style={{color:"rgba(255,255,255,0.5)",fontSize:"clamp(0.7rem,2vw,1rem)",letterSpacing:"0.25em",marginTop:"0.5rem",textTransform:"uppercase"}}>Şehir & Devlet Simülasyonu</div>
+          </div>
+          {/* Skip / Continue button */}
+          <div style={{position:"absolute",bottom:"90px",left:0,right:0,display:"flex",justifyContent:"center",zIndex:3,gap:"1rem"}}>
+            <button onClick={()=>{ try{sessionStorage.setItem("us_videoDone","1");}catch(e){} setVideoPhase("login"); }}
+              style={{padding:"0.75rem 2.5rem",borderRadius:"3rem",background:"rgba(208,0,0,0.85)",border:"2px solid rgba(208,0,0,0.9)",color:"#fff",fontWeight:900,fontSize:"1rem",cursor:"pointer",fontFamily:"Syne,sans-serif",letterSpacing:"0.1em",boxShadow:"0 4px 20px rgba(208,0,0,0.4)",backdropFilter:"blur(4px)"}}>
+              GİRİŞ YAP →
+            </button>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="login-wrap" style={{
+        position:"relative",
         background:"#000",minHeight:"100vh",
         display:"flex",flexDirection:"column",
         alignItems:"center",justifyContent:"center",
         padding:"clamp(1rem,4vw,2rem)",
         overflowY:"auto"
       }}>
+        {/* Video background */}
+        <video src="/login-bg.mp4" autoPlay muted loop playsInline
+          style={{position:"fixed",inset:0,width:"100%",height:"100%",objectFit:"cover",zIndex:0,opacity:0.25}}
+        />
+        {/* Kling cover */}
+        <div style={{position:"fixed",bottom:0,left:0,right:0,height:"60px",background:"#000",zIndex:1}}/>
+        {/* Dark overlay */}
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1}}/>
+        {/* All login content above overlays */}
+        <div style={{position:"relative",zIndex:2,width:"100%",display:"flex",flexDirection:"column",alignItems:"center"}}>
         {/* LOGO */}
         <div style={{marginBottom:"clamp(0.6rem,2vh,1.2rem)",textAlign:"center",userSelect:"none",flexShrink:0}}>
           <div style={{
@@ -7682,6 +7768,27 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
         <BroadcastBanner notif={broadcastNotif} onClose={()=>setBroadcastNotif(null)} />
         <audio ref={audioRef} loop preload="auto" src={window._US_AUDIO_SRC||""} />
         <button className={`music-btn ${musicPlaying?"playing":""}`} onClick={toggleMusic} title={musicPlaying?"Müziği Durdur":"Müziği Başlat"}>{musicPlaying?"🔊":"🔇"}</button>
+        <button onClick={()=>{ const n=!nightMode; setNightMode(n); try{localStorage.setItem("us_nightMode",n?"1":"0");}catch(e){} document.body.className = n?"night-mode":""; }} title={nightMode?"Gündüz Moduna Geç":"Gece Moduna Geç"} style={{position:"fixed",top:"1rem",right:"3.8rem",zIndex:200,background:nightMode?"rgba(255,200,50,0.15)":"rgba(100,120,180,0.15)",border:`1px solid ${nightMode?"rgba(255,200,50,0.4)":"rgba(100,120,180,0.4)"}`,borderRadius:"50%",width:38,height:38,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.1rem",cursor:"pointer",backdropFilter:"blur(8px)"}}>
+          {nightMode?"☀️":"🌙"}
+        </button>
+        {/* Admin Panel Quick Access */}
+        <button onClick={()=>setAdminLoginModal(true)} style={{position:"fixed",bottom:"1rem",left:"1rem",zIndex:10,background:"rgba(239,68,68,0.12)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:8,color:"rgba(239,68,68,0.7)",padding:"0.4rem 0.75rem",fontSize:"0.72rem",fontWeight:700,cursor:"pointer",fontFamily:"Syne,sans-serif",letterSpacing:"0.08em",backdropFilter:"blur(4px)"}}>🛡️ YÖNETİCİ</button>
+        {adminLoginModal&&(
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
+            <div style={{background:"#0A1628",border:"1px solid rgba(239,68,68,0.35)",borderRadius:16,padding:"2rem",width:"100%",maxWidth:"min(400px,96vw)",boxShadow:"0 20px 60px rgba(0,0,0,0.8)"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem"}}>
+                <div style={{fontFamily:"Syne,sans-serif",fontWeight:900,fontSize:"1.1rem",color:"#EF4444"}}>🛡️ YÖNETİCİ GİRİŞİ</div>
+                <button onClick={()=>{setAdminLoginModal(false);setAdminPass("");}} style={{background:"none",border:"none",color:"#64748B",fontSize:"1.3rem",cursor:"pointer"}}>✕</button>
+              </div>
+              <p style={{color:"#64748B",fontSize:"0.82rem",marginBottom:"1.25rem",lineHeight:1.6}}>Admin paneline erişmek için önce admin hesabınızla giriş yapın, ardından menüden Admin Paneli'ni seçin.</p>
+              <div style={{background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:10,padding:"1rem",marginBottom:"1rem"}}>
+                <div style={{fontSize:"0.78rem",color:"#EF4444",fontWeight:700,marginBottom:"0.5rem"}}>ℹ️ Nasıl Erişilir?</div>
+                <div style={{fontSize:"0.75rem",color:"#94A3B8",lineHeight:1.6}}>1. "Giriş Yap" sekmesinden admin hesabınızla giriş yapın.<br/>2. Oyun içi menüden "Admin Paneli"ne tıklayın.<br/>3. Admin paneli tüm cihazlarda duyarlı görünür.</div>
+              </div>
+              <button onClick={()=>{setAdminLoginModal(false);setAdminPass("");setAuthTab("login");}} style={{width:"100%",background:"linear-gradient(135deg,#EF4444,#DC2626)",border:"none",borderRadius:10,padding:"0.8rem",color:"#fff",fontWeight:900,fontSize:"0.9rem",cursor:"pointer",fontFamily:"Syne,sans-serif",letterSpacing:"0.06em"}}>GİRİŞ YAP →</button>
+            </div>
+          </div>
+        )}
 
         {/* ── Şifre Sıfırlama Modal ────────────────────────── */}
         {resetStep > 0 && (
@@ -7748,7 +7855,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
             </div>
           </div>
         )}
-      </div>
+      </div>{/* end zIndex:2 content wrapper */}
     );
   }
 
@@ -8560,6 +8667,15 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
         {/* ===== PROFILE ===== */}
         {currentPage==="profile"&&(
           <div style={{maxWidth:600,margin:"0 auto"}}>
+            <div className="ministry-header">👤 Profil & Kimlik</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
+              {[["💰",fmtMoney(cu.money||0),"Nakit","#10B981"],["⭐",(cu.score||0).toLocaleString("tr-TR"),"Skor","#FFD700"],["🎓",cu.educationLevel||"Yok","Eğitim","#60A5FA"],["🏛️",cu.position||"Vatandaş","Makam","#A78BFA"]].map(([icon,val,lbl,clr])=>(
+                <div key={lbl} style={{background:`${clr}0a`,border:`1px solid ${clr}22`,borderRadius:10,padding:"0.4rem",textAlign:"center"}}>
+                  <div style={{fontSize:"0.7rem",fontWeight:900,color:clr,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{icon} {val}</div>
+                  <div style={{fontSize:"0.5rem",color:"#555",textTransform:"uppercase",marginTop:"0.1rem"}}>{lbl}</div>
+                </div>
+              ))}
+            </div>
             {cu.bannerGif&&<div style={{width:"100%",height:140,marginBottom:"0.75rem",borderRadius:14,overflow:"hidden",border:"1px solid rgba(255,255,255,0.08)"}}>
               <img src={cu.bannerGif} style={{width:"100%",height:"100%",objectFit:"cover"}} alt="banner"/>
             </div>}
@@ -8618,6 +8734,29 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 Fotoğraf değişikliği: {cu.photoChanges||0} kez (ilk ücretsiz, sonrası 10 UC)
               </div>
             </div>
+            {/* XP Level Bar */}
+            {(()=>{
+              const lvl = Math.floor((cu.score||0)/1000)+1;
+              const nextLvlScore = lvl*1000;
+              const prevLvlScore = (lvl-1)*1000;
+              const pct = Math.min(100, Math.floor(((cu.score||0)-prevLvlScore)/(nextLvlScore-prevLvlScore)*100));
+              return(
+                <div className="card" style={{padding:"0.75rem 1rem",marginBottom:"0.75rem"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.35rem"}}>
+                    <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,color:"#FFD700",fontSize:"0.85rem"}}>⭐ Seviye {lvl}</div>
+                    <div style={{fontSize:"0.7rem",color:"#888"}}>{(cu.score||0).toLocaleString("tr-TR")} / {nextLvlScore.toLocaleString("tr-TR")} XP</div>
+                  </div>
+                  <div style={{height:8,borderRadius:4,background:"rgba(255,255,255,0.07)",overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${pct}%`,background:"linear-gradient(90deg,#FFD700,#F59E0B)",borderRadius:4,transition:"width 0.5s ease"}}/>
+                  </div>
+                  <div style={{display:"flex",justifyContent:"space-between",marginTop:"0.2rem",fontSize:"0.6rem",color:"#555"}}>
+                    <span>Seviye {lvl}</span>
+                    <span>{pct}%</span>
+                    <span>Seviye {lvl+1}</span>
+                  </div>
+                </div>
+              );
+            })()}
             <div className="grid-2" style={{marginBottom:"1rem"}}>
               <div className="stat-box"><div className="val stat-green">{fmtMoney((cu.money||0))}</div><div className="lbl">Nakit</div></div>
               <div className="stat-box"><div className="val stat-blue">{fmtMoney((cu.bankMoney||0))}</div><div className="lbl">Banka</div></div>
@@ -8920,6 +9059,31 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
         {/* ===== EDUCATION ===== */}
         {currentPage==="education"&&(
           <div style={{maxWidth:600,margin:"0 auto"}}>
+            <div className="ministry-header">📚 Eğitim & Akademi</div>
+            {/* Education stats */}
+            {(()=>{
+              const myEduIdx = EDU_LEVELS.indexOf(cu.educationLevel||"İlkokul");
+              return(
+              <div style={{background:"linear-gradient(135deg,rgba(96,165,250,0.08),rgba(0,0,0,0))",border:"1px solid rgba(96,165,250,0.2)",borderRadius:14,padding:"0.85rem",marginBottom:"0.75rem"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.5rem"}}>
+                  <div>
+                    <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:"0.88rem",color:"#60A5FA"}}>{cu.educationLevel||"İlkokul"}</div>
+                    <div style={{fontSize:"0.65rem",color:"#555"}}>
+                      {myEduIdx<EDU_LEVELS.length-1?`Sonraki: ${EDU_LEVELS[myEduIdx+1]}`:"Tüm Eğitimler Tamamlandı! 🎓"}
+                    </div>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontSize:"0.7rem",color:"#A78BFA"}}>🏅 Edu Puanı</div>
+                    <div style={{fontWeight:900,color:"#FFD700",fontSize:"0.9rem",fontFamily:"JetBrains Mono,monospace"}}>{(cu.eduPuan||0).toLocaleString()}</div>
+                  </div>
+                </div>
+                <div style={{height:6,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:`${Math.min(100,Math.round(((cu.educationProgress||0)/(EDU_TOTAL[myEduIdx]||100))*100))}%`,background:"linear-gradient(90deg,#60A5FA,#A78BFA)",borderRadius:3,transition:"width 0.5s"}}/>
+                </div>
+                <div style={{fontSize:"0.6rem",color:"#555",textAlign:"right",marginTop:"0.2rem"}}>{cu.educationProgress||0}/{EDU_TOTAL[myEduIdx]||100} ders</div>
+              </div>
+              );
+            })()}
             {/* Eğitim Sekmeler */}
             <div style={{display:"flex",gap:"0.35rem",marginBottom:"0.75rem"}}>
               {[{id:"ders",icon:"📚",label:"Ders"},
@@ -9176,6 +9340,22 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
         {/* ===== JOBS ===== */}
         {currentPage==="jobs"&&(
           <div>
+            <div className="ministry-header">💼 Meslek & Kariyer</div>
+            {/* Career stats */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
+              {[
+                {icon:"⭐",label:"Level",val:`Lv.${cu.level||1}`,c:"#FFD700"},
+                {icon:"💰",label:"Toplam Kazanç",val:fmtMoney(cu.totalEarned||0),c:"#10B981"},
+                {icon:"⚡",label:"Günlük Seri",val:`${cu.dailyStreak||0}g`,c:"#F59E0B"},
+                {icon:"🎓",label:"Eğitim",val:cu.educationLevel||"İlkokul",c:"#60A5FA"},
+              ].map(s=>(
+                <div key={s.label} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"0.5rem",textAlign:"center"}}>
+                  <div style={{fontSize:"0.85rem"}}>{s.icon}</div>
+                  <div style={{fontWeight:800,fontSize:"0.8rem",color:s.c,fontFamily:"Syne,sans-serif",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.val}</div>
+                  <div style={{fontSize:"0.55rem",color:"#444"}}>{s.label}</div>
+                </div>
+              ))}
+            </div>
             <div style={{display:"flex",alignItems:"center",gap:"0.75rem",marginBottom:"1rem",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,padding:"0.75rem 1rem",flexWrap:"wrap"}}>
               <div style={{flex:1,minWidth:180}}>
                 <div style={{fontWeight:700,fontSize:"0.88rem",color:"var(--accent)"}}>🔥 UC Katsayı Modu</div>
@@ -9237,6 +9417,21 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
         {/* ===== GOVERNMENT ===== */}
         {currentPage==="government"&&(
           <div>
+            <div className="ministry-header">🏛️ Devlet Yönetimi</div>
+            {/* Active positions count */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.5rem",marginBottom:"0.75rem"}}>
+              {[
+                {icon:"👥",label:"Dolu Makam",val:GOV_POSITIONS.filter(p=>allUsers.some(u=>u.position===p.title)).length,c:"#10B981"},
+                {icon:"🏛️",label:"Toplam Makam",val:GOV_POSITIONS.length,c:"#60A5FA"},
+                {icon:"⭐",label:"Senin Makamın",val:cu.position||"Yok",c:"#FFD700"},
+              ].map(s=>(
+                <div key={s.label} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"0.6rem",textAlign:"center"}}>
+                  <div style={{fontSize:"0.85rem"}}>{s.icon}</div>
+                  <div style={{fontWeight:800,fontSize:"0.8rem",color:s.c,fontFamily:"Syne,sans-serif",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.val}</div>
+                  <div style={{fontSize:"0.58rem",color:"#555"}}>{s.label}</div>
+                </div>
+              ))}
+            </div>
             <div className="card" style={{marginBottom:"1rem"}}>
               <div className="card-title">🏛️ Devlet Kadrosu</div>
               <p style={{color:"#bbb",fontSize:"0.85rem",marginBottom:"0.75rem"}}>Makamlar seçimle belirlenir. Admin panelinden atama yapılabilir. Her makam için eğitim şartı aranmaktadır.</p>
@@ -9327,6 +9522,15 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
           });
           return (
           <div>
+            <div className="ministry-header">🏛️ Türkiye Büyük Millet Meclisi</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
+              {[["🏛️",TOTAL_SEATS,"Toplam Sandalye","#60A5FA"],["⚑",Object.keys(partyVotes).length,"Parti","#A78BFA"],["👑",(electionState.candidates||[]).filter(c=>c.won).length,"Kazanan","#FFD700"],["🗳️",(electionState.candidates||[]).reduce((s,c)=>s+(c.votes||0),0),"Toplam Oy","#10B981"]].map(([icon,val,lbl,clr])=>(
+                <div key={lbl} style={{background:`${clr}0a`,border:`1px solid ${clr}22`,borderRadius:10,padding:"0.4rem",textAlign:"center"}}>
+                  <div style={{fontSize:"0.8rem",fontWeight:900,color:clr}}>{icon} {val}</div>
+                  <div style={{fontSize:"0.5rem",color:"#555",textTransform:"uppercase",marginTop:"0.1rem"}}>{lbl}</div>
+                </div>
+              ))}
+            </div>
             <div style={{display:"flex",gap:"0.5rem",marginBottom:"0.75rem",alignItems:"center",flexWrap:"wrap"}}>
               <button className="btn btn-sm" style={{background:"rgba(59,130,246,0.1)",color:"#60A5FA",border:"1px solid rgba(59,130,246,0.3)"}} onClick={()=>setCurrentPage("government")}>← Devlet Kadrosu</button>
               <div style={{fontFamily:"Syne,sans-serif",fontSize:"1rem",fontWeight:900,color:"var(--accent)"}}>🏛️ Büyük Millet Meclisi</div>
@@ -9706,6 +9910,21 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
 
           return (
             <div style={{paddingBottom:"1rem"}}>
+              <div className="ministry-header">⚑ Parti Sistemi</div>
+              {/* Party stats */}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.45rem",marginBottom:"0.75rem"}}>
+                {[
+                  {icon:"⚑",label:"Partiler",val:(Array.isArray(parties)?parties:[]).length,c:"#A78BFA"},
+                  {icon:"👥",label:"Üyelerim",val:myP?(myP.members?.length||0)+1:0,c:"#10B981"},
+                  {icon:"🗳️",label:"Oylarım",val:(myP?.votes||0).toLocaleString(),c:"#FFD700"},
+                ].map(s=>(
+                  <div key={s.label} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"0.6rem",textAlign:"center"}}>
+                    <div style={{fontSize:"0.85rem"}}>{s.icon}</div>
+                    <div style={{fontWeight:800,fontSize:"0.95rem",color:s.c,fontFamily:"Syne,sans-serif"}}>{s.val}</div>
+                    <div style={{fontSize:"0.58rem",color:"#555"}}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
 
               {/* ── Duyurular Bandı ── */}
               {announcements.length>0&&(
@@ -10890,6 +11109,7 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
         {/* ===== FAMILIES ===== */}
         {currentPage==="families"&&(
           <div>
+            <div className="ministry-header">👪 Aile Sistemi</div>
             {!userFamily&&(
               <div className="card" style={{marginBottom:"1rem"}}>
                 <div className="card-title">👪 Aile Kur</div>
@@ -10902,19 +11122,89 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
               </div>
             )}
             {families.length===0&&<div className="card" style={{textAlign:"center",color:"#aaa"}}>Henüz kurulmuş aile yok.</div>}
-            {families.map(f=>(
-              <div key={f.id} className="card card-blue" style={{marginBottom:"1rem"}}>
-                <div className="card-title" style={{color:"#60A5FA"}}>{f.name}</div>
-                <div className="grid-2" style={{fontSize:"0.85rem"}}>
-                  <div><span style={{color:"#bbb"}}>Lider: </span>{f.leader}</div>
-                  {f.viceLeader&&<div><span style={{color:"#bbb"}}>Lider Yrd.: </span>{f.viceLeader}</div>}
-                  {f.operationLeader&&<div><span style={{color:"#bbb"}}>Operasyon: </span>{f.operationLeader}</div>}
-                  {f.ambassador&&<div><span style={{color:"#bbb"}}>Elçi: </span>{f.ambassador}</div>}
-                  <div><span style={{color:"#bbb"}}>Üye: </span>{f.memberCount}</div>
-                  <div><span style={{color:"#bbb"}}>Güç: </span>{f.power||0}</div>
+            {families.map(f=>{
+              const memberList = Array.isArray(f.members)?f.members:[];
+              const isMyFamily = f.leader===cu.username || memberList.includes(cu.username);
+              return (
+              <div key={f.id} style={{background:"linear-gradient(135deg,rgba(96,165,250,0.06),rgba(0,0,0,0))",border:"1px solid rgba(96,165,250,0.2)",borderRadius:16,marginBottom:"1rem",overflow:"hidden"}}>
+                {/* Family header */}
+                <div style={{background:"linear-gradient(90deg,rgba(96,165,250,0.1),rgba(0,0,0,0))",padding:"0.85rem 1rem",borderBottom:"1px solid rgba(96,165,250,0.1)"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div>
+                      <div style={{fontFamily:"Syne,sans-serif",fontSize:"1.15rem",color:"#60A5FA",fontWeight:900}}>{f.name}</div>
+                      <div style={{fontSize:"0.68rem",color:"#555",marginTop:"0.1rem"}}>Lider: <span style={{color:"#fff",fontWeight:700}}>{f.leader}</span> · {f.city||"Bilinmiyor"}</div>
+                    </div>
+                    <div style={{background:"rgba(96,165,250,0.15)",border:"1px solid rgba(96,165,250,0.3)",borderRadius:8,padding:"0.35rem 0.6rem",textAlign:"center"}}>
+                      <div style={{fontSize:"1rem",fontWeight:900,color:"#60A5FA"}}>{f.power||0}</div>
+                      <div style={{fontSize:"0.55rem",color:"#888"}}>GÜÇ</div>
+                    </div>
+                  </div>
                 </div>
+                <div style={{padding:"0.85rem 1rem"}}>
+                  {/* Stats row */}
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
+                    {[
+                      {l:"Üye",v:memberList.length,c:"#60A5FA"},
+                      {l:"Kasa",v:fmtMoney(f.bank||0),c:"#10B981"},
+                      {l:"Silah",v:f.weapons||0,c:"#EF4444"},
+                      {l:"İttifak",v:(alliances||[]).filter(a=>(a.from===f.leader||a.to===f.leader)&&a.status==="Kabul").length,c:"#A78BFA"},
+                    ].map(s=>(
+                      <div key={s.l} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:8,padding:"0.4rem",textAlign:"center"}}>
+                        <div style={{fontWeight:900,fontSize:"0.82rem",color:s.c}}>{s.v}</div>
+                        <div style={{fontSize:"0.55rem",color:"#555",marginTop:"0.1rem"}}>{s.l}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Roles */}
+                  <div style={{display:"flex",flexDirection:"column",gap:"0.25rem",marginBottom:"0.75rem"}}>
+                    {[
+                      {role:"Lider",val:f.leader,c:"#FFD700",icon:"👑"},
+                      {role:"Lider Yardımcısı",val:f.viceLeader,c:"#F59E0B",icon:"🥈"},
+                      {role:"Operasyon Yöneticisi",val:f.operationLeader,c:"#EF4444",icon:"⚔️"},
+                      {role:"Aile Elçisi",val:f.ambassador,c:"#A78BFA",icon:"🤝"},
+                    ].filter(r=>r.val).map(r=>(
+                      <div key={r.role} style={{display:"flex",gap:"0.5rem",alignItems:"center",fontSize:"0.75rem",padding:"0.3rem 0.5rem",background:"rgba(255,255,255,0.02)",borderRadius:6}}>
+                        <span>{r.icon}</span>
+                        <span style={{color:r.c,fontWeight:700,width:140,flexShrink:0}}>{r.role}</span>
+                        <span style={{color:"#ddd"}}>{r.val}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Members list */}
+                  {memberList.length>0&&(
+                    <div style={{background:"rgba(96,165,250,0.04)",border:"1px solid rgba(96,165,250,0.1)",borderRadius:10,padding:"0.6rem",marginBottom:"0.75rem"}}>
+                      <div style={{fontSize:"0.72rem",color:"#60A5FA",fontWeight:700,marginBottom:"0.4rem"}}>👥 Üyeler ({memberList.length})</div>
+                      <div style={{display:"flex",flexWrap:"wrap",gap:"0.35rem"}}>
+                        {memberList.slice(0,10).map(m=>(
+                          <span key={m} style={{fontSize:"0.68rem",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.15)",borderRadius:6,padding:"0.15rem 0.45rem",color:"#93C5FD"}}>{m}</span>
+                        ))}
+                        {memberList.length>10&&<span style={{fontSize:"0.68rem",color:"#555"}}>+{memberList.length-10} daha</span>}
+                      </div>
+                    </div>
+                  )}
+                  {/* Intelligence for family */}
+                  {f.leader===cu.username&&(
+                    <div style={{background:"rgba(139,92,246,0.06)",border:"1px solid rgba(139,92,246,0.15)",borderRadius:10,padding:"0.65rem",marginBottom:"0.65rem"}}>
+                      <div style={{fontFamily:"Syne,sans-serif",fontWeight:700,color:"#A78BFA",fontSize:"0.8rem",marginBottom:"0.4rem"}}>🕵️ Aile İstihbaratı</div>
+                      <div style={{display:"flex",gap:"0.4rem",flexWrap:"wrap"}}>
+                        {[
+                          {icon:"📡",title:"Rakip Aile Takibi",cost:60000},
+                          {icon:"🎭",title:"Sızdırma Operasyonu",cost:100000},
+                          {icon:"🗺️",title:"Bölge Analizi",cost:35000},
+                        ].map(op=>(
+                          <button key={op.icon} onClick={()=>{
+                            if((f.bank||0)<op.cost) return notify(`❌ Kasa yetersiz! (${fmtMoney(op.cost)})`);
+                            setFamilies(prev=>prev.map(fam=>fam.id===f.id?{...fam,bank:(fam.bank||0)-op.cost}:fam));
+                            notify(`✅ ${op.title} başlatıldı! -${fmtMoney(op.cost)}`);
+                          }} style={{padding:"0.35rem 0.7rem",background:"rgba(139,92,246,0.1)",border:"1px solid rgba(139,92,246,0.2)",borderRadius:8,color:"#C4B5FD",fontSize:"0.7rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                            {op.icon} {op.title} ({fmtMoney(op.cost)})
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 {f.leader===cu.username&&(
-                  <div style={{marginTop:"0.75rem"}}>
+                  <div style={{marginTop:"0.5rem"}}>
                     <button className="btn btn-blue btn-sm" onClick={async()=>{
                       const uname = await gPrompt("👪 Aileye Davet","Davet etmek istediğiniz kullanıcı adını girin:","Kullanıcı adı");
                       if(!uname) return;
@@ -10930,8 +11220,9 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
                     }}>➕ Aileye Üye Davet Et</button>
                   </div>
                 )}
+                </div>
               </div>
-            ))}
+            );})}
             <div className="info-box">
               📌 Aile Lideri: Ailenin ekonomisini ve prestijini yükseltmekle görevlidir.<br/>
               📌 Operasyon Yöneticisi: Suikastleri, cephaneliği ve aile araçlarını yönetir.<br/>
@@ -10943,6 +11234,7 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
         {/* ===== GANGS ===== */}
         {currentPage==="gangs"&&(
           <div>
+            <div className="ministry-header">🔫 Çete Yönetimi</div>
             {!userGang&&(
               <div className="card" style={{marginBottom:"1rem"}}>
                 <div className="card-title">🔫 Çete Kur</div>
@@ -10955,14 +11247,74 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
               </div>
             )}
             {userGang&&(
-              <div className="gang-card" style={{marginBottom:"1.5rem"}}>
-                <div style={{fontFamily:"Syne,sans-serif",fontSize:"1.2rem",color:"var(--accent)",marginBottom:"1rem"}}>{userGang.name}</div>
-                <div className="stat-grid" style={{marginBottom:"1rem"}}>
-                  <div className="stat-box"><div className="val">{userGang.weapons}</div><div className="lbl">Silah</div></div>
-                  <div className="stat-box"><div className="val" style={{color:"#EF4444"}}>{userGang.power}</div><div className="lbl">Güç</div></div>
-                  <div className="stat-box"><div className="val">{Array.isArray(userGang.members)?userGang.members.length:(userGang.memberCount||userGang.members||0)}</div><div className="lbl">Üye</div></div>
-                  <div className="stat-box"><div className="val stat-green">{fmtMoney((userGang.bank||0))}</div><div className="lbl">Kasa</div></div>
+              <div style={{marginBottom:"1.5rem"}}>
+                {/* Gang header */}
+                <div className="gang-card" style={{marginBottom:"0.75rem",background:"linear-gradient(135deg,rgba(239,68,68,0.08),rgba(0,0,0,0))",borderColor:"rgba(239,68,68,0.25)"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"0.75rem"}}>
+                    <div>
+                      <div style={{fontFamily:"Syne,sans-serif",fontSize:"1.3rem",color:"#EF4444",fontWeight:900,letterSpacing:"0.04em"}}>{userGang.name}</div>
+                      <div style={{fontSize:"0.72rem",color:"#666",marginTop:"0.1rem"}}>Lider: <span style={{color:"#fff",fontWeight:700}}>{userGang.leader}</span> · {userGang.city}</div>
+                    </div>
+                    <div style={{background:"rgba(239,68,68,0.15)",border:"1px solid rgba(239,68,68,0.35)",borderRadius:8,padding:"0.35rem 0.6rem",textAlign:"center",minWidth:60}}>
+                      <div style={{fontSize:"1.1rem",fontWeight:900,color:"#EF4444"}}>{userGang.power||0}</div>
+                      <div style={{fontSize:"0.58rem",color:"#888"}}>GÜÇ</div>
+                    </div>
+                  </div>
+                  <div className="stat-grid" style={{marginBottom:"0.75rem"}}>
+                    <div className="stat-box"><div className="val">{userGang.weapons||0}</div><div className="lbl">Silah</div></div>
+                    <div className="stat-box"><div className="val">{Array.isArray(userGang.members)?userGang.members.length:(userGang.memberCount||0)}</div><div className="lbl">Üye</div></div>
+                    <div className="stat-box"><div className="val stat-green">{fmtMoney((userGang.bank||0))}</div><div className="lbl">Kasa</div></div>
+                    <div className="stat-box"><div className="val" style={{color:"#F59E0B"}}>{userGang.territory||0}</div><div className="lbl">Bölge</div></div>
+                  </div>
+                  {/* Rep bar */}
+                  <div style={{marginBottom:"0.5rem"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:"0.2rem"}}>
+                      <span style={{fontSize:"0.68rem",color:"#888"}}>Sokak İtibarı</span>
+                      <span style={{fontSize:"0.7rem",color:"#EF4444",fontWeight:700}}>{Math.min(100,Math.floor((userGang.power||0)/10))}%</span>
+                    </div>
+                    <div style={{height:5,background:"rgba(255,255,255,0.07)",borderRadius:3,overflow:"hidden"}}>
+                      <div style={{height:"100%",width:`${Math.min(100,Math.floor((userGang.power||0)/10))}%`,background:"linear-gradient(90deg,#EF4444,#DC2626)",borderRadius:3}}/>
+                    </div>
+                  </div>
                 </div>
+                {/* Intelligence system for gangs */}
+                {userGang.leader===cu.username&&(
+                  <div style={{background:"rgba(139,92,246,0.06)",border:"1px solid rgba(139,92,246,0.2)",borderRadius:12,padding:"0.75rem",marginBottom:"0.75rem"}}>
+                    <div style={{fontFamily:"Syne,sans-serif",fontWeight:700,color:"#A78BFA",fontSize:"0.88rem",marginBottom:"0.5rem"}}>🕵️ İstihbarat & Gözetleme</div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.4rem"}}>
+                      {[
+                        {icon:"🔍",title:"Rakip Takip",desc:"Rakip çete hareketini izle",cost:50000,reward:"Çete gücü +10"},
+                        {icon:"🗺️",title:"Bölge Analizi",desc:"Şehirdeki güç dengelerini analiz et",cost:30000,reward:"Bölge bilgisi"},
+                        {icon:"📡",title:"İletişim Dinleme",desc:"Diğer çetelerin planlarını dinle",cost:80000,reward:"Saldırı uyarısı"},
+                        {icon:"🎭",title:"Ajan Gönder",desc:"Rakip çeteye sızdır",cost:120000,reward:"İç bilgi"},
+                      ].map(op=>(
+                        <div key={op.icon} style={{background:"rgba(139,92,246,0.06)",border:"1px solid rgba(139,92,246,0.12)",borderRadius:10,padding:"0.6rem"}}>
+                          <div style={{fontSize:"1.2rem",marginBottom:"0.2rem"}}>{op.icon}</div>
+                          <div style={{fontWeight:700,fontSize:"0.75rem",color:"#ddd",marginBottom:"0.1rem"}}>{op.title}</div>
+                          <div style={{fontSize:"0.62rem",color:"#666",marginBottom:"0.4rem",lineHeight:1.3}}>{op.desc}</div>
+                          <div style={{fontSize:"0.6rem",color:"#A78BFA",marginBottom:"0.4rem"}}>Ödül: {op.reward}</div>
+                          <button onClick={()=>{
+                            if((userGang.bank||0)<op.cost) return notify(`❌ Kasa yetersiz! (${fmtMoney(op.cost)} gerekli)`);
+                            safeSetGangs(prev=>prev.map(g=>g.id===userGang.id?{...g,bank:(g.bank||0)-op.cost}:g));
+                            addHistory(`🕵️ ${userGang.name}: ${op.title} operasyonu başlatıldı (${fmtMoney(op.cost)})`);
+                            notify(`✅ ${op.title} operasyonu başlatıldı! -${fmtMoney(op.cost)}`);
+                          }} style={{width:"100%",padding:"0.3rem",background:"rgba(139,92,246,0.12)",border:"1px solid rgba(139,92,246,0.25)",borderRadius:7,color:"#A78BFA",fontSize:"0.68rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                            {fmtMoney(op.cost)}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Court link - report gang to court */}
+                <div style={{background:"rgba(245,158,11,0.05)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:12,padding:"0.65rem",marginBottom:"0.75rem"}}>
+                  <div style={{fontFamily:"Syne,sans-serif",fontWeight:700,color:"#F59E0B",fontSize:"0.82rem",marginBottom:"0.35rem"}}>⚖️ Hukuki İşlemler</div>
+                  <div style={{display:"flex",gap:"0.4rem",flexWrap:"wrap"}}>
+                    <button onClick={()=>setCurrentPage("court")} style={{padding:"0.4rem 0.75rem",background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:8,color:"#F59E0B",fontSize:"0.75rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>⚖️ Mahkemeye Git</button>
+                    <button onClick={()=>{addHistory(`⚖️ ${cu.username}, ${userGang.name} çetesini mahkemeye şikayet etti.`); notify("📋 Şikayet mahkemeye iletildi!");}} style={{padding:"0.4rem 0.75rem",background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:8,color:"#F87171",fontSize:"0.75rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🚨 Çeteyi Şikayet Et</button>
+                  </div>
+                </div>
+                <div className="gang-card" style={{marginBottom:"0.75rem"}}>
                 {/* 🔫 Silah Marketi - sadece çete lideri */}
                 {userGang.leader===cu.username&&(
                   <div style={{background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.25)",borderRadius:12,padding:"0.75rem 1rem",marginBottom:"0.75rem"}}>
@@ -10984,6 +11336,7 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
                     </div>
                   </div>
                 )}
+                </div>
                 <div style={{display:"flex",gap:"0.5rem",flexWrap:"wrap"}}>
                   <button className="btn btn-gold" onClick={addToIllegalTezgah}>💰 İllegal Tezgaha Silah Sat</button>
                   {userGang.leader===cu.username&&(
@@ -11032,6 +11385,7 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
         {/* ===== HOLDINGS ===== */}
         {currentPage==="holdings"&&(
           <div>
+            <div className="ministry-header">🏢 Holdingler & Şirketler</div>
             {/* ── Holding Ana Sekme Butonları ── */}
             <div style={{display:"flex",gap:"0.4rem",marginBottom:"1rem",flexWrap:"wrap"}}>
               {[
@@ -11072,28 +11426,56 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
                     ))}
                   </div>
                 )}
-                <div className="grid-auto">
-                  {holdings.map(h=>(
-                    <div key={h.id} className="holding-card">
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"0.75rem"}}>
-                        <div>
-                          <div style={{fontFamily:"Syne,sans-serif",color:"#10B981",fontSize:"1rem"}}>{h.name}</div>
-                          <div style={{color:"#bbb",fontSize:"0.8rem"}}>{h.sector}</div>
+                <div style={{display:"flex",flexDirection:"column",gap:"0.65rem"}}>
+                  {holdings.map(h=>{
+                    const isOwner=h.ceo===cu.username||h.owner===cu.username;
+                    const ICONS={"Teknoloji":"💻","Enerji":"⚡","Tarım":"🌾","Savunma Sanayii":"🛡️","İnşaat":"🏗️","Sağlık":"🏥","Medya":"📺","Turizm":"✈️","Finans":"💰","Tekstil":"👕","Gıda":"🍔","Lojistik":"🚛"};
+                    const si=ICONS[h.sector]||"🏢";
+                    const profPerHr=Math.round((h.profit||0)/24);
+                    return(
+                    <div key={h.id} style={{background:"linear-gradient(135deg,rgba(16,185,129,0.05),rgba(0,0,0,0))",border:`1px solid ${isOwner?"rgba(16,185,129,0.3)":"rgba(255,255,255,0.07)"}`,borderRadius:14,padding:"0.85rem",position:"relative"}}>
+                      {isOwner&&<span style={{position:"absolute",top:8,right:8,background:"rgba(16,185,129,0.15)",border:"1px solid rgba(16,185,129,0.3)",borderRadius:6,padding:"0.1rem 0.35rem",fontSize:"0.52rem",color:"#10B981",fontWeight:900}}>SENİN</span>}
+                      <div style={{display:"flex",gap:"0.7rem",alignItems:"flex-start",marginBottom:"0.65rem"}}>
+                        <div style={{width:44,height:44,borderRadius:12,background:"rgba(16,185,129,0.1)",border:"1px solid rgba(16,185,129,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.4rem",flexShrink:0}}>{si}</div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontFamily:"Syne,sans-serif",color:"#10B981",fontSize:"0.95rem",fontWeight:800,display:"flex",alignItems:"center",gap:"0.4rem"}}>
+                            {h.name}
+                            <span style={{background:"rgba(96,165,250,0.15)",color:"#60A5FA",fontSize:"0.55rem",padding:"0.1rem 0.35rem",borderRadius:4,fontWeight:900}}>Lv.{h.level||1}</span>
+                          </div>
+                          <div style={{fontSize:"0.7rem",color:"#555",marginTop:"0.1rem"}}>{h.sector} · {h.city}</div>
+                          {/* Level progress bar */}
+                          <div style={{display:"flex",alignItems:"center",gap:"0.4rem",marginTop:"0.35rem"}}>
+                            <div style={{flex:1,height:4,background:"rgba(255,255,255,0.06)",borderRadius:2,overflow:"hidden"}}>
+                              <div style={{height:"100%",width:`${Math.min(100,(h.experience||0)%100)}%`,background:"linear-gradient(90deg,#10B981,#06D6A0)",borderRadius:2}}/>
+                            </div>
+                            <span style={{fontSize:"0.58rem",color:"#555"}}>{(h.experience||0)%100}/100 XP</span>
+                          </div>
                         </div>
-                        <span className="tag tag-blue">Lv.{h.level}</span>
                       </div>
-                      <div className="stat-grid" style={{marginBottom:"0.75rem"}}>
-                        <div className="stat-box"><div className="val stat-green" style={{fontSize:"0.85rem"}}>{fmtMoney((h.profit||0))}</div><div className="lbl">Günlük Kar</div></div>
-                        <div className="stat-box"><div className="val">{h.employees}</div><div className="lbl">Çalışan</div></div>
-                        <div className="stat-box"><div className="val">{(h.efficiency||1).toFixed(1)}x</div><div className="lbl">Verimlilik</div></div>
-                        <div className="stat-box"><div className="val">{h.experience||0}</div><div className="lbl">Tecrübe</div></div>
+                      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"0.35rem",marginBottom:"0.6rem"}}>
+                        {[
+                          {l:"Günlük",v:fmtMoney(h.profit||0),c:"#10B981"},
+                          {l:"Saatlik",v:fmtMoney(profPerHr),c:"#60A5FA"},
+                          {l:"Çalışan",v:h.employees||0,c:"#F59E0B"},
+                          {l:"Verimlilik",v:`${((h.efficiency||1)*100).toFixed(0)}%`,c:"#A78BFA"},
+                        ].map(s=>(
+                          <div key={s.l} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:8,padding:"0.35rem",textAlign:"center"}}>
+                            <div style={{fontWeight:800,fontSize:"0.78rem",color:s.c}}>{s.v}</div>
+                            <div style={{fontSize:"0.52rem",color:"#555",marginTop:"0.08rem"}}>{s.l}</div>
+                          </div>
+                        ))}
                       </div>
-                      <div style={{fontSize:"0.75rem",color:"#bbb",marginBottom:"0.5rem"}}>CEO: {h.ceo} · {h.city}</div>
-                      {h.ceo===cu.username&&h.sector==="Savunma Sanayii"&&(
-                        <button className="btn btn-green btn-sm" onClick={()=>produceWeapons(h.id)}>🔫 Silah Üret</button>
+                      <div style={{fontSize:"0.7rem",color:"#666",marginBottom:isOwner?"0.5rem":"0"}}>CEO: <span style={{color:"#aaa",fontWeight:600}}>{h.ceo}</span></div>
+                      {isOwner&&(
+                        <div style={{display:"flex",gap:"0.35rem",flexWrap:"wrap"}}>
+                          {h.sector==="Savunma Sanayii"&&<button style={{padding:"0.3rem 0.65rem",background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:7,color:"#F87171",fontSize:"0.7rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}} onClick={()=>produceWeapons(h.id)}>🔫 Silah Üret</button>}
+                          <button onClick={()=>notify(`📊 ${h.name}: Günlük ${fmtMoney(h.profit||0)} · Toplam XP: ${h.experience||0} · Sektör: ${h.sector}`)} style={{padding:"0.3rem 0.65rem",background:"rgba(16,185,129,0.08)",border:"1px solid rgba(16,185,129,0.2)",borderRadius:7,color:"#10B981",fontSize:"0.7rem",cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>📊 Rapor</button>
+                          <button onClick={()=>notify("ℹ️ Holding büyütmek için meritPoints harcayabilirsiniz.")} style={{padding:"0.3rem 0.65rem",background:"rgba(96,165,250,0.08)",border:"1px solid rgba(96,165,250,0.2)",borderRadius:7,color:"#60A5FA",fontSize:"0.7rem",cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>⬆️ Geliştir</button>
+                        </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                   {holdings.length===0&&<div className="card" style={{textAlign:"center",color:"#aaa"}}>Henüz onaylanmış holding yok.</div>}
                 </div>
               </div>
@@ -11294,6 +11676,20 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
         {/* ===== TEZGAH ===== */}
         {currentPage==="tezgah"&&(
           <div>
+            <div className="ministry-header">🏪 Silah Tezgahı</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
+              {[
+                {icon:"✅",label:"Legal Stok",val:legalTezgah.length,c:"#10B981"},
+                {icon:"🔴",label:"İllegal Stok",val:(Array.isArray(illegalTezgah)?illegalTezgah:[]).length,c:"#EF4444"},
+                {icon:"🔫",label:"Silahlarım",val:cu.weapons||0,c:"#F59E0B"},
+              ].map(s=>(
+                <div key={s.label} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"0.5rem",textAlign:"center"}}>
+                  <div style={{fontSize:"0.8rem"}}>{s.icon}</div>
+                  <div style={{fontWeight:800,fontSize:"0.9rem",color:s.c,fontFamily:"Syne,sans-serif"}}>{s.val}</div>
+                  <div style={{fontSize:"0.58rem",color:"#555"}}>{s.label}</div>
+                </div>
+              ))}
+            </div>
             <div className="card card-green" style={{marginBottom:"1.5rem"}}>
               <div className="card-title" style={{color:"#10B981"}}>✅ Legal Tezgah</div>
               <p style={{fontSize:"0.8rem",color:"#bbb",marginBottom:"1rem"}}>Savunma Sanayii holdingleri tarafından üretilen silahlar (₺351-700/adet)</p>
@@ -11385,6 +11781,7 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
 
           return (
           <div style={{maxWidth:600,margin:"0 auto"}}>
+            <div className="ministry-header">🏦 Banka & Havale Merkezi</div>
             {/* Bakiye kartı */}
             <div style={{background:"linear-gradient(135deg,rgba(14,30,74,0.9),rgba(5,15,40,0.95))",border:"1px solid rgba(59,130,246,0.25)",borderRadius:18,padding:"1.1rem",marginBottom:"0.75rem"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"0.75rem"}}>
@@ -11704,6 +12101,15 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
 
           return (
             <div>
+              <div className="ministry-header">🏙️ Belediye Yönetimi</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
+                {[["👥",residents.length,"Nüfus","#22D3EE"],["🏙️",myCity||"İstanbul","Şehir","#10B981"],["🏛️",cu.position||"Vatandaş","Pozisyon","#A78BFA"],["💰",fmtMoney(cu.money||0),"Bakiye","#F59E0B"]].map(([icon,val,lbl,clr])=>(
+                  <div key={lbl} style={{background:`${clr}0a`,border:`1px solid ${clr}22`,borderRadius:10,padding:"0.4rem",textAlign:"center"}}>
+                    <div style={{fontSize:"0.7rem",fontWeight:900,color:clr,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{icon} {val}</div>
+                    <div style={{fontSize:"0.5rem",color:"#555",textTransform:"uppercase",marginTop:"0.1rem"}}>{lbl}</div>
+                  </div>
+                ))}
+              </div>
               {/* ── Başlık ── */}
               <div style={{background:"linear-gradient(135deg,rgba(34,211,238,0.08),rgba(0,0,0,0))",border:"1px solid rgba(34,211,238,0.15)",borderRadius:16,padding:"1rem",marginBottom:"1rem",display:"flex",gap:"0.85rem",alignItems:"center"}}>
                 <div style={{width:52,height:52,borderRadius:14,background:"rgba(34,211,238,0.12)",border:"2px solid rgba(34,211,238,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.8rem",flexShrink:0}}>🏙️</div>
@@ -12096,6 +12502,14 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
         {currentPage==="realestate"&&(
           <div>
             <div className="ministry-header">🏘️ Gayrimenkul Piyasası</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
+              {[["🏠",(Array.isArray(realEstate)?realEstate:[]).filter(p=>p.owner===cu.username).length,"Sahipliğim","#10B981"],["🏘️",(Array.isArray(realEstate)?realEstate:[]).filter(p=>!p.owner).length,"Satılık","#60A5FA"],["💰",fmtMoney((Array.isArray(realEstate)?realEstate:[]).filter(p=>p.owner===cu.username).reduce((s,p)=>s+(p.price||0),0)),"Portföy","#FFD700"],["📍",(Array.isArray(realEstate)?realEstate:[]).length,"Toplam","#A78BFA"]].map(([icon,val,lbl,clr])=>(
+                <div key={lbl} style={{background:`${clr}0a`,border:`1px solid ${clr}22`,borderRadius:10,padding:"0.4rem",textAlign:"center"}}>
+                  <div style={{fontSize:"0.7rem",fontWeight:900,color:clr,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{icon} {val}</div>
+                  <div style={{fontSize:"0.5rem",color:"#555",textTransform:"uppercase",marginTop:"0.1rem"}}>{lbl}</div>
+                </div>
+              ))}
+            </div>
             <div className="grid-2" style={{marginBottom:"1rem"}}>
               <div className="stat-box"><div className="val stat-green">{(Array.isArray(realEstate)?realEstate:[]).filter(p=>p.owner===cu.username).length}</div><div className="lbl">Mülkünüz</div></div>
               <div className="stat-box"><div className="val stat-gold">{fmtMoney((Array.isArray(realEstate)?realEstate:[]).filter(p=>p.owner===cu.username).reduce((s,p)=>s+p.dailyRent,0))}"</div><div className="lbl">Günlük Kira</div></div>
@@ -12299,6 +12713,15 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
 
           return (
             <div>
+              <div className="ministry-header">🗳️ Seçim Sistemi</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
+                {[["🗳️",electionState.candidates.length,"Aday","#EF4444"],["🏆",(electionState.candidates||[]).filter(c=>c.won).length,"Kazanan","#FFD700"],["📣",phase==="campaign"?"Aktif":"Pasif","Kampanya","#A78BFA"],["⏱️",phase==="voting"?`${Math.floor(timeToVoteEnd/3600000)}s`:phase==="campaign"?`${Math.floor(timeToCampEnd/3600000)}s`:"Bekleniyor","Kalan","#10B981"]].map(([icon,val,lbl,clr])=>(
+                  <div key={lbl} style={{background:`${clr}0a`,border:`1px solid ${clr}22`,borderRadius:10,padding:"0.4rem",textAlign:"center"}}>
+                    <div style={{fontSize:"0.75rem",fontWeight:900,color:clr,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{icon} {val}</div>
+                    <div style={{fontSize:"0.5rem",color:"#555",textTransform:"uppercase",marginTop:"0.1rem"}}>{lbl}</div>
+                  </div>
+                ))}
+              </div>
               {/* Durum başlığı */}
               <div style={{background:`linear-gradient(135deg,${phase==="voting"?"rgba(239,68,68,0.08)":phase==="campaign"?"rgba(245,200,66,0.08)":"rgba(34,211,238,0.05)"},rgba(0,0,0,0))`,border:`1px solid ${phase==="voting"?"rgba(239,68,68,0.3)":phase==="campaign"?"rgba(245,200,66,0.3)":"rgba(34,211,238,0.15)"}`,borderRadius:16,padding:"1rem",marginBottom:"1rem",display:"flex",gap:"0.85rem",alignItems:"center"}}>
                 <div style={{width:52,height:52,borderRadius:14,background:phase==="voting"?"rgba(239,68,68,0.12)":phase==="campaign"?"rgba(245,200,66,0.12)":"rgba(34,211,238,0.08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.8rem",flexShrink:0}}>
@@ -12872,6 +13295,17 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
 
           return (
             <div>
+              <div className="ministry-header">🏛️ Makam Paneli</div>
+              {(myPos||isAdmin)&&(
+                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
+                  {[["🏛️",myPos||"Admin","Makam","#A78BFA"],["⭐",cu.score||0,"Skor","#FFD700"],["💰",fmtMoney(cu.money||0),"Bakiye","#10B981"]].map(([icon,val,lbl,clr])=>(
+                    <div key={lbl} style={{background:`${clr}0a`,border:`1px solid ${clr}22`,borderRadius:10,padding:"0.45rem",textAlign:"center"}}>
+                      <div style={{fontSize:"0.7rem",fontWeight:900,color:clr}}>{icon} {typeof val==="number"?val.toLocaleString("tr-TR"):val}</div>
+                      <div style={{fontSize:"0.55rem",color:"#555",textTransform:"uppercase",marginTop:"0.1rem"}}>{lbl}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
               {/* ─ Makam Yok ─ */}
               {!myPos&&!isAdmin&&(
                 <div style={{textAlign:"center",padding:"2rem 1rem"}}>
@@ -12903,6 +13337,7 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
                     const tabs=[
                       {id:"yetkiler",icon:"⚡",label:"Yetkiler"},
                       ...(myTasks.length>0?[{id:"gorevler",icon:"📋",label:"Görevler ("+myTasks.length+")"}]:[]),
+                      {id:"tablo",icon:"📋",label:"Yetki Tablosu"},
                     ];
                     return tabs.map(t=>{
                       const isActive=ppTab===t.id;
@@ -12984,6 +13419,40 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
                   </div>
                 </div>
               )}
+              {/* ─ YETKİ TABLOSU TAB ─ */}
+              {ppTab==="tablo"&&(
+                <div style={{padding:"0.85rem"}}>
+                  <div style={{fontSize:"0.73rem",color:"#888",marginBottom:"0.75rem"}}>Tüm makamların yetki ve sorumluluk tablosu</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:"0.25rem"}}>
+                    {[
+                      {pos:"Devlet Başkanı",auth:"Yasa imzalama · Kabine kurma · Savaş ilanı · OHAL · Darbe veto",c:"#FFD700"},
+                      {pos:"Başbakan",auth:"Bütçe sunma · Bakan atama · Kanun teklifi · Kabine koordinasyonu",c:"#F59E0B"},
+                      {pos:"Meclis Başkanı",auth:"Meclis yönetimi · Yasa oylama · Veto · Referandum",c:"#A78BFA"},
+                      {pos:"Maliye Bakanı",auth:"Vergi oranları · Hazine yönetimi · Bütçe kararları",c:"#10B981"},
+                      {pos:"İçişleri Bakanı",auth:"Polis yönetimi · Suç raporları · Şehir güvenliği · Sürgün",c:"#EF4444"},
+                      {pos:"Dışişleri Bakanı",auth:"Uluslararası müzakere · Elçi atama · Ticaret anlaşması",c:"#34D399"},
+                      {pos:"Ticaret Bakanı",auth:"Holding onayı · Ticaret yasağı · Kamu ihalesi",c:"#60A5FA"},
+                      {pos:"Sağlık Bakanı",auth:"Tedavi kampanyası · HP kurtarma · Sağlık politikası",c:"#34D399"},
+                      {pos:"Adalet Bakanı",auth:"Dava takibi · Mahkeme koordinasyonu · İtiraz değerlendirme",c:"#F5C842"},
+                      {pos:"Genelkurmay Başkanı",auth:"Ordu komutası · Savaş kararı · Darbe muhtırası",c:"#EF4444"},
+                      {pos:"Belediye Başkanı",auth:"Şehir bütçesi · Altyapı projeleri · Şehir kararları",c:"#FB923C"},
+                      {pos:"Savcı",auth:"Dava açma · Tutuklama talebi · Organize suç soruşturması",c:"#EC4899"},
+                      {pos:"Hakim",auth:"Karar verme · Ceza belirleme · İtiraz değerlendirme",c:"#8B5CF6"},
+                      {pos:"Polis",auth:"Tutuklama · Devriye · Gözaltı · Olay yeri incelemesi",c:"#6B7280"},
+                      {pos:"Milletvekili",auth:"Kanun teklifi · Soru önergesi · Araştırma komisyonu",c:"#60A5FA"},
+                      {pos:"Parti Başkanı",auth:"Üye yönetimi · İttifak kurma · Kampanya başlatma",c:"#10B981"},
+                    ].map(r=>(
+                      <div key={r.pos} style={{display:"flex",gap:"0.6rem",padding:"0.4rem 0.55rem",background:myPos===r.pos?"rgba(255,215,0,0.06)":"rgba(255,255,255,0.02)",borderRadius:8,border:`1px solid ${myPos===r.pos?"rgba(255,215,0,0.25)":"rgba(255,255,255,0.05)"}`}}>
+                        <div style={{width:140,flexShrink:0,display:"flex",alignItems:"center",gap:"0.3rem"}}>
+                          <span style={{fontWeight:700,fontSize:"0.7rem",color:r.c}}>{r.pos}</span>
+                          {myPos===r.pos&&<span style={{fontSize:"0.5rem",background:"rgba(255,215,0,0.2)",color:"#FFD700",padding:"0 3px",borderRadius:3,fontWeight:900}}>SEN</span>}
+                        </div>
+                        <div style={{fontSize:"0.67rem",color:"#666",lineHeight:1.5,flex:1}}>{r.auth}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           );
         })()}
@@ -13027,8 +13496,16 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
           return(
           <div className="content">
             <div className="ministry-header">⚔️ Türk Silahlı Kuvvetleri</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
+              {[["⚔️",cu.askerPuan||0,"Asker Puanı","#EF4444"],["🏅",cu.meritPoints||0,"Madalya","#F59E0B"],["⭐",cu.score||0,"Skor","#A78BFA"],["🎖️",isMilitary?"Aktif":"Yok","Görev","#60A5FA"]].map(([icon,val,lbl,clr])=>(
+                <div key={lbl} style={{background:`${clr}0a`,border:`1px solid ${clr}22`,borderRadius:10,padding:"0.4rem",textAlign:"center"}}>
+                  <div style={{fontSize:"0.75rem",fontWeight:900,color:clr}}>{icon} {typeof val==="number"?val.toLocaleString("tr-TR"):val}</div>
+                  <div style={{fontSize:"0.5rem",color:"#555",textTransform:"uppercase",marginTop:"0.1rem"}}>{lbl}</div>
+                </div>
+              ))}
+            </div>
             <div style={{display:"flex",gap:"0.4rem",marginBottom:"1rem",flexWrap:"wrap"}}>
-              {[{k:"gorevler",l:"📋 Görevler"},{k:"durum",l:"🏛️ Hükümet Durumu"},{k:"darbe",l:"⚔️ Darbe Sistemi"},{k:"kadro",l:"👤 Komuta Kadrosu"}].map(t=>(
+              {[{k:"gorevler",l:"📋 Görevler"},{k:"durum",l:"🏛️ Hükümet Durumu"},{k:"darbe",l:"⚔️ Darbe Sistemi"},{k:"kadro",l:"👤 Komuta Kadrosu"},{k:"savas",l:"🔥 Savaş Karar"}].map(t=>(
                 <button key={t.k} onClick={()=>setGenelkurmayTab(t.k)} style={{padding:"0.4rem 0.9rem",borderRadius:"2rem",border:"1px solid "+(genelkurmayTab===t.k?"#EF4444":"rgba(255,255,255,0.1)"),background:genelkurmayTab===t.k?"rgba(239,68,68,0.15)":"transparent",color:genelkurmayTab===t.k?"#F87171":"#bbb",cursor:"pointer",fontSize:"0.82rem",fontWeight:genelkurmayTab===t.k?700:400}}>{t.l}</button>
               ))}
             </div>
@@ -13111,6 +13588,47 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
                 </div>
               </div>
             )}
+            {genelkurmayTab==="savas"&&(
+              <div>
+                <div style={{background:"rgba(220,38,38,0.08)",border:"1px solid rgba(220,38,38,0.25)",borderRadius:14,padding:"1rem",marginBottom:"1rem"}}>
+                  <div style={{fontFamily:"Syne,sans-serif",fontWeight:900,fontSize:"1rem",color:"#EF4444",marginBottom:"0.5rem"}}>🔥 Savaş Kararı</div>
+                  <p style={{fontSize:"0.82rem",color:"#aaa",marginBottom:"0.75rem",lineHeight:1.5}}>Genelkurmay Başkanı ve Komutanlar savaş ilan edebilir. Bu düğme uluslararası savaş sayfasını doğrudan açar.</p>
+                  {isMilitary?(
+                    <div style={{display:"flex",flexDirection:"column",gap:"0.5rem"}}>
+                      <button onClick={()=>setCurrentPage("intlwar")} style={{padding:"0.75rem",background:"linear-gradient(135deg,#DC2626,#7F1D1D)",border:"1px solid rgba(220,38,38,0.5)",borderRadius:12,color:"#fff",fontWeight:900,cursor:"pointer",fontFamily:"Syne,sans-serif",fontSize:"0.9rem",letterSpacing:"0.04em"}}>
+                        ⚔️ SAVAŞ İLAN ET
+                      </button>
+                      <button onClick={()=>setCurrentPage("worldmap")} style={{padding:"0.6rem",background:"rgba(220,38,38,0.1)",border:"1px solid rgba(220,38,38,0.3)",borderRadius:12,color:"#F87171",fontWeight:700,cursor:"pointer",fontFamily:"Syne,sans-serif",fontSize:"0.82rem"}}>
+                        🌍 Dünya Haritasına Git
+                      </button>
+                    </div>
+                  ):(
+                    <div style={{textAlign:"center",color:"#555",padding:"1rem"}}>
+                      <div style={{fontSize:"1.5rem",marginBottom:"0.3rem"}}>🔒</div>
+                      <div style={{fontSize:"0.82rem"}}>Savaş ilan etmek için askeri konumunuz olmalı!</div>
+                    </div>
+                  )}
+                </div>
+                {/* Military readiness */}
+                <div className="card">
+                  <div className="card-title" style={{color:"#EF4444"}}>⚡ Askeri Hazırlık</div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.5rem"}}>
+                    {[
+                      {l:"Asker",v:(armyFunds?.troops||0).toLocaleString(),c:"#EF4444",icon:"⚔️"},
+                      {l:"Teknoloji Seviyesi",v:`Lv.${armyFunds?.tech?.level||1}`,c:"#60A5FA",icon:"🔬"},
+                      {l:"Savunma",v:`${Math.min(100,((armyFunds?.troops||0)/10)).toFixed(0)}%`,c:"#10B981",icon:"🛡️"},
+                    ].map(s=>(
+                      <div key={s.l} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"0.6rem",textAlign:"center"}}>
+                        <div style={{fontSize:"1rem",marginBottom:"0.1rem"}}>{s.icon}</div>
+                        <div style={{fontWeight:800,color:s.c,fontSize:"0.9rem",fontFamily:"Syne,sans-serif"}}>{s.v}</div>
+                        <div style={{fontSize:"0.6rem",color:"#555",marginTop:"0.1rem"}}>{s.l}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {genelkurmayTab==="darbe"&&(
               <div>
                 <div className="card" style={{marginBottom:"1rem",borderColor:"rgba(239,68,68,0.4)"}}>
@@ -13250,6 +13768,15 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
           };
           return (
           <div>
+            <div className="ministry-header">📜 Yasama & Kanun Sistemi</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
+              {[["⏳",activeProps.length,"Oylamada","#FFB800"],["✅",(Array.isArray(laws)?laws:[]).length,"Yürürlükte","#10B981"],["❌",rejectedProps.length,"Reddedildi","#EF4444"],["👥",totalDeputies,"Vekil","#A78BFA"]].map(([icon,val,lbl,clr])=>(
+                <div key={lbl} style={{background:`${clr}0a`,border:`1px solid ${clr}22`,borderRadius:10,padding:"0.45rem",textAlign:"center"}}>
+                  <div style={{fontSize:"0.85rem",fontWeight:900,color:clr,fontFamily:"JetBrains Mono,monospace"}}>{icon} {val}</div>
+                  <div style={{fontSize:"0.55rem",color:"#555",textTransform:"uppercase",marginTop:"0.1rem"}}>{lbl}</div>
+                </div>
+              ))}
+            </div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"1rem",gap:"0.5rem",flexWrap:"wrap"}}>
               <div style={{fontFamily:"Syne,sans-serif",fontSize:"1.05rem",fontWeight:900,color:"var(--accent)"}}>📜 Yasama Meclisi</div>
               <div style={{display:"flex",gap:"0.4rem",flexWrap:"wrap"}}>
@@ -13378,8 +13905,21 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
         {currentPage==="spy"&&(
           <div>
             <div className="ministry-header">🕵️ İstihbarat & Casusluk Merkezi</div>
-            <div className="info-box" style={{marginBottom:"1rem"}}>
-              🔒 Casusluk ve suikast işlemleri ₺50,000 - ₺500,000 TL arasında maliyete sahiptir. Aile üyesi veya lideri olmanız gerekmektedir.
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.5rem",marginBottom:"0.75rem"}}>
+              {[
+                {icon:"🕵️",label:"Casus İşlem",val:cu.spyOps||0,c:"#60A5FA"},
+                {icon:"☠️",label:"Suikast",val:cu.assassinations||0,c:"#EF4444"},
+                {icon:"🛡️",label:"Engelleme",val:cu.spyBlocked||0,c:"#10B981"},
+              ].map(s=>(
+                <div key={s.label} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"0.55rem",textAlign:"center"}}>
+                  <div style={{fontSize:"0.9rem"}}>{s.icon}</div>
+                  <div style={{fontWeight:800,fontSize:"0.95rem",color:s.c,fontFamily:"Syne,sans-serif"}}>{s.val}</div>
+                  <div style={{fontSize:"0.58rem",color:"#555"}}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+            <div className="info-box" style={{marginBottom:"1rem",borderColor:"rgba(96,165,250,0.2)",background:"rgba(96,165,250,0.04)"}}>
+              🔒 Casusluk: ₺50,000 — Hedefin parasını, partisini ve konumunu öğren. Suikast: ₺500,000 — Hedefin HP'sini düşür ve konumunu öğren. Aile üyesi veya lideri olmanız gerekir.
             </div>
             <div className="card" style={{marginBottom:"1rem"}}>
               <div className="card-title">🔍 Hedef Seç</div>
@@ -13433,9 +13973,29 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
         {currentPage==="alliances"&&(
           <div>
             <div className="ministry-header">🤝 İttifak Sistemi</div>
+            {/* Alliance stats */}
+            {(()=>{
+              const myAlliances=(Array.isArray(alliances)?alliances:[]).filter(a=>a.status==="Aktif"&&(a.from===cu.username||a.to===cu.username));
+              const pending=(Array.isArray(alliances)?alliances:[]).filter(a=>a.to===cu.username&&a.status==="Bekliyor").length;
+              return(
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.5rem",marginBottom:"0.75rem"}}>
+                {[
+                  {icon:"🤝",label:"Aktif İttifak",val:myAlliances.length,c:"#10B981"},
+                  {icon:"📬",label:"Bekleyen",val:pending,c:"#F59E0B"},
+                  {icon:"⚡",label:"Toplam",val:(Array.isArray(alliances)?alliances:[]).length,c:"#60A5FA"},
+                ].map(s=>(
+                  <div key={s.label} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"0.6rem",textAlign:"center"}}>
+                    <div style={{fontSize:"0.9rem"}}>{s.icon}</div>
+                    <div style={{fontWeight:800,fontSize:"1rem",color:s.c,fontFamily:"Syne,sans-serif"}}>{s.val}</div>
+                    <div style={{fontSize:"0.6rem",color:"#555"}}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+              );
+            })()}
             <div className="card" style={{marginBottom:"1rem"}}>
               <div className="card-title">🤝 Yeni İttifak Teklif Et</div>
-              <p style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>Çete veya aile liderleri ittifak teklif edebilir.</p>
+              <p style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>Çete veya aile liderleri ile parti liderleri ittifak teklif edebilir.</p>
               <button className="btn btn-green" onClick={proposeAlliance}>🤝 İttifak Teklif Et</button>
             </div>
             {(Array.isArray(alliances)?alliances:[]).filter(a=>a.to===cu.username&&a.status==="Bekliyor").length>0&&(
@@ -13549,38 +14109,90 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
         )}
 
         {/* ===== GÜNLÜK GÖREVLER ===== */}
-        {currentPage==="dailytasks"&&(
+        {currentPage==="dailytasks"&&(()=>{
+          const myDailyData = dailyTasks[cu.id]||{};
+          const totalTasks = DAILY_TASKS_DEF.length;
+          const completedCount = DAILY_TASKS_DEF.filter(t=>myDailyData[t.id]?.claimed).length;
+          const doneNotClaimed = DAILY_TASKS_DEF.filter(t=>{const prog=myDailyData[t.id]?.progress||0; return prog>=(t.target||1)&&!myDailyData[t.id]?.claimed;}).length;
+          const streakDays = cu.dailyStreak||0;
+          return (
           <div>
             <div className="ministry-header">🎁 Günlük Görevler</div>
-            <div className="info-box" style={{marginBottom:"1rem",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span>🎯 Her gün görevler değişir. Tamamlayarak ödül kazanın!</span>
-              <span style={{fontSize:"0.75rem",color:"#aaa"}}>📅 {new Date().toLocaleDateString("tr-TR")}</span>
+            {/* Stats bar */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.5rem",marginBottom:"1rem"}}>
+              {[
+                {l:"Tamamlandı",v:`${completedCount}/${totalTasks}`,c:"#10B981",icon:"✅"},
+                {l:"Hazır",v:doneNotClaimed,c:"#FFD700",icon:"🎁"},
+                {l:"Seri",v:`${streakDays} gün`,c:"#F59E0B",icon:"🔥"},
+              ].map(s=>(
+                <div key={s.l} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,padding:"0.65rem",textAlign:"center"}}>
+                  <div style={{fontSize:"1rem",marginBottom:"0.1rem"}}>{s.icon}</div>
+                  <div style={{fontWeight:800,fontSize:"1rem",color:s.c,fontFamily:"Syne,sans-serif"}}>{s.v}</div>
+                  <div style={{fontSize:"0.6rem",color:"#555",marginTop:"0.1rem"}}>{s.l}</div>
+                </div>
+              ))}
             </div>
-            <div className="grid-auto">
+            {/* Daily progress bar */}
+            <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,padding:"0.75rem",marginBottom:"1rem"}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:"0.35rem"}}>
+                <span style={{fontSize:"0.8rem",color:"#aaa",fontWeight:600}}>📅 {new Date().toLocaleDateString("tr-TR")} — Günlük İlerleme</span>
+                <span style={{fontSize:"0.78rem",color:"#10B981",fontWeight:700}}>{Math.round(completedCount/totalTasks*100)}%</span>
+              </div>
+              <div style={{height:8,background:"rgba(255,255,255,0.07)",borderRadius:4,overflow:"hidden"}}>
+                <div style={{height:"100%",width:`${completedCount/totalTasks*100}%`,background:"linear-gradient(90deg,#10B981,#06D6A0)",borderRadius:4,transition:"width 0.5s"}}/>
+              </div>
+              {completedCount===totalTasks&&<div style={{fontSize:"0.75rem",color:"#10B981",fontWeight:700,marginTop:"0.4rem",textAlign:"center"}}>🏆 Tüm görevler tamamlandı! Harika!</div>}
+            </div>
+            {/* Claim all button */}
+            {doneNotClaimed>0&&(
+              <div style={{marginBottom:"0.75rem"}}>
+                <button onClick={()=>{
+                  const readyTasks = DAILY_TASKS_DEF.filter(t=>{const prog=myDailyData[t.id]?.progress||0; return prog>=(t.target||1)&&!myDailyData[t.id]?.claimed;});
+                  readyTasks.forEach(t=>claimDailyTask(t.id));
+                  setTimeout(()=>notify(`🎁 ${readyTasks.length} görev ödülü toplandı!`), 100);
+                }} style={{width:"100%",padding:"0.7rem",background:"linear-gradient(135deg,rgba(255,215,0,0.2),rgba(245,158,11,0.15))",border:"1px solid rgba(255,215,0,0.4)",borderRadius:12,color:"#FFD700",fontWeight:900,cursor:"pointer",fontFamily:"Syne,sans-serif",fontSize:"0.88rem",letterSpacing:"0.04em"}}>
+                  🎁 Tümünü Topla ({doneNotClaimed} hazır)
+                </button>
+              </div>
+            )}
+            {/* Tasks list */}
+            <div style={{display:"flex",flexDirection:"column",gap:"0.55rem"}}>
               {DAILY_TASKS_DEF.map(task=>{
-                const prog = dailyTasks[cu.id]?.[task.id]?.progress||0;
-                const claimed = dailyTasks[cu.id]?.[task.id]?.claimed||false;
-                const done = prog>=task.target;
+                const prog = myDailyData[task.id]?.progress||0;
+                const claimed = myDailyData[task.id]?.claimed||false;
+                const done = prog>=(task.target||1);
+                const pct = Math.min(100,Math.round((prog/(task.target||1))*100));
                 return (
-                  <div key={task.id} className="card" style={{borderColor:claimed?"rgba(16,185,129,0.4)":done?"rgba(255,215,0,0.4)":"rgba(255,255,255,0.1)"}}>
-                    <div style={{fontSize:"2rem",textAlign:"center",marginBottom:"0.5rem"}}>{task.icon}</div>
-                    <div style={{fontWeight:700,textAlign:"center",marginBottom:"0.5rem"}}>{task.desc}</div>
-                    <div className="progress-wrap" style={{marginBottom:"0.5rem"}}><div className="progress-fill" style={{width:`${Math.min(100,(prog/task.target)*100)}%`}}/></div>
-                    <div style={{fontSize:"0.8rem",color:"#bbb",textAlign:"center",marginBottom:"0.5rem"}}>{Math.min(prog,task.target)}/{task.target}</div>
-                    <div style={{fontSize:"0.8rem",color:"#FFD700",textAlign:"center",marginBottom:"0.75rem"}}>
-                      Ödül: {task.reward.money?`${fmtMoney(task.reward.money)}`:""}
-                      {task.reward.uc?` +${task.reward.uc}UC`:""}
-                      {task.reward.meritPoints?` +${task.reward.meritPoints}🏅`:""}
+                  <div key={task.id} style={{background:claimed?"rgba(16,185,129,0.06)":done?"rgba(255,215,0,0.05)":"rgba(255,255,255,0.02)",border:`1px solid ${claimed?"rgba(16,185,129,0.3)":done?"rgba(255,215,0,0.3)":"rgba(255,255,255,0.07)"}`,borderRadius:14,padding:"0.85rem",display:"flex",gap:"0.85rem",alignItems:"center"}}>
+                    <div style={{width:48,height:48,borderRadius:12,background:claimed?"rgba(16,185,129,0.15)":done?"rgba(255,215,0,0.12)":"rgba(255,255,255,0.05)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.6rem",flexShrink:0,border:`1px solid ${claimed?"rgba(16,185,129,0.3)":done?"rgba(255,215,0,0.25)":"rgba(255,255,255,0.1)"}`}}>
+                      {claimed?"✅":task.icon}
                     </div>
-                    <button className="btn btn-green btn-sm" disabled={!done||claimed} onClick={()=>claimDailyTask(task.id)} style={{opacity:(!done||claimed)?0.5:1}}>
-                      {claimed?"✅ Alındı":done?"🎁 Al!":"⏳ Devam Et"}
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:700,fontSize:"0.88rem",color:claimed?"#10B981":done?"#FFD700":"#fff",marginBottom:"0.15rem"}}>{task.desc}</div>
+                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:"0.3rem"}}>
+                        <span style={{fontSize:"0.68rem",color:"#555"}}>{Math.min(prog,task.target||1)}/{task.target||1}</span>
+                        <span style={{fontSize:"0.68rem",color:"#10D9A0",fontWeight:700}}>
+                          {task.reward.money?fmtMoney(task.reward.money):""}{task.reward.uc?` +${task.reward.uc}UC`:""}{task.reward.meritPoints?` +${task.reward.meritPoints}🏅`:""}
+                        </span>
+                      </div>
+                      <div style={{height:5,background:"rgba(255,255,255,0.07)",borderRadius:3,overflow:"hidden"}}>
+                        <div style={{height:"100%",width:`${pct}%`,background:claimed?"#10B981":done?"#FFD700":"linear-gradient(90deg,#3B82F6,#60A5FA)",borderRadius:3,transition:"width 0.4s"}}/>
+                      </div>
+                    </div>
+                    <button onClick={()=>claimDailyTask(task.id)} disabled={!done||claimed}
+                      style={{flexShrink:0,padding:"0.5rem 0.75rem",borderRadius:10,border:"none",background:claimed?"rgba(16,185,129,0.1)":done?"linear-gradient(135deg,#FFD700,#F59E0B)":"rgba(255,255,255,0.06)",color:claimed?"#10B981":done?"#000":"#555",fontWeight:900,cursor:(!done||claimed)?"not-allowed":"pointer",fontSize:"0.8rem",fontFamily:"Syne,sans-serif",letterSpacing:"0.04em",minWidth:72,textAlign:"center",opacity:(!done&&!claimed)?0.6:1}}>
+                      {claimed?"Alındı":done?"🎁 Al!":"⏳"}
                     </button>
                   </div>
                 );
               })}
             </div>
+            <div style={{fontSize:"0.72rem",color:"#444",textAlign:"center",marginTop:"1rem"}}>
+              📅 Görevler her gün gece yarısı yenilenir
+            </div>
           </div>
-        )}
+          );
+        })()}
 
         {/* ===== BİLDİRİM & CANLI FEED MERKEZİ ===== */}
         {currentPage==="notifcenter"&&(()=>{
@@ -13591,6 +14203,15 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
           const notifPerm = typeof Notification!=="undefined" ? Notification.permission : "unsupported";
           return(
           <div>
+            <div className="ministry-header">🔔 Bildirim Merkezi</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
+              {[["📬",myNotifs.length,"Toplam","#60A5FA"],["🔴",unreadCount,"Okunmamış","#EF4444"],["✅",myNotifs.length-unreadCount,"Okunmuş","#10B981"]].map(([icon,val,lbl,clr])=>(
+                <div key={lbl} style={{background:`${clr}0a`,border:`1px solid ${clr}22`,borderRadius:10,padding:"0.45rem",textAlign:"center"}}>
+                  <div style={{fontSize:"0.85rem",fontWeight:900,color:clr}}>{icon} {val}</div>
+                  <div style={{fontSize:"0.55rem",color:"#555",textTransform:"uppercase",marginTop:"0.1rem"}}>{lbl}</div>
+                </div>
+              ))}
+            </div>
             {/* Mobil Bildirim İzni Kartı */}
             {notifPerm==="default"&&(
               <div style={{background:"linear-gradient(135deg,rgba(245,158,11,0.12),rgba(245,158,11,0.04))",border:"1px solid rgba(245,158,11,0.35)",borderRadius:14,padding:"0.9rem",marginBottom:"0.75rem",display:"flex",alignItems:"center",gap:"0.75rem"}}>
@@ -13689,28 +14310,73 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
         })()}
 
         {/* ===== OLAYLAR ===== */}
-        {currentPage==="events"&&(
+        {currentPage==="events"&&(()=>{
+          const lastEventKey = `lastEvent_${cu.id}`;
+          const lastEventTime = parseInt(localStorage.getItem(lastEventKey)||"0");
+          const eventCooldown = 4*60*60*1000; // 4 hours
+          const canTrigger = (now-lastEventTime)>=eventCooldown;
+          const nextEventIn = Math.max(0,Math.ceil((eventCooldown-(now-lastEventTime))/60000));
+          return (
           <div>
-            <div className="ministry-header">⚡ Rastgele Olaylar</div>
-            <div className="info-box" style={{marginBottom:"1rem"}}>⚡ Cumhuriyette her 4 saatte bir rastgele bir olay gerçekleşebilir. Bu olaylar ekonomiyi, holdingleri veya çeteleri etkiler.</div>
-            {cu.role==="admin"&&(
-              <button className="btn btn-primary" style={{marginBottom:"1rem"}} onClick={()=>{
+            <div className="ministry-header">⚡ Canlı Olaylar</div>
+            {/* Live events stats */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.5rem",marginBottom:"1rem"}}>
+              {[
+                {l:"Toplam Olay",v:randomEvents.length,c:"#F59E0B",icon:"⚡"},
+                {l:"Bu Hafta",v:randomEvents.filter(e=>now-new Date(e.date).getTime()<7*24*3600*1000).length,c:"#10B981",icon:"📅"},
+                {l:"Sonraki",v:canTrigger?"Hazır":`${nextEventIn}dk`,c:canTrigger?"#10B981":"#555",icon:canTrigger?"✅":"⏳"},
+              ].map(s=>(
+                <div key={s.l} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"0.65rem",textAlign:"center"}}>
+                  <div style={{fontSize:"1rem",marginBottom:"0.1rem"}}>{s.icon}</div>
+                  <div style={{fontWeight:800,fontSize:"0.95rem",color:s.c,fontFamily:"Syne,sans-serif"}}>{s.v}</div>
+                  <div style={{fontSize:"0.6rem",color:"#555",marginTop:"0.1rem"}}>{s.l}</div>
+                </div>
+              ))}
+            </div>
+            {/* Trigger event button - available to all users every 4h */}
+            <div style={{background:"rgba(245,158,11,0.06)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:14,padding:"1rem",marginBottom:"1rem",textAlign:"center"}}>
+              <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:"1rem",color:"#F59E0B",marginBottom:"0.3rem"}}>🎲 Olay Tetikle</div>
+              <div style={{fontSize:"0.75rem",color:"#666",marginBottom:"0.75rem"}}>Her 4 saatte bir rastgele bir olay tetikleyebilirsin. Bu olay tüm şehri etkiler!</div>
+              <button onClick={()=>{
+                if(!canTrigger){notify(`⏳ Sonraki olayı tetiklemek için ${nextEventIn} dakika beklemelisin!`); return;}
                 const ev = RANDOM_EVENTS[Math.floor(Math.random()*RANDOM_EVENTS.length)];
                 ev.effect();
-                setRandomEvents(prev=>[{id:Date.now(),title:ev.title,desc:ev.desc,date:new Date().toLocaleString("tr-TR")},...prev].slice(0,20));
-                notify(`${ev.title} tetiklendi!`);
-              }}>🎲 Admin: Rastgele Olay Tetikle</button>
+                setRandomEvents(prev=>[{id:Date.now(),title:ev.title,desc:ev.desc,date:new Date().toLocaleString("tr-TR"),triggeredBy:cu.username},...prev].slice(0,30));
+                localStorage.setItem(lastEventKey,String(now));
+                addFeed(`⚡ ${cu.username} bir olay tetikledi: ${ev.title}`,"system","events");
+                notify(`⚡ ${ev.title} tetiklendi! Tüm şehir etkilendi.`);
+              }} style={{padding:"0.7rem 2rem",background:canTrigger?"linear-gradient(135deg,#F59E0B,#D97706)":"rgba(255,255,255,0.06)",border:`1px solid ${canTrigger?"rgba(245,158,11,0.5)":"rgba(255,255,255,0.1)"}`,borderRadius:12,color:canTrigger?"#000":"#555",fontWeight:900,cursor:canTrigger?"pointer":"not-allowed",fontSize:"0.88rem",fontFamily:"Syne,sans-serif",letterSpacing:"0.04em"}}>
+                {canTrigger?"⚡ OLAY TETİKLE":"⏳ "+nextEventIn+" dakika kaldı"}
+              </button>
+            </div>
+            {/* Admin extra trigger */}
+            {cu.role==="admin"&&(
+              <button className="btn btn-primary" style={{marginBottom:"1rem",width:"auto"}} onClick={()=>{
+                const ev = RANDOM_EVENTS[Math.floor(Math.random()*RANDOM_EVENTS.length)];
+                ev.effect();
+                setRandomEvents(prev=>[{id:Date.now(),title:ev.title,desc:ev.desc,date:new Date().toLocaleString("tr-TR"),triggeredBy:"ADMIN"},...prev].slice(0,30));
+                notify(`🎲 Admin: ${ev.title} tetiklendi!`);
+              }}>🎲 Admin: Anında Tetikle</button>
             )}
-            {randomEvents.length===0&&<div className="card" style={{textAlign:"center",color:"#aaa"}}>Henüz kayıtlı olay yok.</div>}
-            {randomEvents.map(ev=>(
-              <div key={ev.id} className="card" style={{marginBottom:"0.75rem",borderColor:"rgba(245,158,11,0.3)"}}>
-                <div style={{fontWeight:700,fontSize:"1.1rem",marginBottom:"0.25rem"}}>{ev.title}</div>
-                <div style={{color:"#bbb",fontSize:"0.9rem",marginBottom:"0.5rem"}}>{ev.desc}</div>
-                <div style={{fontSize:"0.75rem",color:"#aaa"}}>📅 {ev.date}</div>
-              </div>
-            ))}
+            {/* Events list */}
+            {randomEvents.length===0&&<div className="card" style={{textAlign:"center",color:"#aaa",padding:"2rem"}}>Henüz kayıtlı olay yok. İlk olayı sen tetikle!</div>}
+            <div style={{display:"flex",flexDirection:"column",gap:"0.5rem"}}>
+              {randomEvents.map(ev=>(
+                <div key={ev.id} style={{background:"rgba(245,158,11,0.05)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:12,padding:"0.85rem"}}>
+                  <div style={{display:"flex",alignItems:"flex-start",gap:"0.75rem"}}>
+                    <div style={{width:44,height:44,borderRadius:10,background:"rgba(245,158,11,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.4rem",flexShrink:0}}>⚡</div>
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:700,fontSize:"0.9rem",color:"#F59E0B",marginBottom:"0.15rem"}}>{ev.title}</div>
+                      <div style={{fontSize:"0.8rem",color:"#aaa",lineHeight:1.4,marginBottom:"0.3rem"}}>{ev.desc}</div>
+                      <div style={{fontSize:"0.65rem",color:"#555"}}>📅 {ev.date}{ev.triggeredBy?` · 👤 ${ev.triggeredBy}`:""}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        )}
+          );
+        })()}
 
         {/* ===== GAZETE & MEDYA ===== */}
         {currentPage==="newspaper"&&(()=>{
@@ -13723,16 +14389,37 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
           const filtered = newsTab==="all" ? allNews : allNews.filter(n=>n.type===newsTab);
           return(
             <div>
-              <div className="ministry-header">{t("liveNewsCenter")}</div>
+              <div className="ministry-header">📰 UnderState Basın & Haberler</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
+                {[["📰",allNews.length,"Toplam","#60A5FA"],["🚨",allNews.filter(n=>n.isBreaking).length,"Son Dakika","#EF4444"],["📝",(Array.isArray(scandals)?scandals:[]).length,"Skandal","#F59E0B"],["🏙️",allNews.filter(n=>n.type==="city").length,"Şehir","#10B981"]].map(([icon,val,lbl,clr])=>(
+                  <div key={lbl} style={{background:`${clr}0a`,border:`1px solid ${clr}22`,borderRadius:10,padding:"0.45rem",textAlign:"center"}}>
+                    <div style={{fontSize:"0.85rem",fontWeight:900,color:clr}}>{icon} {val}</div>
+                    <div style={{fontSize:"0.55rem",color:"#555",textTransform:"uppercase",marginTop:"0.1rem"}}>{lbl}</div>
+                  </div>
+                ))}
+              </div>
+              {/* Newspaper-style header */}
+              <div style={{textAlign:"center",marginBottom:"1rem",borderBottom:"2px solid rgba(255,255,255,0.1)",paddingBottom:"0.75rem"}}>
+                <div style={{fontFamily:"Syne,sans-serif",fontSize:"1.6rem",fontWeight:900,letterSpacing:"0.08em",color:"#fff",marginBottom:"0.1rem"}}>📰 UNDERSTATE TIMES</div>
+                <div style={{fontSize:"0.65rem",color:"#555",letterSpacing:"0.15em",textTransform:"uppercase"}}>Günlük · {new Date().toLocaleDateString("tr-TR",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
+                <div style={{display:"flex",justifyContent:"center",gap:"0.75rem",marginTop:"0.4rem",fontSize:"0.6rem",color:"#555"}}>
+                  <span>📍 Türkiye</span>
+                  <span>·</span>
+                  <span>🟢 {allNews.filter(n=>n.isBreaking).length} son dakika</span>
+                  <span>·</span>
+                  <span>📝 {allNews.length} haber</span>
+                </div>
+              </div>
               {/* Breaking News Banner */}
               {allNews.filter(n=>n.isBreaking).length>0&&(
-                <div style={{background:"linear-gradient(135deg,rgba(0,201,255,0.12),rgba(0,0,0,0))",border:"1px solid rgba(208,0,0,0.4)",borderRadius:"0.75rem",padding:"0.75rem 1rem",marginBottom:"1rem",display:"flex",gap:"0.75rem",alignItems:"flex-start"}}>
-                  <div style={{flexShrink:0}}>
-                    <div style={{background:"#D00000",color:"#fff",fontSize:"0.6rem",fontWeight:900,padding:"0.1rem 0.4rem",borderRadius:"0.2rem",letterSpacing:"0.08em",textAlign:"center",fontFamily:"Syne,sans-serif",marginBottom:"0.3rem"}}>{`🚨 ${t("breakingTag")}`}</div>
+                <div style={{background:"linear-gradient(135deg,rgba(208,0,0,0.15),rgba(0,0,0,0))",border:"1px solid rgba(208,0,0,0.5)",borderRadius:"0.75rem",padding:"0.75rem 1rem",marginBottom:"1rem",display:"flex",gap:"0.75rem",alignItems:"flex-start"}}>
+                  <div style={{flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",gap:"0.2rem"}}>
+                    <div style={{background:"#D00000",color:"#fff",fontSize:"0.55rem",fontWeight:900,padding:"0.1rem 0.4rem",borderRadius:"0.2rem",letterSpacing:"0.08em",fontFamily:"Syne,sans-serif"}}>🚨 SON DAKİKA</div>
+                    <div style={{width:2,height:30,background:"rgba(208,0,0,0.4)"}}/>
                   </div>
-                  <div>
-                    <div style={{fontWeight:700,color:"#FCA5A5",fontSize:"0.95rem"}}>{allNews.find(n=>n.isBreaking)?.headline}</div>
-                    <div style={{fontSize:"0.7rem",color:"#aaa",marginTop:"0.2rem"}}>{allNews.find(n=>n.isBreaking)?.time}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:800,color:"#FCA5A5",fontSize:"1rem",lineHeight:1.4}}>{allNews.find(n=>n.isBreaking)?.headline}</div>
+                    <div style={{fontSize:"0.68rem",color:"#888",marginTop:"0.25rem"}}>{allNews.find(n=>n.isBreaking)?.time}</div>
                   </div>
                 </div>
               )}
@@ -13774,26 +14461,40 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
                 })}
               </div>
               {/* Oyuncu Haberleri */}
-              <div className="card" style={{marginBottom:"1rem"}}>
-                <div className="card-title">✍️ Haber Yaz</div>
-                <p style={{fontSize:"0.82rem",color:"#bbb",marginBottom:"0.75rem"}}>Kendi haberini yaz, tüm şehir görsün!</p>
+              <div style={{background:"linear-gradient(135deg,rgba(255,215,0,0.06),rgba(0,0,0,0))",border:"1px solid rgba(255,215,0,0.2)",borderRadius:14,padding:"0.85rem",marginBottom:"1rem"}}>
+                <div style={{fontFamily:"Syne,sans-serif",fontWeight:900,fontSize:"0.9rem",color:"#FFD700",marginBottom:"0.4rem"}}>✍️ Haber Yaz</div>
+                <p style={{fontSize:"0.78rem",color:"#aaa",marginBottom:"0.75rem",lineHeight:1.5}}>Kendi haberini yaz, tüm şehir görsün! Haberler oyun içi olayları, açıklamaları veya köşe yazılarını içerebilir.</p>
+                <div style={{fontSize:"0.7rem",color:"#666",marginBottom:"0.6rem",display:"flex",gap:"0.75rem",flexWrap:"wrap"}}>
+                  <span>👤 Yazar: <span style={{color:"#aaa"}}>{cu.username}</span></span>
+                  {cu.position&&<span>💼 Makam: <span style={{color:"#60A5FA"}}>{cu.position}</span></span>}
+                </div>
                 <button className="btn btn-primary" onClick={publishNews}>{t("publishNews")}</button>
               </div>
               {newspapers.length>0&&(
                 <div>
                   <div style={{fontFamily:"Syne,sans-serif",color:"#FFD700",marginBottom:"0.6rem",fontSize:"0.9rem"}}>📜 Oyuncu Haberleri</div>
                   {(Array.isArray(newspapers)?newspapers:[]).map(n=>(
-                    <div key={n.id} className="card" style={{marginBottom:"0.6rem",borderColor:"rgba(255,215,0,0.15)"}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"0.4rem"}}>
-                        <div style={{fontFamily:"Syne,sans-serif",fontSize:"0.95rem",color:"#FFD700",flex:1}}>{n.title}</div>
-                        <span className="tag tag-gray" style={{marginLeft:"0.5rem",flexShrink:0,whiteSpace:"nowrap"}}>{n.authorPos}</span>
+                    <div key={n.id} style={{background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,215,0,0.12)",borderRadius:14,padding:"0.85rem",marginBottom:"0.65rem",position:"relative",overflow:"hidden"}}>
+                      <div style={{position:"absolute",top:0,left:0,width:3,height:"100%",background:"rgba(255,215,0,0.4)",borderRadius:"3px 0 0 3px"}}/>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"0.45rem",gap:"0.5rem"}}>
+                        <div style={{fontFamily:"Syne,sans-serif",fontSize:"0.92rem",color:"#FFD700",flex:1,fontWeight:800,lineHeight:1.3}}>{n.title}</div>
+                        {n.authorPos&&<span style={{flexShrink:0,background:"rgba(255,215,0,0.1)",color:"#F59E0B",fontSize:"0.58rem",padding:"0.1rem 0.4rem",borderRadius:4,fontWeight:700,border:"1px solid rgba(255,215,0,0.2)"}}>{n.authorPos}</span>}
                       </div>
-                      <div style={{fontSize:"0.87rem",color:"#CCC",marginBottom:"0.5rem",lineHeight:1.6}}>{n.content}</div>
+                      <div style={{fontSize:"0.82rem",color:"#CCC",marginBottom:"0.55rem",lineHeight:1.65}}>{n.content}</div>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                        <div style={{fontSize:"0.72rem",color:"#aaa"}}>✍️ {n.author} · {n.date}</div>
-                        <button onClick={()=>likeNews(n.id)} style={{background:"none",border:"1px solid rgba(0,201,255,0.22)",borderRadius:"1rem",padding:"0.2rem 0.6rem",color:(n.likedBy||[]).includes(cu.username)?"#D00000":"#666",cursor:"pointer",fontSize:"0.8rem"}}>
-                          ❤️ {n.likes||0}
-                        </button>
+                        <div style={{fontSize:"0.68rem",color:"#555",display:"flex",gap:"0.4rem"}}>
+                          <span>✍️ {n.author}</span>
+                          <span>·</span>
+                          <span>{n.date}</span>
+                        </div>
+                        <div style={{display:"flex",gap:"0.3rem",alignItems:"center"}}>
+                          <button onClick={()=>likeNews(n.id)} style={{background:(n.likedBy||[]).includes(cu.username)?"rgba(208,0,0,0.15)":"rgba(255,255,255,0.04)",border:`1px solid ${(n.likedBy||[]).includes(cu.username)?"rgba(208,0,0,0.4)":"rgba(255,255,255,0.1)"}`,borderRadius:20,padding:"0.2rem 0.55rem",color:(n.likedBy||[]).includes(cu.username)?"#F87171":"#888",cursor:"pointer",fontSize:"0.75rem",fontWeight:700}}>
+                            ❤️ {n.likes||0}
+                          </button>
+                          {(n.author===cu.username||cu.role==="admin")&&(
+                            <button onClick={()=>{const upd=(Array.isArray(newspapers)?newspapers:[]).filter(x=>x.id!==n.id);setNewspapers(upd);S.save("newspapers",upd);notify("🗑️ Haber silindi.");}} style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:20,padding:"0.2rem 0.45rem",color:"#EF4444",cursor:"pointer",fontSize:"0.7rem"}}>🗑️</button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -14101,6 +14802,14 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
         {currentPage==="casino"&&(
           <div>
             <div className="ministry-header">🎰 Kumarhane & Bahis</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
+              {[["💰",fmtMoney(cu.money||0),"Bakiye","#10B981"],["🎰",(cu.casinoWins||0),"Kazandım","#FFD700"],["📉",(cu.casinoLosses||0),"Kaybettim","#EF4444"]].map(([icon,val,lbl,clr])=>(
+                <div key={lbl} style={{background:`${clr}0a`,border:`1px solid ${clr}22`,borderRadius:10,padding:"0.45rem",textAlign:"center"}}>
+                  <div style={{fontSize:"0.8rem",fontWeight:900,color:clr}}>{icon} {val}</div>
+                  <div style={{fontSize:"0.55rem",color:"#555",textTransform:"uppercase",marginTop:"0.1rem"}}>{lbl}</div>
+                </div>
+              ))}
+            </div>
             <div style={{display:"flex",gap:"0.4rem",marginBottom:"1rem",flexWrap:"wrap"}}>
               {[{k:"spin",l:"🎡 Çark"},{k:"blackjack",l:"🃏 Blackjack"},{k:"poker",l:"♠️ Poker"},{k:"slots",l:"🎰 Slot"},{k:"horse",l:"🏇 Yarış"},{k:"sportbet",l:"⚽ Bahis"},{k:"logs",l:"📋 Geçmiş"}].map(t=>(
                 <button key={t.k} onClick={()=>setHorseTab(t.k)} style={{padding:"0.4rem 0.9rem",borderRadius:"2rem",border:`1px solid ${horseTab===t.k?"#FFD700":"rgba(255,255,255,0.1)"}`,background:horseTab===t.k?"rgba(255,215,0,0.12)":"transparent",color:horseTab===t.k?"#FFD700":"#bbb",cursor:"pointer",fontSize:"0.82rem",fontWeight:horseTab===t.k?700:400}}>{t.l}</button>
@@ -15143,6 +15852,15 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
           ].filter(x=>x.title.toLowerCase().includes(wSearch.toLowerCase())||x.desc.toLowerCase().includes(wSearch.toLowerCase()));
           return (
             <div style={{maxWidth:720,margin:"0 auto"}}>
+              <div className="ministry-header">📖 UnderState Wiki & Rehber</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
+                {[["📖",CATS.length,"Kategori","#60A5FA"],["🏙️",CITIES_IMG.length,"Şehir","#10B981"],["❓",10,"SSS","#A78BFA"],["🔍",filteredContent?SEARCH_MAP.length:0,"Arama Sonucu","#FFD700"]].map(([icon,val,lbl,clr])=>(
+                  <div key={lbl} style={{background:`${clr}0a`,border:`1px solid ${clr}22`,borderRadius:10,padding:"0.4rem",textAlign:"center"}}>
+                    <div style={{fontSize:"0.75rem",fontWeight:900,color:clr}}>{icon} {val}</div>
+                    <div style={{fontSize:"0.5rem",color:"#555",textTransform:"uppercase",marginTop:"0.1rem"}}>{lbl}</div>
+                  </div>
+                ))}
+              </div>
               {/* BAŞLIK */}
               <div style={{textAlign:"center",marginBottom:"1rem",padding:"1rem 0 0.5rem"}}>
                 <div style={{fontFamily:"Syne,sans-serif",fontSize:"1.4rem",fontWeight:900,letterSpacing:"-0.02em"}}>
@@ -15237,6 +15955,11 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
                         <Item icon="💡" title="Hayvancılık = Pasif Gelir" desc="Büyükbaş hayvan al, yem otomatik tükenir, süt/et sat. Günde ₺50K+ pasif kazanç mümkün." onClick={()=>setCurrentPage("farm")}/>
                         <Item icon="💡" title="Holding Çarpanı" desc="Holdingin cirosu arttıkça temettü çarpanı artar. Birden fazla sektöre yatırım yap." onClick={()=>setCurrentPage("holding")}/>
                         <Item icon="💡" title="Borsa'da Al-Düşük-Sat-Yüksek" desc="Fiyat dip yaparken al, zirve yakınında sat. Haberler fiyatları etkiler." onClick={()=>setCurrentPage("borsa")}/>
+                        <H2 c="#A78BFA">🌟 Öne Çıkmak İçin</H2>
+                        <Item icon="🗳️" title="Siyasete Gir" desc="Parti kur veya katıl. Seçimi kazan, şehrin yönetimine el at." onClick={()=>setCurrentPage("party")}/>
+                        <Item icon="🏆" title="Liderlik Tablosu" desc="Puan topla ve sıralamada üste çık. Ekonomi, siyaset ve eğitimde öne geç." onClick={()=>setCurrentPage("leaderboard")}/>
+                        <Item icon="⚡" title="Günlük Görevler" desc="Her gün yenilenen görevleri tamamla. Seri ödüller büyük bonus verir." onClick={()=>setCurrentPage("dailytasks")}/>
+                        <Item icon="🤝" title="İttifak & Güç Birliği" desc="Çete, aile veya parti olarak güç birliği yap. İttifak kur." onClick={()=>setCurrentPage("alliances")}/>
                       </div>
                     )}
 
@@ -15254,6 +15977,15 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
                         <Item icon="🎯" title="Çeşitlendirme" desc="Tek kaynağa bağımlı olma. İş + holding + hayvancılık kombinasyonu en stabil gelirdir."/>
                         <Item icon="⏰" title="Cooldown Yönetimi" desc="Tüm meslek cooldownlarını takip et. Birini beklerken diğeriyle çalış."/>
                         <Item icon="💸" title="Vergi Tasarrufu" desc="Şehir bütçesi oylamasına katıl, yüksek vergi tekliflerine 'hayır' oyu ver." onClick={()=>setCurrentPage("belediye")}/>
+                        <H2 c="#60A5FA">📈 Borsa & Piyasalar</H2>
+                        <Item icon="📈" title="Borsa" desc="Holding hisselerini al/sat. Kısa vadeli al-sat veya uzun vadeli temettü." onClick={()=>setCurrentPage("stock")}/>
+                        <Item icon="🌾" title="Emtia Piyasası" desc="Buğday, petrol, altın, demir al/sat. Fiyatlar 2 saatte bir güncellenir." onClick={()=>setCurrentPage("commodity")}/>
+                        <Item icon="🏷️" title="Açık Artırma" desc="Eşya ve crafting ürünlerini artırmaya çıkar. Diğer oyuncular teklif verir." onClick={()=>setCurrentPage("auction")}/>
+                        <div style={{display:"flex",gap:"0.4rem",marginTop:"0.75rem",flexWrap:"wrap"}}>
+                          <button className="btn btn-sm" onClick={()=>setCurrentPage("job")} style={{background:"rgba(16,185,129,0.12)",color:"#10B981",border:"1px solid rgba(16,185,129,0.3)"}}>💼 Meslekler →</button>
+                          <button className="btn btn-sm" onClick={()=>setCurrentPage("holdings")} style={{background:"rgba(16,185,129,0.12)",color:"#10B981",border:"1px solid rgba(16,185,129,0.3)"}}>🏢 Holdingler →</button>
+                          <button className="btn btn-sm" onClick={()=>setCurrentPage("stock")} style={{background:"rgba(96,165,250,0.12)",color:"#60A5FA",border:"1px solid rgba(96,165,250,0.3)"}}>📈 Borsa →</button>
+                        </div>
                       </div>
                     )}
 
@@ -15276,8 +16008,13 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
                             </div>
                           </div>
                         ))}
-                        <div style={{textAlign:"center",marginTop:"0.75rem"}}>
+                        <H2 c="#10B981">💡 Meslek İpuçları</H2>
+                        <Item icon="🔄" title="Cooldown Stratejisi" desc="Uzun cooldownlu işleri gece başlat. Kısa cooldownları gün içinde kullan."/>
+                        <Item icon="📈" title="Seviye Atlama" desc="Her işi tamamladığında deneyim kazanırsın. Seviye atladıkça daha iyi işler açılır."/>
+                        <Item icon="🎓" title="Eğitim Yatırımı" desc="EduPackage satın alarak premium mesleklere eriş. Maaşlar 2-5 kat yüksek."/>
+                        <div style={{display:"flex",gap:"0.4rem",marginTop:"0.75rem",flexWrap:"wrap"}}>
                           <button className="btn btn-sm" onClick={()=>setCurrentPage("job")} style={{background:"rgba(99,179,237,0.12)",color:"#63B3ED",border:"1px solid rgba(99,179,237,0.3)"}}>💼 Meslek Sayfasına Git →</button>
+                          <button className="btn btn-sm" onClick={()=>setCurrentPage("education")} style={{background:"rgba(16,185,129,0.12)",color:"#10B981",border:"1px solid rgba(16,185,129,0.3)"}}>🎓 Eğitim →</button>
                         </div>
                       </div>
                     )}
@@ -15291,12 +16028,19 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
                         <Item icon="🏙️" title="Belediye Başkanı" desc="Şehrin en üst yöneticisi. Bütçe teklifleri onar, şehir projeleri başlatır. Maaş: ₺40.000/ay." onClick={()=>setCurrentPage("belediye")}/>
                         <Item icon="🏛️" title="Vali" desc="İl yöneticisi. Bakanlık kararlarını uygular, güvenlik politikasını belirler. Maaş: ₺65.000/ay."/>
                         <Item icon="📜" title="Meclis Başkanı" desc="Yasa tasarılarını yönetir, oylama süreçlerini denetler. Maaş: ₺12.000/hafta."/>
+                        <Item icon="👑" title="Devlet Başkanı" desc="En üst makam. OHAL, kabine, referandum yetkisi. Seçimle veya atama ile gelir." onClick={()=>setCurrentPage("positionpanel")}/>
                         <H2 c="#8B5CF6">🗳️ Seçim Stratejisi</H2>
-                        <Item icon="📢" title="Kampanya" desc="Seçim öncesi kampanya başlat. Her mesajın puan maliyeti var ama oy çekici etki yapar."/>
-                        <Item icon="💰" title="Koalisyon" desc="Küçük partiler birleşerek büyük partilere karşı durum."/>
+                        <Item icon="📢" title="Kampanya Başlat" desc="Seçim öncesi kampanya başlat. Her mesajın puan maliyeti var ama oy çekici etki yapar." onClick={()=>setCurrentPage("election")}/>
+                        <Item icon="💰" title="Koalisyon" desc="Küçük partiler birleşerek büyük partilere karşı durabilir. İttifak kur, oy paylaş."/>
                         <Item icon="🎯" title="Şehir Odaklanması" desc="Büyük nüfuslu şehirler (İstanbul, Ankara) daha prestijli ama rekabet daha sert."/>
-                        <div style={{textAlign:"center",marginTop:"0.75rem"}}>
-                          <button className="btn btn-sm" onClick={()=>setCurrentPage("election")} style={{background:"rgba(139,92,246,0.12)",color:"#A78BFA",border:"1px solid rgba(139,92,246,0.3)"}}>🗳️ Seçim Sayfasına Git →</button>
+                        <Item icon="🤝" title="İttifak Sistemi" desc="Parti, çete, aile liderleri arasında ittifak kurulabilir. Saldırmazlık ve destek garantisi." onClick={()=>setCurrentPage("alliances")}/>
+                        <H2 c="#10B981">📜 Yasama Süreci</H2>
+                        <Item icon="📜" title="Yasa Teklifi" desc="Milletvekili veya üst makamlar yasa teklifi verebilir. Meclis oylamasına sunulur." onClick={()=>setCurrentPage("laws")}/>
+                        <Item icon="🗳️" title="Referandum" desc="Devlet Başkanı veya Meclis Başkanı referandum başlatabilir. Tüm oyuncular oy kullanır." onClick={()=>setCurrentPage("election")}/>
+                        <div style={{display:"flex",gap:"0.4rem",marginTop:"0.75rem",flexWrap:"wrap"}}>
+                          <button className="btn btn-sm" onClick={()=>setCurrentPage("election")} style={{background:"rgba(139,92,246,0.12)",color:"#A78BFA",border:"1px solid rgba(139,92,246,0.3)"}}>🗳️ Seçimler →</button>
+                          <button className="btn btn-sm" onClick={()=>setCurrentPage("party")} style={{background:"rgba(16,185,129,0.12)",color:"#10B981",border:"1px solid rgba(16,185,129,0.3)"}}>🤝 Partiler →</button>
+                          <button className="btn btn-sm" onClick={()=>setCurrentPage("laws")} style={{background:"rgba(255,215,0,0.12)",color:"#FFD700",border:"1px solid rgba(255,215,0,0.3)"}}>📜 Yasalar →</button>
                         </div>
                       </div>
                     )}
@@ -15338,12 +16082,21 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
                         <Item icon="🔫" title="Silah Edinme" desc="Kara piyasadan silah al. Silah tipi saldırı gücünü artırır."/>
                         <Item icon="💊" title="Yasadışı Ticaret" desc="Uyuşturucu, sahte para gibi yasadışı ticaret yüksek gelir ama yüksek risk taşır."/>
                         <Item icon="🕵️" title="İhbar Riski" desc="Yeraltı faaliyetleri ihbar edilebilir. Aktif polis/savcı olan şehirlerde risk artar."/>
+                        <Item icon="🔒" title="Tutuklama" desc="Polis tarafından yakalanırsan cezaevine gidersin. Avukat tutarsan daha hızlı çıkabilirsin."/>
+                        <Item icon="⚖️" title="Çete-Mahkeme Bağı" desc="Çeten mahkemeye çıkarılabilir. Lider seni temsil eder ya da avukat tutarsın." onClick={()=>setCurrentPage("court")}/>
+                        <H2>🤝 Aile Sistemi</H2>
+                        <Item icon="👪" title="Aile Kur" desc="Aileler hem legal hem illegal faaliyetler yapabilir. Çetelerden farklı olarak seçimlere etki ederler." onClick={()=>setCurrentPage("families")}/>
+                        <Item icon="👑" title="Aile Hiyerarşisi" desc="Lider, Lider Yardımcısı, Operasyon Yöneticisi, Aile Elçisi — her rolün farklı yetkileri var."/>
+                        <Item icon="🕵️" title="Aile İstihbaratı" desc="Lider rakip aileleri takip edebilir, ajan gönderebilir ve bölge analizi yapabilir."/>
+                        <Item icon="🤝" title="İttifaklar" desc="Aile, çete ve parti liderleri birbirleriyle ittifak kurabilir. Saldırmazlık garantisi sağlar." onClick={()=>setCurrentPage("alliances")}/>
                         <div style={{padding:"0.6rem",background:"rgba(239,68,68,0.05)",borderRadius:8,border:"1px solid rgba(239,68,68,0.15)",marginTop:"0.5rem"}}>
                           <div style={{fontSize:"0.75rem",color:"#F87171",fontWeight:600}}>⚠️ Uyarı</div>
-                          <div style={{fontSize:"0.72rem",color:"#8899AA",marginTop:"0.15rem"}}>Yeraltı faaliyetleri mahkeme sürecine yol açabilir. Riskleri dikkate al.</div>
+                          <div style={{fontSize:"0.72rem",color:"#8899AA",marginTop:"0.15rem"}}>Yeraltı faaliyetleri mahkeme sürecine yol açabilir. Riskleri dikkate al. Aile ve çete üyeliği aynı anda olamaz.</div>
                         </div>
-                        <div style={{textAlign:"center",marginTop:"0.75rem"}}>
-                          <button className="btn btn-sm" onClick={()=>setCurrentPage("crime")} style={{background:"rgba(239,68,68,0.12)",color:"#EF4444",border:"1px solid rgba(239,68,68,0.3)"}}>🔫 Yeraltı Sayfasına Git →</button>
+                        <div style={{display:"flex",gap:"0.4rem",marginTop:"0.75rem",flexWrap:"wrap"}}>
+                          <button className="btn btn-sm" onClick={()=>setCurrentPage("crime")} style={{background:"rgba(239,68,68,0.12)",color:"#EF4444",border:"1px solid rgba(239,68,68,0.3)"}}>🔫 Yeraltı →</button>
+                          <button className="btn btn-sm" onClick={()=>setCurrentPage("gangs")} style={{background:"rgba(239,68,68,0.12)",color:"#EF4444",border:"1px solid rgba(239,68,68,0.3)"}}>🔫 Çeteler →</button>
+                          <button className="btn btn-sm" onClick={()=>setCurrentPage("families")} style={{background:"rgba(96,165,250,0.12)",color:"#60A5FA",border:"1px solid rgba(96,165,250,0.3)"}}>👪 Aileler →</button>
                         </div>
                       </div>
                     )}
@@ -15363,6 +16116,11 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
                           {q:"Yeraltı faaliyetleri yasal mı?",a:"Oyun içinde yasadışı — polis/savcı seni şikayet edebilir, mahkemeye çıkarılabilirsin. Risk-ödül dengesi kendi stratejin."},
                           {q:"Kendi partimi kurabilir miyim?",a:"Evet! Siyaset sayfasından parti kur. İsim, renk ve ideoloji belirle. Üye topla, seçime gir."},
                           {q:"Borsa'da nasıl para kazanırım?",a:"Düşük fiyata al, yüksekken sat. Temettü için uzun vadeli tut. Haberleri takip et, fiyatlar etkilenir."},
+                          {q:"Çete mi, aile mi kurmalıyım?",a:"Çeteler daha saldırgan, silah odaklı. Aileler hem legal hem illegal yapabilir ve seçimlere etki eder. İkisi aynı anda olmaz."},
+                          {q:"İttifak nasıl kurulur?",a:"Sadece çete, aile veya parti liderleri ittifak kurabilir. Alliances sayfasından teklif gönderilir."},
+                          {q:"Cezaevinden nasıl çıkarım?",a:"Avukat tut ve mahkemede beraat et. Ceza süresi dolduğunda otomatik çıkarsın. Admin af da verebilir."},
+                          {q:"Günlük görevleri nerede yapabilirim?",a:"Sosyal menüden Günlük Görevler sayfasına git. Her gün yenilenen görevleri tamamla, ödül kazan. Seri yaparsan bonus alırsın."},
+                          {q:"Eğitim puanı ne işe yarar?",a:"Eğitim puanı sıralamada üst sıralara taşır. Meslek seçimini genişletir ve özel mesleklere erişim sağlar."},
                         ].map((item,i)=>(
                           <div key={i} style={{marginBottom:"0.5rem",padding:"0.5rem 0.7rem",background:"rgba(255,255,255,0.03)",borderRadius:8,border:"1px solid rgba(255,255,255,0.07)"}}>
                             <div style={{fontWeight:700,fontSize:"0.8rem",color:"#63B3ED",marginBottom:"0.25rem"}}>❓ {item.q}</div>
@@ -15383,13 +16141,25 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
         {currentPage==="dm"&&(
           <div className="content">
             <div className="ministry-header">💬 Özel Mesajlar</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
+              {(()=>{
+                const convos = Object.keys(privateChats).filter(k=>k.includes(cu.username));
+                const totalUnread = convos.reduce((s,k)=>{const msgs=privateChats[k]||[];return s+msgs.filter(m=>m.to===cu.username&&!m.read).length;},0);
+                return [["💬",convos.length,"Sohbet","#60A5FA"],["📬",totalUnread,"Okunmamış","#EF4444"],["👥",(Array.isArray(allUsers)?allUsers:[]).filter(u=>u.username!==cu.username).length,"Kullanıcı","#10B981"]].map(([icon,val,lbl,clr])=>(
+                  <div key={lbl} style={{background:`${clr}0a`,border:`1px solid ${clr}22`,borderRadius:10,padding:"0.45rem",textAlign:"center"}}>
+                    <div style={{fontSize:"0.8rem",fontWeight:900,color:clr}}>{icon} {val}</div>
+                    <div style={{fontSize:"0.55rem",color:"#555",textTransform:"uppercase",marginTop:"0.1rem"}}>{lbl}</div>
+                  </div>
+                ));
+              })()}
+            </div>
             {(()=>{
               const dmKey = (a,b)=>[a,b].sort().join("__");
               const getConvo = (other)=>privateChats[dmKey(cu.username,other)]||[];
               const sendDm = ()=>{
                 if(!dmMsgInput.trim()||!dmActivePerson) return;
                 const k = dmKey(cu.username, dmActivePerson);
-                const msg = {id:Date.now(), sender:cu.username, text:dmMsgInput, time:new Date().toLocaleTimeString("tr-TR")};
+                const msg = {id:Date.now(), sender:cu.username, text:dmMsgInput, time:new Date().toLocaleTimeString("tr-TR"), read:false};
                 setPrivateChats(prev=>({...prev,[k]:[...(prev[k]||[]),msg].slice(-100)}));
                 setDmMsgInput("");
               };
@@ -15578,7 +16348,20 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
         {currentPage==="pvp"&&(
           <div>
             <div className="ministry-header">⚔️ PvP Savaş Arenası</div>
-            <div className="info-box" style={{marginBottom:"1rem"}}>⚔️ Diğer oyuncularla savaşabilirsin. Kazanırsan para ve liyakat çalırsın. Kendi şehrindeki oyuncular ile savaşabilirsin.</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.5rem",marginBottom:"1rem"}}>
+              {[
+                {icon:"⚔️",label:"Savaşlar",val:(cu.pvpWins||0)+(cu.pvpLosses||0),c:"#F59E0B"},
+                {icon:"🏆",label:"Galibiyet",val:cu.pvpWins||0,c:"#10B981"},
+                {icon:"💀",label:"Mağlubiyet",val:cu.pvpLosses||0,c:"#EF4444"},
+              ].map(s=>(
+                <div key={s.label} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"0.65rem",textAlign:"center"}}>
+                  <div style={{fontSize:"1rem"}}>{s.icon}</div>
+                  <div style={{fontWeight:800,fontSize:"1rem",color:s.c,fontFamily:"Syne,sans-serif"}}>{s.val}</div>
+                  <div style={{fontSize:"0.6rem",color:"#555"}}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+            <div className="info-box" style={{marginBottom:"1rem",borderColor:"rgba(239,68,68,0.2)",background:"rgba(239,68,68,0.04)"}}>⚔️ Diğer oyuncularla savaşabilirsin. Kazanırsan rakibin parasının %10'unu ve 5 liyakat puanı çalırsın. 5 dakika cooldown. Aynı şehirdeki oyuncularla savaşabilirsin.</div>
             <div className="card" style={{marginBottom:"1rem"}}>
               <div className="card-title" style={{color:"#EF4444"}}>⚔️ Savaş Başlat</div>
               <div style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>Hedef seç ve saldır. Her savaşın 5 dakika cooldown'u vardır.</div>
@@ -15639,9 +16422,19 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
         {currentPage==="prison"&&(
           <div>
             <div className="ministry-header">🔒 Hapishane Sistemi</div>
-            <div className="grid-2" style={{marginBottom:"1rem"}}>
-              <div className="stat-box"><div className="val" style={{color:"#EF4444"}}>{prisonList.filter(p=>p.active).length}</div><div className="lbl">Mahkum</div></div>
-              <div className="stat-box"><div className="val" style={{color:"#FFD700"}}>{prisonList.filter(p=>p.active&&p.city===cu.city).length}</div><div className="lbl">Şehirde</div></div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"0.4rem",marginBottom:"1rem"}}>
+              {[
+                {icon:"🔒",label:"Toplam Mahkum",val:prisonList.filter(p=>p.active).length,c:"#EF4444"},
+                {icon:"🏙️",label:"Şehirde",val:prisonList.filter(p=>p.active&&p.city===cu.city).length,c:"#F59E0B"},
+                {icon:"✅",label:"Serbest Kalan",val:prisonList.filter(p=>!p.active).length,c:"#10B981"},
+                {icon:"⚖️",label:"Ortalama Süre",val:`${prisonList.filter(p=>p.active).length>0?Math.round(prisonList.filter(p=>p.active).reduce((s,p)=>s+Math.max(0,Math.ceil((p.releaseAt-now)/60000)),0)/Math.max(1,prisonList.filter(p=>p.active).length)):0}dk`,c:"#60A5FA"},
+              ].map(s=>(
+                <div key={s.label} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:10,padding:"0.5rem",textAlign:"center"}}>
+                  <div style={{fontSize:"0.8rem"}}>{s.icon}</div>
+                  <div style={{fontWeight:800,fontSize:"0.9rem",color:s.c,fontFamily:"Syne,sans-serif"}}>{s.val}</div>
+                  <div style={{fontSize:"0.55rem",color:"#444"}}>{s.label}</div>
+                </div>
+              ))}
             </div>
             {/* Kendisi hapiste mi? */}
             {(()=>{
@@ -16638,8 +17431,23 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
                       <div className="card">
                         <div className="card-title" style={{color:"#F59E0B"}}>⚽ Lig Maçı Oyna</div>
                         <p style={{fontSize:"0.8rem",color:"#bbb",marginBottom:"0.75rem"}}>Diğer kulüplerle maç yap. Kazanınca puan, para ve taraftar kazan!</p>
+                        {(()=>{
+                          const LEAGUE1_MAX = 8;
+                          const sorted2 = [...footballClubs].sort((a2,b2)=>(b2.points||0)-(a2.points||0));
+                          const league1Ids = new Set(sorted2.slice(0,Math.min(LEAGUE1_MAX,sorted2.length)).map(c=>c.id));
+                          const myInLeague1 = league1Ids.has(myClub.id);
+                          const sameLeagueOpps = footballClubs.filter(c=>c.id!==myClub.id&&(myInLeague1?league1Ids.has(c.id):!league1Ids.has(c.id)));
+                          if(sameLeagueOpps.length===0) return <div style={{color:"#aaa",textAlign:"center",padding:"0.5rem",fontSize:"0.82rem"}}>Aynı ligde rakip yok. {myInLeague1?"2. Lig takımlarıyla maç yapamazsın.":"1. Lig takımlarıyla maç yapamazsın."}</div>;
+                          return null;
+                        })()}
                         {footballClubs.filter(c=>c.id!==myClub.id).length===0&&<div style={{color:"#aaa",textAlign:"center",padding:"0.5rem"}}>Rakip kulüp yok. Başka oyuncular kulüp kurmasını bekle!</div>}
-                        {footballClubs.filter(c=>c.id!==myClub.id).map(opp=>{
+                        {(()=>{
+                          const LEAGUE1_MAX = 8;
+                          const sorted2 = [...footballClubs].sort((a2,b2)=>(b2.points||0)-(a2.points||0));
+                          const league1Ids = new Set(sorted2.slice(0,Math.min(LEAGUE1_MAX,sorted2.length)).map(c=>c.id));
+                          const myInLeague1 = league1Ids.has(myClub.id);
+                          return footballClubs.filter(c=>c.id!==myClub.id&&(myInLeague1?league1Ids.has(c.id):!league1Ids.has(c.id)));
+                        })().map(opp=>{
                           const myStr=myClub.attack+myClub.defense+(myClub.players||[]).reduce((s,p)=>s+p.rating,0)/10;
                           const oppStr=opp.attack+opp.defense+(opp.players||[]).reduce((s,p)=>s+p.rating,0)/10;
                           const winP=Math.round(Math.min(80,Math.max(20,(myStr/(myStr+oppStr))*100)));
@@ -16700,40 +17508,77 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
               );
             })()}
 
-            {/* LİG TABLOSU */}
-            {footballTab==="league"&&(
-              <div className="card">
-                <div className="card-title">🏆 Lig Tablosu</div>
-                {footballClubs.length===0&&<div style={{textAlign:"center",color:"#aaa",padding:"1rem"}}>Henüz kulüp yok.</div>}
-                <div style={{overflowX:"auto"}}>
-                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:"0.82rem"}}>
-                    <thead>
-                      <tr style={{borderBottom:"1px solid rgba(255,255,255,0.1)"}}>
-                        {["#","Kulüp","Şehir","O","G","B","M","AG","YG","Puan"].map(h=>(
-                          <th key={h} style={{padding:"0.4rem 0.5rem",textAlign:h==="#"||h==="O"||h==="G"||h==="B"||h==="M"||h==="Puan"?"center":"left",color:"#bbb",fontWeight:600}}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[...footballClubs].sort((a,b)=>(b.points||0)-(a.points||0)).map((c,i)=>(
-                        <tr key={c.id} style={{borderBottom:"1px solid rgba(255,255,255,0.04)",background:c.owner===cu.username?"rgba(16,185,129,0.06)":"transparent"}}>
-                          <td style={{padding:"0.45rem 0.5rem",textAlign:"center",color:i===0?"#FFD700":i===1?"#CCC":i===2?"#CD7F32":"#bbb",fontWeight:700}}>{i+1}</td>
-                          <td style={{padding:"0.45rem 0.5rem",fontWeight:700,color:c.color||"#10B981"}}>{c.name}</td>
-                          <td style={{padding:"0.45rem 0.5rem",color:"#bbb",fontSize:"0.75rem"}}>{c.city}</td>
-                          <td style={{padding:"0.45rem 0.5rem",textAlign:"center"}}>{(c.wins||0)+(c.draws||0)+(c.losses||0)}</td>
-                          <td style={{padding:"0.45rem 0.5rem",textAlign:"center",color:"#10B981"}}>{c.wins||0}</td>
-                          <td style={{padding:"0.45rem 0.5rem",textAlign:"center",color:"#F59E0B"}}>{c.draws||0}</td>
-                          <td style={{padding:"0.45rem 0.5rem",textAlign:"center",color:"#EF4444"}}>{c.losses||0}</td>
-                          <td style={{padding:"0.45rem 0.5rem",textAlign:"center",color:"#60A5FA"}}>{c.goals||0}</td>
-                          <td style={{padding:"0.45rem 0.5rem",textAlign:"center",color:"#aaa"}}>{c.conceded||0}</td>
-                          <td style={{padding:"0.45rem 0.5rem",textAlign:"center",fontWeight:700,color:"#FFD700"}}>{c.points||0}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            {/* LİG TABLOSU - 2 Lig Sistemi */}
+            {footballTab==="league"&&(()=>{
+              const LEAGUE1_MAX = 8; // Max teams in 1st league
+              const sorted = [...footballClubs].sort((a,b)=>(b.points||0)-(a.points||0));
+              // Assign leagues: top LEAGUE1_MAX in league 1, rest in league 2
+              const league1Clubs = sorted.slice(0, Math.min(LEAGUE1_MAX, sorted.length));
+              const league2Clubs = sorted.slice(LEAGUE1_MAX);
+              const myClub = footballClubs.find(c=>c.owner===cu.username);
+              const myLeague = myClub ? (league1Clubs.find(c=>c.id===myClub.id) ? 1 : 2) : null;
+              const LeagueTable = ({clubs, leagueNum, color}) => (
+                <div className="card" style={{marginBottom:"1rem",borderColor:`rgba(${color},0.3)`}}>
+                  <div style={{display:"flex",alignItems:"center",gap:"0.5rem",marginBottom:"0.75rem"}}>
+                    <span style={{fontSize:"1.4rem"}}>{leagueNum===1?"🥇":"🥈"}</span>
+                    <div>
+                      <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:"0.95rem",color:`rgb(${color})`}}>{leagueNum===1?"1. Lig — Süper Lig":"2. Lig — Lig B"}</div>
+                      <div style={{fontSize:"0.65rem",color:"#555"}}>{clubs.length} takım · {leagueNum===1?"En üst seviye":"İkinci seviye"}</div>
+                    </div>
+                    {leagueNum===1&&clubs.length>=LEAGUE1_MAX&&<span style={{marginLeft:"auto",background:"rgba(239,68,68,0.15)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:6,padding:"0.15rem 0.5rem",fontSize:"0.62rem",color:"#EF4444",fontWeight:800}}>LİG DOLU</span>}
+                  </div>
+                  {clubs.length===0 ? (
+                    <div style={{textAlign:"center",color:"#555",padding:"1rem",fontSize:"0.82rem"}}>Bu ligde henüz takım yok.</div>
+                  ) : (
+                    <div style={{overflowX:"auto"}}>
+                      <table style={{width:"100%",borderCollapse:"collapse",fontSize:"0.8rem"}}>
+                        <thead>
+                          <tr style={{borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
+                            {["#","Takım","G","B","M","AG","YG","Puan"].map(h=>(
+                              <th key={h} style={{padding:"0.3rem 0.4rem",textAlign:h==="Takım"?"left":"center",color:"#666",fontWeight:600,fontSize:"0.7rem"}}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {clubs.map((c,i)=>(
+                            <tr key={c.id} style={{borderBottom:"1px solid rgba(255,255,255,0.04)",background:c.owner===cu.username?"rgba(16,185,129,0.06)":"transparent"}}>
+                              <td style={{padding:"0.4rem",textAlign:"center",color:i===0?"#FFD700":i===1?"#CCC":i===2?"#CD7F32":"#bbb",fontWeight:700,fontSize:"0.75rem"}}>{i+1}</td>
+                              <td style={{padding:"0.4rem",fontWeight:700,color:c.color||"#10B981",fontSize:"0.8rem"}}>
+                                {c.owner===cu.username&&<span style={{fontSize:"0.55rem",background:"rgba(16,185,129,0.2)",color:"#10B981",padding:"0 3px",borderRadius:3,marginRight:4}}>SEN</span>}
+                                {c.name}
+                              </td>
+                              <td style={{padding:"0.4rem",textAlign:"center",color:"#10B981"}}>{c.wins||0}</td>
+                              <td style={{padding:"0.4rem",textAlign:"center",color:"#F59E0B"}}>{c.draws||0}</td>
+                              <td style={{padding:"0.4rem",textAlign:"center",color:"#EF4444"}}>{c.losses||0}</td>
+                              <td style={{padding:"0.4rem",textAlign:"center",color:"#60A5FA"}}>{c.goals||0}</td>
+                              <td style={{padding:"0.4rem",textAlign:"center",color:"#aaa"}}>{c.conceded||0}</td>
+                              <td style={{padding:"0.4rem",textAlign:"center",fontWeight:900,color:"#FFD700"}}>{c.points||0}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+              return (
+                <div>
+                  {myLeague&&<div style={{background:"rgba(16,185,129,0.06)",border:"1px solid rgba(16,185,129,0.2)",borderRadius:10,padding:"0.5rem 0.85rem",marginBottom:"0.75rem",fontSize:"0.78rem",color:"#10B981",fontWeight:700}}>
+                    ⚽ {myClub?.name} — {myLeague===1?"1. Lig'desin 🥇":"2. Lig'desin 🥈"}{myLeague===2?" (Terfi için 1. Lig'e yüksel!)":""}
+                  </div>}
+                  <div style={{background:"rgba(255,200,50,0.05)",border:"1px solid rgba(255,200,50,0.15)",borderRadius:10,padding:"0.55rem 0.85rem",marginBottom:"1rem",fontSize:"0.72rem",color:"#888"}}>
+                    ℹ️ 1. Lig dolduğunda (8 takım) yeni takımlar 2. Lig'e eklenir. İki lig birbirleriyle maç yapamaz.
+                  </div>
+                  <LeagueTable clubs={league1Clubs} leagueNum={1} color="255,200,50"/>
+                  {league2Clubs.length>0&&<LeagueTable clubs={league2Clubs} leagueNum={2} color="148,163,184"/>}
+                  {league2Clubs.length===0&&footballClubs.length>0&&(
+                    <div style={{background:"rgba(255,255,255,0.02)",border:"1px dashed rgba(255,255,255,0.1)",borderRadius:10,padding:"1rem",textAlign:"center",color:"#444",fontSize:"0.78rem"}}>
+                      2. Lig şu an boş. 1. Lig 8 takıma ulaşınca 2. Lig otomatik oluşur.
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* MAÇLAR */}
             {footballTab==="matches"&&(
@@ -17491,6 +18336,15 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
         )}
         {currentPage==="army"&&(
           <div>
+            <div className="ministry-header">🪖 Türk Ordusu</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
+              {[["⚔️",cu.askerPuan||0,"Asker Puan","#EF4444"],["🏅",cu.meritPoints||0,"Madalya","#F59E0B"],["⭐",cu.score||0,"Skor","#A78BFA"],["💰",fmtMoney(cu.money||0),"Bakiye","#10B981"]].map(([icon,val,lbl,clr])=>(
+                <div key={lbl} style={{background:`${clr}0a`,border:`1px solid ${clr}22`,borderRadius:10,padding:"0.45rem",textAlign:"center"}}>
+                  <div style={{fontSize:"0.75rem",fontWeight:900,color:clr}}>{icon} {val}</div>
+                  <div style={{fontSize:"0.55rem",color:"#555",textTransform:"uppercase",marginTop:"0.1rem"}}>{lbl}</div>
+                </div>
+              ))}
+            </div>
             <div style={{background:"linear-gradient(135deg,rgba(239,68,68,0.12),rgba(185,28,28,0.06))",borderBottom:"2px solid rgba(239,68,68,0.25)",padding:"1rem 1.2rem",marginBottom:"0.5rem",display:"flex",alignItems:"center",gap:"0.75rem"}}>
               <div style={{width:48,height:48,background:"linear-gradient(135deg,#EF4444,#B91C1C)",borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.5rem",boxShadow:"0 4px 12px rgba(239,68,68,0.3)"}}>⚔️</div>
               <div>
@@ -18110,8 +18964,17 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
           const getFriendUser=function(f){const uname=f.from===cu.username?f.to:f.from;return(Array.isArray(allUsers)?allUsers:[]).find(function(u){return u.username===uname;})||{username:uname};};
           return(
           <div style={{maxWidth:500,margin:"0 auto"}}>
+            <div className="ministry-header">🤝 Arkadaş Listesi</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
+              {[["👥",accepted.length,"Arkadaş","#10B981"],["📨",received.length,"Gelen İstek","#EF4444"],["📤",sentReqs.length,"Gönderilen","#60A5FA"]].map(([icon,val,lbl,clr])=>(
+                <div key={lbl} style={{background:`${clr}0a`,border:`1px solid ${clr}22`,borderRadius:10,padding:"0.45rem",textAlign:"center"}}>
+                  <div style={{fontSize:"0.85rem",fontWeight:900,color:clr}}>{icon} {val}</div>
+                  <div style={{fontSize:"0.55rem",color:"#555",textTransform:"uppercase",marginTop:"0.1rem"}}>{lbl}</div>
+                </div>
+              ))}
+            </div>
             <div style={{display:"flex",alignItems:"center",gap:"0.75rem",marginBottom:"1rem"}}>
-              <div style={{fontFamily:"Syne,sans-serif",fontSize:"1.1rem",fontWeight:700}}>🤝 Arkadaşlar</div>
+              <div style={{fontFamily:"Syne,sans-serif",fontSize:"1rem",fontWeight:700}}>Arkadaşlarım</div>
               {accepted.length>0&&<span style={{fontSize:"0.72rem",color:"#888"}}>{accepted.length} arkadaş</span>}
               {received.length>0&&<span style={{background:"#EF4444",color:"#fff",fontSize:"0.6rem",padding:"1px 8px",borderRadius:10,fontWeight:900}}>{received.length} istek</span>}
             </div>
@@ -18557,7 +19420,15 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
             const policeQuotaFull = activePoliceCount >= POLICE_QUOTA;
             return (
               <div>
-                <div className="ministry-header">📝 Sınav Sistemi</div>
+                <div className="ministry-header">📝 Sınav & Atama Sistemi</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
+                {[["📝",SINAV_TIPLERI.length,"Sınav Türü","#60A5FA"],["✅",Object.values(prevExam||{}).filter(s=>s&&s.score>=65).length,"Geçilen","#10B981"],["🔴",activePoliceCount+"/"+POLICE_QUOTA,"Polis Kadro","#EF4444"]].map(([icon,val,lbl,clr])=>(
+                  <div key={lbl} style={{background:`${clr}0a`,border:`1px solid ${clr}22`,borderRadius:10,padding:"0.45rem",textAlign:"center"}}>
+                    <div style={{fontSize:"0.8rem",fontWeight:900,color:clr}}>{icon} {val}</div>
+                    <div style={{fontSize:"0.55rem",color:"#555",textTransform:"uppercase",marginTop:"0.1rem"}}>{lbl}</div>
+                  </div>
+                ))}
+              </div>
                 <div className="info-box" style={{marginBottom:"1rem"}}>
                   🎓 Her sınava <strong>günde bir kez</strong> girebilirsiniz. Geçemezseniz 24 saat beklemeniz gerekir. Sınavı geçenler İçişleri Bakanlığı'na başvurabilir.
                 </div>
@@ -19751,7 +20622,15 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
         };
         return (
           <div className="content">
-            <div className="ministry-header">📣 Seçim Kampanya Posterleri</div>
+            <div className="ministry-header">📣 Seçim Kampanya Sistemi</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
+              {[["📣",(campaignPosters||[]).length,"Toplam Poster","#A78BFA"],["👤",myCampaign?"Var":"Yok","Posterim","#10B981"],["🗳️",(Array.isArray(campaignPosters)?campaignPosters:[]).reduce((s,p)=>s+(p.likes||0),0),"Toplam Beğeni","#FFD700"]].map(([icon,val,lbl,clr])=>(
+                <div key={lbl} style={{background:`${clr}0a`,border:`1px solid ${clr}22`,borderRadius:10,padding:"0.45rem",textAlign:"center"}}>
+                  <div style={{fontSize:"0.8rem",fontWeight:900,color:clr}}>{icon} {val}</div>
+                  <div style={{fontSize:"0.55rem",color:"#555",textTransform:"uppercase",marginTop:"0.1rem"}}>{lbl}</div>
+                </div>
+              ))}
+            </div>
             {/* Poster oluştur */}
             <div className="card card-gold" style={{marginBottom:"1rem"}}>
               <div className="card-title">✏️ Kendi Posterini Oluştur</div>
@@ -20161,6 +21040,102 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
       )}
 
       {/* ===== NPC AI OYUNCULAR ===== */}
+      {/* ===== ÇEVRİMİÇİ OYUNCULAR / ÜYELER ===== */}
+      {currentPage==="members"&&cu&&(()=>{
+        const realUsers = allUsers.filter(u=>!u.isBot&&u.role!=="bot");
+        const onlineList = realUsers.filter(u=>u.online);
+        const offlineList = realUsers.filter(u=>!u.online);
+        const [memberSearch, setMemberSearch] = React.useState("");
+        const filtered = realUsers.filter(u=>memberSearch?u.username.toLowerCase().includes(memberSearch.toLowerCase()):true);
+        const filteredOnline = filtered.filter(u=>u.online);
+        const filteredOffline = filtered.filter(u=>!u.online);
+        return (
+          <div className="content">
+            <div className="ministry-header">👥 Oyuncular</div>
+            {/* Stats */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.5rem",marginBottom:"1rem"}}>
+              {[
+                {l:"Toplam",v:realUsers.length,c:"#60A5FA",icon:"👥"},
+                {l:"Çevrimiçi",v:onlineList.length,c:"#10B981",icon:"🟢"},
+                {l:"Çevrimdışı",v:offlineList.length,c:"#555",icon:"⚫"},
+              ].map(s=>(
+                <div key={s.l} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,padding:"0.65rem",textAlign:"center"}}>
+                  <div style={{fontSize:"1rem",marginBottom:"0.1rem"}}>{s.icon}</div>
+                  <div style={{fontWeight:800,fontSize:"1.1rem",color:s.c,fontFamily:"Syne,sans-serif"}}>{s.v}</div>
+                  <div style={{fontSize:"0.6rem",color:"#555",marginTop:"0.1rem"}}>{s.l}</div>
+                </div>
+              ))}
+            </div>
+            {/* Search */}
+            <div style={{position:"relative",marginBottom:"1rem"}}>
+              <input value={memberSearch} onChange={e=>setMemberSearch(e.target.value)} placeholder="Oyuncu ara..."
+                style={{width:"100%",boxSizing:"border-box",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:10,padding:"0.6rem 1rem 0.6rem 2.4rem",color:"#fff",fontSize:"0.82rem",outline:"none"}}/>
+              <span style={{position:"absolute",left:"0.7rem",top:"50%",transform:"translateY(-50%)",fontSize:"1rem",opacity:0.5}}>🔍</span>
+              {memberSearch&&<button onClick={()=>setMemberSearch("")} style={{position:"absolute",right:"0.7rem",top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"#888",cursor:"pointer",fontSize:"0.9rem"}}>✕</button>}
+            </div>
+            {/* Online players */}
+            {filteredOnline.length>0&&(
+              <div style={{marginBottom:"1rem"}}>
+                <div style={{display:"flex",alignItems:"center",gap:"0.5rem",marginBottom:"0.5rem"}}>
+                  <span style={{width:8,height:8,borderRadius:"50%",background:"#10B981",display:"inline-block",boxShadow:"0 0 6px #10B981"}}/>
+                  <span style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:"0.88rem",color:"#10B981"}}>ÇEVRİMİÇİ — {filteredOnline.length} oyuncu</span>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:"0.4rem"}}>
+                  {filteredOnline.map(u=>(
+                    <div key={u.id} onClick={()=>{setViewingProfile(u);setCurrentPage("playerProfile");}}
+                      style={{display:"flex",alignItems:"center",gap:"0.75rem",padding:"0.6rem 0.85rem",background:"rgba(16,185,129,0.05)",border:"1px solid rgba(16,185,129,0.15)",borderRadius:12,cursor:"pointer"}}>
+                      <div style={{position:"relative",flexShrink:0}}>
+                        {u.profilePhoto?<img src={u.profilePhoto} style={{width:36,height:36,borderRadius:"50%",objectFit:"cover"}}/>
+                          :<div style={{width:36,height:36,borderRadius:"50%",background:u.gender==="kadin"?"linear-gradient(135deg,#EC4899,#9333EA)":"linear-gradient(135deg,#3B82F6,#1D4ED8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"0.9rem"}}>{u.gender==="kadin"?"👩":"👨"}</div>}
+                        <span style={{position:"absolute",bottom:0,right:0,width:10,height:10,borderRadius:"50%",background:"#10B981",border:"2px solid #0A0F1A",boxShadow:"0 0 4px #10B981"}}/>
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontWeight:700,fontSize:"0.88rem",color:"#fff",display:"flex",alignItems:"center",gap:"0.4rem"}}>
+                          {u.username}
+                          {u.role==="admin"&&<span style={{fontSize:"0.55rem",background:"rgba(239,68,68,0.2)",color:"#EF4444",padding:"0 4px",borderRadius:3,fontWeight:900}}>ADMİN</span>}
+                        </div>
+                        <div style={{fontSize:"0.68rem",color:"#555",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.position||"Vatandaş"} · {u.city||"—"}</div>
+                      </div>
+                      <div style={{textAlign:"right",flexShrink:0}}>
+                        <div style={{fontSize:"0.65rem",color:"#10B981",fontWeight:700}}>● Çevrimiçi</div>
+                        <div style={{fontSize:"0.62rem",color:"#555"}}>Lv.{u.level||1}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Offline players */}
+            {filteredOffline.length>0&&(
+              <div>
+                <div style={{display:"flex",alignItems:"center",gap:"0.5rem",marginBottom:"0.5rem"}}>
+                  <span style={{width:8,height:8,borderRadius:"50%",background:"#555",display:"inline-block"}}/>
+                  <span style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:"0.88rem",color:"#555"}}>ÇEVRİMDIŞI — {filteredOffline.length} oyuncu</span>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:"0.35rem"}}>
+                  {filteredOffline.slice(0,30).map(u=>(
+                    <div key={u.id} onClick={()=>{setViewingProfile(u);setCurrentPage("playerProfile");}}
+                      style={{display:"flex",alignItems:"center",gap:"0.75rem",padding:"0.5rem 0.85rem",background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:12,cursor:"pointer",opacity:0.75}}>
+                      <div style={{position:"relative",flexShrink:0}}>
+                        {u.profilePhoto?<img src={u.profilePhoto} style={{width:32,height:32,borderRadius:"50%",objectFit:"cover"}}/>
+                          :<div style={{width:32,height:32,borderRadius:"50%",background:"rgba(255,255,255,0.07)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"0.85rem"}}>👤</div>}
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontWeight:600,fontSize:"0.82rem",color:"#aaa"}}>{u.username}</div>
+                        <div style={{fontSize:"0.65rem",color:"#444",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.position||"Vatandaş"} · {u.city||"—"}</div>
+                      </div>
+                      <div style={{fontSize:"0.62rem",color:"#444",flexShrink:0}}>Lv.{u.level||1}</div>
+                    </div>
+                  ))}
+                  {filteredOffline.length>30&&<div style={{textAlign:"center",color:"#444",fontSize:"0.75rem",padding:"0.5rem"}}>+{filteredOffline.length-30} daha...</div>}
+                </div>
+              </div>
+            )}
+            {filtered.length===0&&<div style={{textAlign:"center",color:"#555",padding:"3rem",fontSize:"0.85rem"}}>"{memberSearch}" için sonuç bulunamadı.</div>}
+          </div>
+        );
+      })()}
+
       {currentPage==="npcplayers"&&cu&&(()=>{
         const [selectedNpc, setSelectedNpc] = React.useState(null);
         const [npcAction, setNpcAction] = React.useState(null);
@@ -20460,9 +21435,29 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
           })()}
 
           {socialTab==="trending"&&(()=>{
+            // Extract hashtags from posts
+            const hashtagCounts = {};
+            (Array.isArray(socialPosts)?socialPosts:[]).forEach(p=>{
+              const tags = (p.text||"").match(/#\w+/g)||[];
+              tags.forEach(t=>{ hashtagCounts[t]=(hashtagCounts[t]||0)+1; });
+            });
+            const topTags = Object.entries(hashtagCounts).sort((a,b)=>b[1]-a[1]).slice(0,8);
             const top=[...socialPosts].sort((a,b)=>(b.likes?.length||0)+(b.comments?.length||0)*2-(a.likes?.length||0)-(a.comments?.length||0)*2).slice(0,10);
             if(top.length===0)return(<div className="card" style={{textAlign:"center",color:"#aaa",padding:"2rem"}}>Henüz trend içerik yok.</div>);
-            return top.map((p,i)=>(
+            return (<div>
+            {topTags.length>0&&(
+              <div style={{background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"0.75rem",marginBottom:"0.75rem"}}>
+                <div style={{fontSize:"0.75rem",color:"#FFD700",fontWeight:700,marginBottom:"0.5rem"}}>🔥 Gündem Etiketleri</div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:"0.35rem"}}>
+                  {topTags.map(([tag,count])=>(
+                    <span key={tag} style={{background:"rgba(208,0,0,0.1)",border:"1px solid rgba(208,0,0,0.25)",borderRadius:20,padding:"0.2rem 0.6rem",fontSize:"0.72rem",color:"#FF6666",cursor:"pointer",fontWeight:600}} onClick={()=>notify(`${tag}: ${count} gönderi`)}>
+                      {tag} <span style={{color:"#555",fontSize:"0.6rem"}}>({count})</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {top.map((p,i)=>(
               <div key={p.id} className="post-card" style={{borderColor:i===0?"rgba(255,215,0,0.5)":i===1?"rgba(192,192,192,0.4)":i===2?"rgba(205,127,50,0.4)":"rgba(0,201,255,0.12)"}}>
                 <div style={{fontSize:"1.4rem",fontWeight:900,color:i===0?"#FFD700":i===1?"#C0C0C0":i===2?"#CD7F32":"#aaa",marginBottom:"0.4rem"}}>#{i+1}</div>
                 <div className="post-header">
@@ -20475,7 +21470,8 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
                   <span>❤️ {(p.likes||[]).length}</span><span>💬 {(p.comments||[]).length}</span><span>🔁 {p.reposts||0}</span>
                 </div>
               </div>
-            ));
+            ))}
+            </div>);
           })()}
 
           {socialTab==="media"&&(()=>{
@@ -24518,6 +25514,21 @@ if(cityDevTab==="build") return(
 
         return (
           <div style={{padding:"0.5rem 0.75rem",paddingBottom:"calc(80px + env(safe-area-inset-bottom,0px))"}}>
+            <div className="ministry-header">🔥 Uluslararası Savaş</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
+              <div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:10,padding:"0.45rem 0.6rem",textAlign:"center"}}>
+                <div style={{fontSize:"0.6rem",color:"#888"}}>AKTİF SAVAŞ</div>
+                <div style={{fontWeight:800,color:"#EF4444",fontSize:"0.95rem"}}>{(intlWars||[]).filter(w=>w.status==="active").length}</div>
+              </div>
+              <div style={{background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:10,padding:"0.45rem 0.6rem",textAlign:"center"}}>
+                <div style={{fontSize:"0.6rem",color:"#888"}}>TARAF</div>
+                <div style={{fontWeight:800,color:"#F59E0B",fontSize:"0.85rem"}}>{Object.entries(wmStates||{}).filter(([k,v])=>v&&v.name&&v.owner===cu.username).length} Bölge</div>
+              </div>
+              <div style={{background:"rgba(16,185,129,0.08)",border:"1px solid rgba(16,185,129,0.2)",borderRadius:10,padding:"0.45rem 0.6rem",textAlign:"center"}}>
+                <div style={{fontSize:"0.6rem",color:"#888"}}>ASKER PUANI</div>
+                <div style={{fontWeight:800,color:"#10B981",fontSize:"0.9rem"}}>{cu.askerPuan||0}</div>
+              </div>
+            </div>
             {/* Mobil geri butonu */}
             <div style={{display:"flex",alignItems:"center",gap:"0.75rem",marginBottom:"0.75rem"}}>
               <button onClick={()=>setCurrentPage("m_yeralti")} style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:"8px",color:"#FCA5A5",cursor:"pointer",padding:"0.35rem 0.75rem",fontSize:"0.82rem",fontWeight:700,minHeight:36}}>← Geri</button>
@@ -24667,6 +25678,15 @@ if(cityDevTab==="build") return(
 
         return (
           <div style={{padding:"0 0.75rem"}}>
+            <div className="ministry-header">⚖️ Adalet Bakanlığı</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
+              {[["📋",(reportedMessages||[]).filter(r=>r.status==="pending").length,"Bekleyen","#EF4444"],["✅",(reportedMessages||[]).filter(r=>r.status==="closed").length,"Kapatılan","#10B981"],["⚖️",(reportedMessages||[]).length,"Toplam","#A78BFA"]].map(([icon,val,lbl,clr])=>(
+                <div key={lbl} style={{background:`${clr}0a`,border:`1px solid ${clr}22`,borderRadius:10,padding:"0.45rem",textAlign:"center"}}>
+                  <div style={{fontSize:"0.85rem",fontWeight:900,color:clr}}>{icon} {val}</div>
+                  <div style={{fontSize:"0.55rem",color:"#555",textTransform:"uppercase",marginTop:"0.1rem"}}>{lbl}</div>
+                </div>
+              ))}
+            </div>
             <div style={{display:"flex",alignItems:"center",gap:"0.5rem",marginBottom:"1rem",paddingTop:"0.25rem"}}><span style={{fontSize:"1.5rem"}}>⚖️</span><span style={{fontFamily:"Syne,sans-serif",fontSize:"1.2rem",fontWeight:700,color:"#fff"}}>Adalet Bakanlığı</span></div>
             
             {/* Stats */}
@@ -24782,6 +25802,7 @@ if(cityDevTab==="build") return(
         
         return (
           <div className="mp">
+              <div className="ministry-header">🏠 Oyun Ana Merkezi</div>
             {/* Header kaynak göstergeleri */}
             <div style={{background:"linear-gradient(135deg,#14273D,#0A1628)",borderBottom:"1px solid rgba(59,130,246,0.2)",padding:"0.5rem 0.75rem"}}>
               <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:"0.25rem",maxWidth:600,margin:"0 auto"}}>
@@ -26076,6 +27097,14 @@ if(cityDevTab==="build") return(
         return (
           <div>
             <div className="ministry-header">🏛️ Açık Artırma</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
+              {[["🔥",activeAuctions.length,"Aktif","#EF4444"],["📋",myAuctions.length,"Listemde","#60A5FA"],["🏆",endedWon.length,"Kazandım","#FFD700"],["💼",ownedAssets.length,"Satılık","#10B981"]].map(([icon,val,lbl,clr])=>(
+                <div key={lbl} style={{background:`${clr}0a`,border:`1px solid ${clr}22`,borderRadius:10,padding:"0.45rem",textAlign:"center"}}>
+                  <div style={{fontSize:"0.85rem",fontWeight:900,color:clr}}>{icon} {val}</div>
+                  <div style={{fontSize:"0.55rem",color:"#555",textTransform:"uppercase",marginTop:"0.1rem"}}>{lbl}</div>
+                </div>
+              ))}
+            </div>
 
             {/* Tabs */}
             <div style={{display:"flex",gap:"0.4rem",marginBottom:"1.1rem",flexWrap:"wrap"}}>
@@ -26346,6 +27375,14 @@ if(cityDevTab==="build") return(
         return (
           <div>
             <div className="ministry-header">🛠️ Crafting Sistemi</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
+              {[["⚙️",Object.values(craftingInv).reduce((s,v)=>typeof v==="number"?s+v:s,0),"Stok","#A78BFA"],["🗡️",RECIPES.filter(r=>canCraft(r)).length,"Üretilebilir","#10B981"],["🏷️",auctionItems.filter(a=>a.seller===cu.id&&a.status==="active").length,"Artırmada","#60A5FA"],["📦",RECIPES.length,"Tarif","#F59E0B"]].map(([icon,val,lbl,clr])=>(
+                <div key={lbl} style={{background:`${clr}0a`,border:`1px solid ${clr}22`,borderRadius:10,padding:"0.4rem",textAlign:"center"}}>
+                  <div style={{fontSize:"0.8rem",fontWeight:900,color:clr}}>{icon} {val}</div>
+                  <div style={{fontSize:"0.5rem",color:"#555",textTransform:"uppercase",marginTop:"0.1rem"}}>{lbl}</div>
+                </div>
+              ))}
+            </div>
 
             {/* Stok özeti */}
             {totalStock>0&&(
@@ -26834,20 +27871,34 @@ if(cityDevTab==="build") return(
         const catTabs = [
           {id:"wealth",icon:"💰",label:"En Zengin"},
           {id:"gang",icon:"🔫",label:"En Güçlü Çete"},
+          {id:"family",icon:"👪",label:"En Güçlü Aile"},
           {id:"mayor",icon:"🏙️",label:"En İyi Belediye Başkanı"},
+          {id:"party",icon:"⚑",label:"En Güçlü Parti"},
           {id:"level",icon:"⭐",label:"En Yüksek Level"},
+          {id:"streak",icon:"🔥",label:"En Uzun Seri"},
         ];
         const ranked = {
           wealth: [...allUsers].filter(u=>!u.isBot).sort((a,b)=>((b.money||0)+(b.bankMoney||0))-((a.money||0)+(a.bankMoney||0))).slice(0,20),
-          gang: gangs.filter(g=>g.members?.length>0).sort((a,b)=>(b.members?.length||0)-(a.members?.length||0)).slice(0,20),
+          gang: gangs.filter(g=>g.members?.length>0).sort((a,b)=>(b.power||0)-(a.power||0)).slice(0,20),
+          family: (Array.isArray(families)?families:[]).filter(f=>f.members?.length>0).sort((a,b)=>(b.members?.length||0)-(a.members?.length||0)).slice(0,20),
+          party: (Array.isArray(parties)?parties:[]).filter(p=>p.members?.length>0).sort((a,b)=>(b.votes||0)-(a.votes||0)).slice(0,20),
+          streak: [...allUsers].filter(u=>!u.isBot&&(u.dailyStreak||0)>0).sort((a,b)=>(b.dailyStreak||0)-(a.dailyStreak||0)).slice(0,20),
           mayor: [...allUsers].filter(u=>u.position==="Belediye Başkanı").sort((a,b)=>(b.meritPoints||0)-(a.meritPoints||0)).slice(0,20),
           level: [...allUsers].filter(u=>!u.isBot).sort((a,b)=>(b.level||1)-(a.level||1)).slice(0,20),
         };
-        const titles = {wealth:"👑 En Zengin",gang:"⚔️ En Güçlü Çete",mayor:"🏙️ En İyi Belediye Başkanı",level:"⭐ En Yüksek Levelli"};
+        const titles = {wealth:"👑 En Zengin",gang:"⚔️ En Güçlü Çete",family:"👪 En Güçlü Aile",party:"⚑ En Güçlü Parti",mayor:"🏙️ En İyi Belediye Başkanı",level:"⭐ En Yüksek Levelli",streak:"🔥 En Uzun Günlük Seri"};
         const medals = ["🥇","🥈","🥉"];
         return (
           <div>
             <div className="ministry-header">🏆 Sezonluk Liderlik Savaşı</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
+              {[["👥",(Array.isArray(allUsers)?allUsers:[]).length,"Oyuncu","#60A5FA"],["🏆",catTabs.length,"Kategori","#FFD700"],["💰",fmtMoney(Math.max(...(Array.isArray(allUsers)?allUsers:[]).map(u=>u.money||0))),"En Zengin","#10B981"],["⭐",Math.max(...(Array.isArray(allUsers)?allUsers:[]).map(u=>u.score||0)),"En Yüksek Skor","#A78BFA"]].map(([icon,val,lbl,clr])=>(
+                <div key={lbl} style={{background:`${clr}0a`,border:`1px solid ${clr}22`,borderRadius:10,padding:"0.4rem",textAlign:"center"}}>
+                  <div style={{fontSize:"0.75rem",fontWeight:900,color:clr}}>{icon} {val}</div>
+                  <div style={{fontSize:"0.5rem",color:"#555",textTransform:"uppercase",marginTop:"0.1rem"}}>{lbl}</div>
+                </div>
+              ))}
+            </div>
             <div style={{display:"flex",gap:"0.4rem",flexWrap:"wrap",marginBottom:"1rem"}}>
               {catTabs.map(t=>(
                 <button key={t.id} onClick={()=>setLTab(t.id)} className={`btn btn-sm ${lTab===t.id?"btn-primary":""}`}>{t.icon} {t.label}</button>
@@ -26855,20 +27906,41 @@ if(cityDevTab==="build") return(
             </div>
             <div className="card">
               <div className="card-title">{titles[lTab]}</div>
-              {lTab!=="gang"&&ranked[lTab].map((u,i)=>(
-                <div key={u.id||i} style={{display:"flex",alignItems:"center",gap:"0.75rem",padding:"0.5rem",borderRadius:"0.4rem",marginBottom:"0.25rem",background:u.id===cu.id?"rgba(208,0,0,0.08)":"transparent",border:u.id===cu.id?"1px solid rgba(208,0,0,0.2)":"1px solid transparent"}}>
-                  <div style={{width:28,height:28,borderRadius:"50%",background:i<3?"rgba(255,215,0,0.15)":"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:"0.9rem",flexShrink:0}}>
+              {(lTab==="gang"||lTab==="family"||lTab==="party")?null:(ranked[lTab]||[]).map((u,i)=>(
+                <div key={u.id||i} style={{display:"flex",alignItems:"center",gap:"0.75rem",padding:"0.6rem 0.5rem",borderRadius:10,marginBottom:"0.25rem",background:u.id===cu.id?"rgba(208,0,0,0.08)":"transparent",border:u.id===cu.id?"1px solid rgba(208,0,0,0.2)":"1px solid transparent"}}>
+                  <div style={{width:30,height:30,borderRadius:"50%",background:i<3?"rgba(255,215,0,0.15)":"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:"0.9rem",flexShrink:0,border:i<3?"1px solid rgba(255,215,0,0.3)":"none"}}>
                     {i<3?medals[i]:i+1}
                   </div>
-                  <div style={{flex:1}}>
-                    <div style={{fontWeight:600,fontSize:"0.85rem",color:"#fff"}}>{u.username}{u.id===cu.id&&" 👈"}</div>
-                    <div style={{fontSize:"0.68rem",color:"#666"}}>{u.position||"Vatandaş"} · {u.city||"—"}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:700,fontSize:"0.85rem",color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.username}{u.id===cu.id&&" 👈"}</div>
+                    <div style={{fontSize:"0.65rem",color:"#555"}}>{u.position||"Vatandaş"} · {u.city||"—"}</div>
                   </div>
-                  <div style={{fontFamily:"JetBrains Mono,monospace",fontWeight:800,color:"#FFD700",fontSize:"0.88rem"}}>
-                    {lTab==="wealth"&&`${fmtMoney(((u.money||0)+(u.bankMoney||0)))}`}
-                    {lTab==="mayor"&&`${(u.meritPoints||0).toLocaleString()} puan`}
+                  <div style={{fontFamily:"JetBrains Mono,monospace",fontWeight:800,color:"#FFD700",fontSize:"0.85rem",flexShrink:0}}>
+                    {lTab==="wealth"&&fmtMoney((u.money||0)+(u.bankMoney||0))}
+                    {lTab==="mayor"&&`${(u.meritPoints||0).toLocaleString()}p`}
                     {lTab==="level"&&`Lv.${u.level||1}`}
+                    {lTab==="streak"&&`🔥${u.dailyStreak||0}gün`}
                   </div>
+                </div>
+              ))}
+              {lTab==="family"&&(ranked.family||[]).map((f,i)=>(
+                <div key={f.id||i} style={{display:"flex",alignItems:"center",gap:"0.75rem",padding:"0.6rem 0.5rem",borderRadius:10,marginBottom:"0.25rem",background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.07)"}}>
+                  <div style={{width:30,height:30,borderRadius:"50%",background:i<3?"rgba(255,215,0,0.15)":"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:"0.9rem",flexShrink:0}}>{i<3?medals[i]:i+1}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:700,fontSize:"0.85rem",color:"#fff"}}>👪 {f.name}</div>
+                    <div style={{fontSize:"0.65rem",color:"#555"}}>{f.members?.length||0} üye · Lider: {f.leader}</div>
+                  </div>
+                  <div style={{fontFamily:"JetBrains Mono,monospace",fontWeight:800,color:"#A78BFA",fontSize:"0.85rem"}}>{f.members?.length||0}👤</div>
+                </div>
+              ))}
+              {lTab==="party"&&(ranked.party||[]).map((p,i)=>(
+                <div key={p.id||i} style={{display:"flex",alignItems:"center",gap:"0.75rem",padding:"0.6rem 0.5rem",borderRadius:10,marginBottom:"0.25rem",background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.07)"}}>
+                  <div style={{width:30,height:30,borderRadius:"50%",background:i<3?"rgba(255,215,0,0.15)":"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:"0.9rem",flexShrink:0}}>{i<3?medals[i]:i+1}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:700,fontSize:"0.85rem",color:"#fff"}}>⚑ {p.name}</div>
+                    <div style={{fontSize:"0.65rem",color:"#555"}}>{p.members?.length||0} üye · {p.ideology||"—"}</div>
+                  </div>
+                  <div style={{fontFamily:"JetBrains Mono,monospace",fontWeight:800,color:"#60A5FA",fontSize:"0.85rem"}}>{(p.votes||0).toLocaleString()}oy</div>
                 </div>
               ))}
               {lTab==="gang"&&ranked.gang.map((g,i)=>(
@@ -27145,6 +28217,26 @@ if(cityDevTab==="build") return(
         const totalHarvested = farms.filter(f=>f.owner===cu.id&&f.status==="harvested").reduce((s,f)=>s+f.harvestValue,0);
         const readyToHarvest = myFarms.filter(f=>f.status==="growing"&&now>=f.harvestAt);
 
+        const harvestAll = () => {
+          if(readyToHarvest.length===0) return notify("⏳ Hasat edilecek ürün yok!");
+          let total = 0;
+          const updated = farms.map(f=>{
+            if(f.owner===cu.id&&f.status==="growing"&&now>=f.harvestAt){
+              total+=f.harvestValue; return {...f,status:"harvested"};
+            }
+            return f;
+          });
+          updateUser({money:(cu.money||0)+total});
+          setFarms(updated); S.save("farms",updated);
+          notify(`🎉 ${readyToHarvest.length} tarla hasat edildi! +${fmtMoney(total)}`);
+        };
+
+        const removeHarvested = () => {
+          const updated = farms.filter(f=>!(f.owner===cu.id&&f.status==="harvested"));
+          setFarms(updated); S.save("farms",updated);
+          notify("🗑️ Hasat edilmiş tarlalar temizlendi!");
+        };
+
         return (
           <div className="content">
             <div className="ministry-header">🌾 Tarım & Hasat Sistemi</div>
@@ -27164,9 +28256,22 @@ if(cityDevTab==="build") return(
               ))}
             </div>
 
-            <div style={{fontSize:"0.75rem",background:"rgba(16,217,160,0.07)",border:"1px solid rgba(16,217,160,0.2)",borderRadius:"0.6rem",padding:"0.5rem 0.75rem",marginBottom:"1rem",color:"#10D9A0"}}>
+            <div style={{fontSize:"0.75rem",background:"rgba(16,217,160,0.07)",border:"1px solid rgba(16,217,160,0.2)",borderRadius:"0.6rem",padding:"0.5rem 0.75rem",marginBottom:"0.75rem",color:"#10D9A0"}}>
               🌤️ Şu an: <strong>{curSeason}</strong> mevsimi · Mevsim uyumlu ürünler +%20 daha fazla kazandırır!
             </div>
+            {/* Quick action buttons */}
+            {myFarms.length>0&&(
+              <div style={{display:"flex",gap:"0.5rem",marginBottom:"1rem"}}>
+                <button onClick={harvestAll} disabled={readyToHarvest.length===0} style={{flex:1,padding:"0.55rem",background:readyToHarvest.length>0?"rgba(245,200,66,0.15)":"rgba(255,255,255,0.04)",border:`1px solid ${readyToHarvest.length>0?"rgba(245,200,66,0.4)":"rgba(255,255,255,0.1)"}`,borderRadius:10,color:readyToHarvest.length>0?"#F5C842":"#666",fontWeight:700,cursor:readyToHarvest.length>0?"pointer":"not-allowed",fontFamily:"inherit",fontSize:"0.82rem"}}>
+                  🌾 Tümünü Hasat Et {readyToHarvest.length>0&&`(${readyToHarvest.length})`}
+                </button>
+                {myFarms.filter(f=>f.owner===cu.id&&f.status==="harvested").length>0&&(
+                  <button onClick={removeHarvested} style={{padding:"0.55rem 0.85rem",background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.25)",borderRadius:10,color:"#F87171",fontWeight:700,cursor:"pointer",fontFamily:"inherit",fontSize:"0.82rem"}}>
+                    🗑️ Temizle
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Tabs */}
             <div style={{display:"flex",gap:"0.4rem",marginBottom:"1rem"}}>
@@ -27185,18 +28290,34 @@ if(cityDevTab==="build") return(
                     🌱 Henüz tarlanız yok. Ekim Yap sekmesinden başlayın!
                   </div>
                 )}
-                {myFarms.map(farm=>{
+                {myFarms.filter(f=>f.status!=="harvested").concat(myFarms.filter(f=>f.status==="harvested")).map((farm,farmIndex)=>{
                   const isReady = now>=farm.harvestAt;
                   const progress = Math.min(100, Math.round((now-farm.plantedAt)/(farm.harvestAt-farm.plantedAt)*100));
                   const remaining = Math.max(0,Math.ceil((farm.harvestAt-now)/3600000));
                   const isSeason = farm.season===curSeason||farm.season==="Yıl Boyu";
+                  const fieldNo = myFarms.filter(f=>f.status!=="harvested").indexOf(farm)+1 || farmIndex+1;
+                  // Count same crop in active fields
+                  const sameCropCount = myFarms.filter(f=>f.status!=="harvested"&&f.cropId===farm.cropId).length;
+                  const cropFieldIdx = myFarms.filter(f=>f.status!=="harvested"&&f.cropId===farm.cropId).indexOf(farm)+1;
                   return (
                     <div key={farm.id} style={{background:isReady?"rgba(245,200,66,0.07)":farm.status==="harvested"?"rgba(255,255,255,0.02)":"rgba(16,217,160,0.04)",border:`1px solid ${isReady?"rgba(245,200,66,0.3)":farm.status==="harvested"?"rgba(255,255,255,0.08)":"rgba(16,217,160,0.15)"}`,borderRadius:"0.85rem",padding:"0.85rem",marginBottom:"0.65rem"}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.5rem"}}>
                         <div style={{display:"flex",gap:"0.6rem",alignItems:"center"}}>
-                          <span style={{fontSize:"1.8rem"}}>{farm.cropIcon}</span>
+                          <div style={{position:"relative",flexShrink:0}}>
+                            <span style={{fontSize:"1.8rem"}}>{farm.cropIcon}</span>
+                            {farm.status!=="harvested"&&(
+                              <span style={{position:"absolute",top:-4,right:-6,background:"rgba(16,217,160,0.9)",color:"#000",fontSize:"0.55rem",fontWeight:900,borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",border:"1.5px solid #000"}}>
+                                {farmIndex+1}
+                              </span>
+                            )}
+                            {sameCropCount>1&&farm.status!=="harvested"&&(
+                              <span style={{position:"absolute",bottom:-4,right:-6,background:"rgba(245,200,66,0.9)",color:"#000",fontSize:"0.5rem",fontWeight:900,borderRadius:4,padding:"0 3px",border:"1px solid #000"}}>
+                                {cropFieldIdx}/{sameCropCount}
+                              </span>
+                            )}
+                          </div>
                           <div>
-                            <div style={{fontWeight:700,color:"#fff"}}>{farm.cropName}</div>
+                            <div style={{fontWeight:700,color:"#fff"}}>{farm.cropName} <span style={{color:"#10D9A0",fontSize:"0.7rem",fontWeight:900}}>#{farmIndex+1}</span></div>
                             <div style={{fontSize:"0.7rem",color:"#666"}}>{farm.season}{isSeason?" 🌟":""} · Değer: {fmtMoney(farm.harvestValue)}</div>
                           </div>
                         </div>
