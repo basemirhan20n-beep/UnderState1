@@ -136,7 +136,7 @@ const LOAN_TIERS = [
 const RARITY_COLORS={common:"#94A3B8",rare:"#60A5FA",epic:"#A78BFF",legendary:"#F5C842",uncommon:"#10B981"};
 const EDU_LEVELS = ["İlkokul","Ortaokul","Lise","Üniversite","Yüksek Lisans","Doktora","Profesör"];
 const EDU_COST   = [100, 200, 300, 400, 1000, 1500, 2000];
-const EDU_TOTAL  = [100, 250, 500, 1000, 1500, 2000, 4000];
+const EDU_TOTAL  = [50, 100, 200, 400, 750, 1500, 3000];
 const EDU_TIME   = [5, 5, 5, 5, 10, 10, 10]; // dakika cinsinden (paket alanlara 3sn)
 const EDU_NOTE   = [
   null,
@@ -4456,7 +4456,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
         updatedUsers = [...(Array.isArray(allUsers)?allUsers:[]), admin];
       } else {
         admin = {...existingAdmin, role:"admin", banned:false, password:_hashPass("admin123"),
-          educationLevel:"Profesör", educationCompleted:true, educationProgress:4000,
+          educationLevel:"Profesör", educationCompleted:true, educationProgress:3000,
           eduPackage:true, eduPackageExpiry:Date.now()+365*24*60*60*1000
         };
         updatedUsers = (Array.isArray(allUsers)?allUsers:[]).map(u => u.id===existingAdmin.id ? admin : u);
@@ -4553,7 +4553,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
         if (EDU_NOTE[idx+1]) notify(EDU_NOTE[idx+1]);
       }
     } else {
-      updateUser({ money:(cu.money)-cost, educationProgress:newProg, lastEduTime:now });
+      updateUser({ money:(cu.money)-cost, educationProgress:newProg, lastEduTime:now, eduPuan:(cu.eduPuan||0)+1 });
       incrementTaskProgress("study2");
     }
   };
@@ -8293,6 +8293,56 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                         </div>
                       </div>
                     )}
+                  </div>
+                );
+              })()}
+              {/* ── Eğitim Puanı Özeti ── */}
+              {(()=>{
+                const eduIdx = EDU_LEVEL_INDEX(cu.educationLevel);
+                const totalClicksNeeded = EDU_TOTAL.reduce((s,v)=>s+v,0);
+                const completedClicks = EDU_TOTAL.slice(0,eduIdx).reduce((s,v)=>s+v,0) + (cu.educationProgress||0);
+                const pct = Math.round(completedClicks/totalClicksNeeded*100);
+                const levelPct = !cu.educationCompleted ? Math.round(((cu.educationProgress||0)/EDU_TOTAL[eduIdx])*100) : 100;
+                return (
+                  <div style={{background:"rgba(96,165,250,0.06)",border:"1px solid rgba(96,165,250,0.18)",borderRadius:14,padding:"0.85rem",marginBottom:"1rem"}}>
+                    <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,color:"#60A5FA",fontSize:"0.82rem",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:"0.7rem"}}>📊 Eğitim Puanı Özeti</div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"0.5rem",marginBottom:"0.75rem"}}>
+                      <div style={{background:"rgba(96,165,250,0.08)",borderRadius:10,padding:"0.5rem",textAlign:"center"}}>
+                        <div style={{fontSize:"1.1rem",fontWeight:900,color:"#60A5FA",fontFamily:"JetBrains Mono,monospace"}}>{(cu.eduPuan||0).toLocaleString()}</div>
+                        <div style={{fontSize:"0.6rem",color:"#666",marginTop:"0.1rem"}}>📚 Toplam Eğitim Puanı</div>
+                      </div>
+                      <div style={{background:"rgba(167,139,250,0.08)",borderRadius:10,padding:"0.5rem",textAlign:"center"}}>
+                        <div style={{fontSize:"1.1rem",fontWeight:900,color:"#A78BFA",fontFamily:"JetBrains Mono,monospace"}}>{completedClicks.toLocaleString()}</div>
+                        <div style={{fontSize:"0.6rem",color:"#666",marginTop:"0.1rem"}}>🖱️ Toplam Tıklama</div>
+                      </div>
+                      <div style={{background:"rgba(16,217,160,0.08)",borderRadius:10,padding:"0.5rem",textAlign:"center"}}>
+                        <div style={{fontSize:"1.1rem",fontWeight:900,color:"#10D9A0",fontFamily:"JetBrains Mono,monospace"}}>{pct}%</div>
+                        <div style={{fontSize:"0.6rem",color:"#666",marginTop:"0.1rem"}}>🎯 Genel İlerleme</div>
+                      </div>
+                    </div>
+                    {/* Genel ilerleme çubuğu */}
+                    <div style={{marginBottom:"0.4rem"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",fontSize:"0.62rem",color:"#555",marginBottom:"0.2rem"}}>
+                        <span>Tüm Eğitim Yolu</span>
+                        <span>{completedClicks}/{totalClicksNeeded}</span>
+                      </div>
+                      <div style={{height:6,background:"rgba(255,255,255,0.05)",borderRadius:3,overflow:"hidden"}}>
+                        <div style={{height:"100%",width:`${pct}%`,background:"linear-gradient(90deg,#3B82F6,#8B5CF6,#10B981)",borderRadius:3,transition:"width 0.4s"}}/>
+                      </div>
+                    </div>
+                    {/* Mevcut seviye ilerleme */}
+                    {!cu.educationCompleted&&(
+                      <div>
+                        <div style={{display:"flex",justifyContent:"space-between",fontSize:"0.62rem",color:"#555",marginBottom:"0.2rem"}}>
+                          <span>{cu.educationLevel} Seviyesi</span>
+                          <span>{cu.educationProgress||0}/{EDU_TOTAL[eduIdx]} ({levelPct}%)</span>
+                        </div>
+                        <div style={{height:4,background:"rgba(255,255,255,0.05)",borderRadius:2,overflow:"hidden"}}>
+                          <div style={{height:"100%",width:`${levelPct}%`,background:"linear-gradient(90deg,#F59E0B,#EF4444)",borderRadius:2,transition:"width 0.4s"}}/>
+                        </div>
+                      </div>
+                    )}
+                    {cu.educationCompleted&&<div style={{textAlign:"center",fontSize:"0.75rem",color:"#10B981",marginTop:"0.3rem",fontWeight:700}}>🎓 Tüm seviyeler tamamlandı!</div>}
                   </div>
                 );
               })()}
