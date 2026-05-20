@@ -2354,6 +2354,12 @@ function App() {
   const [auctionBid, setAuctionBid] = useState({});
   const [collabRequests, setCollabRequests] = useState(()=>{const v=S.load("collabRequests",[]); return normalizeCollabRequests(v);});
   const [partyInvites, setPartyInvites] = useState(()=>S.load("partyInvites",[]));
+  const [partyManifestos, setPartyManifestos] = useState(()=>S.load("partyManifestos",{}));
+  const [partyInternalVotes, setPartyInternalVotes] = useState(()=>S.load("partyInternalVotes",{}));
+  const [coalitions, setCoalitions] = useState(()=>S.load("coalitions",[]));
+  const [partySalaryLog, setPartySalaryLog] = useState(()=>S.load("partySalaryLog",{}));
+  const [partyLoans, setPartyLoans] = useState(()=>S.load("partyLoans",[]));
+  const [partyMgmtRoles, setPartyMgmtRoles] = useState(()=>S.load("partyMgmtRoles",{}));
 
   // Police
   const [policeSupportReqs, setPoliceSupportReqs] = useState([]);
@@ -4108,11 +4114,15 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
     S.save("sessionStats", sessionStats);
     S.save("collabRequests", collabRequests);
     S.save("partyInvites", partyInvites);
+    S.save("partyManifestos", partyManifestos);
+    S.save("partyInternalVotes", partyInternalVotes);
+    S.save("coalitions", coalitions);
+    S.save("partySalaryLog", partySalaryLog);
     S.save("xpLog", xpLog);
     S.save("electionState", electionState);
     S.save("taxSystem", taxSystem);
     S.save("campaignDonations", campaignDonations);
-  }, [allUsers, economy, bank, parties, families, gangs, holdings, holdingApps, loanApps, legalTezgah, illegalTezgah, supportMsgs, parliamentMsgs, randomEvents, laws, lawProposals, spyReports, assassinations, courtCases, historyLog, dailyTasks, realEstate, energyMarket, privateSchools, alliances, partyApplications, partyAlliances, newspapers, stockMarket, stockPortfolio, casinoLogs, armyFunds, coupSystem, cityMap, announcements, gameEvents, ohal, cabinet, referendums, commodities, activityLog, socialPosts, cryptoPrice, cryptoEvents, luxuryAssets, mediaEmpires, restaurants, insurances, lotteryState, scandals, hiredMercs, polls, shortPositions, cooldowns, factories, factoryOrders, factoryInventory, cityProjects, cityStats, qolSettings, favoritePages, netWorthHistory, sessionStats, collabRequests, farms, cityWars, municipalServices, xpLog, electionState, taxSystem, campaignDonations]);
+  }, [allUsers, economy, bank, parties, families, gangs, holdings, holdingApps, loanApps, legalTezgah, illegalTezgah, supportMsgs, parliamentMsgs, randomEvents, laws, lawProposals, spyReports, assassinations, courtCases, historyLog, dailyTasks, realEstate, energyMarket, privateSchools, alliances, partyApplications, partyAlliances, newspapers, stockMarket, stockPortfolio, casinoLogs, armyFunds, coupSystem, cityMap, announcements, gameEvents, ohal, cabinet, referendums, commodities, activityLog, socialPosts, cryptoPrice, cryptoEvents, luxuryAssets, mediaEmpires, restaurants, insurances, lotteryState, scandals, hiredMercs, polls, shortPositions, cooldowns, factories, factoryOrders, factoryInventory, cityProjects, cityStats, qolSettings, favoritePages, netWorthHistory, sessionStats, collabRequests, farms, cityWars, municipalServices, xpLog, electionState, taxSystem, campaignDonations, partyManifestos, partyInternalVotes, coalitions, partySalaryLog]);
 
   // ==================== OTOMATİK EKONOMİ HABERLERİ ====================
   React.useEffect(()=>{
@@ -4782,12 +4792,23 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
   const calculatePartyPower = (party) => {
     if(!party) return 0;
     const members = Array.isArray(party.members)?party.members:[];
-    const avgPrestige = members.reduce((s,m)=>{
+    const memberScore = members.reduce((s,m)=>{
       const xpData = xpLog[m]||{prestige:0};
-      return s+(xpData.prestige||0);
-    },0) / Math.max(members.length,1);
-    const budgetBonus = Math.sqrt(party.budget||0)/100;
-    return Math.round((members.length * avgPrestige * 10) + budgetBonus);
+      const uData = (Array.isArray(allUsers)?allUsers:[]).find(u=>u.username===m)||{};
+      const prestige = xpData.prestige||0;
+      const posScore = uData.score||0;
+      const eduBonus = ["İlkokul","Ortaokul","Lise","Üniversite","Yüksek Lisans","Doktora"].indexOf(uData.educationLevel||"İlkokul")*500;
+      return s + prestige + posScore + eduBonus;
+    },0);
+    const budgetBonus = Math.sqrt(party.budget||0)/50;
+    const adBonus = (party.adBonus||0)*200;
+    return Math.round(memberScore + budgetBonus + adBonus);
+  };
+
+  const getPartyCoefficient = (party) => {
+    if(!party) return 1.0;
+    const power = calculatePartyPower(party);
+    return Math.max(1.0, (1 + power/50000)).toFixed(2);
   };
 
   const calculateGangPower = (gang) => {
@@ -4869,7 +4890,8 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
     const myParty = (Array.isArray(parties)?parties:[]).find(p=>(Array.isArray(p.members)?p.members:[]).includes(cu.username));
     const candidateParty = (Array.isArray(parties)?parties:[]).find(p=>(Array.isArray(p.members)?p.members:[]).includes(candidateUsername));
     const partyBonus = (myParty&&candidateParty&&myParty.id===candidateParty.id)?1.3:1;
-    const totalWeight = Math.round(voteWeight * partyBonus);
+    const adBonus = myParty ? (1 + (myParty.adBonus||0)/100) : 1;
+    const totalWeight = Math.round(voteWeight * partyBonus * adBonus);
     const updated = {
       ...electionState,
       candidates: electionState.candidates.map(c=>
@@ -6495,6 +6517,252 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
     setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>(Array.isArray(p.members)?p.members:[]).includes(u.username)?{...u,partyId:null,partyRole:null}:u));
     addHistory(`⚑ "${p.name}" partisi feshedildi.`);
     notify(`✅ ${p.name} feshedildi.`);
+  };
+
+  // ── Parti Manifesto Kaydet ──────────────────────────────────────────────
+  const savePartyManifesto = (partyId, manifesto) => {
+    const upd = {...partyManifestos, [partyId]: manifesto};
+    setPartyManifestos(upd);
+    S.save("partyManifestos", upd);
+  };
+
+  // ── Parti İç Seçimi ────────────────────────────────────────────────────
+  const startPartyInternalVote = (partyId, partyName, candidates) => {
+    const vote = {
+      id: Date.now(),
+      partyId,
+      partyName,
+      candidates: candidates.map(c=>({username:c, votes:[]})),
+      startedBy: cu.username,
+      startedAt: new Date().toLocaleDateString("tr-TR"),
+      active: true
+    };
+    const upd = {...partyInternalVotes, [partyId]: vote};
+    setPartyInternalVotes(upd);
+    S.save("partyInternalVotes", upd);
+    addHistory(`🗳️ "${partyName}" iç seçimi başlatıldı.`);
+    notify("✅ Parti içi liderlik seçimi başlatıldı!");
+  };
+
+  const castPartyInternalVote = (partyId, candidateUsername) => {
+    const vote = partyInternalVotes[partyId];
+    if(!vote||!vote.active) return notify("❌ Aktif seçim yok!");
+    const already = vote.candidates.some(c=>c.votes.includes(cu.username));
+    if(already) return notify("❌ Zaten oy kullandınız!");
+    const upd = {
+      ...partyInternalVotes,
+      [partyId]: {
+        ...vote,
+        candidates: vote.candidates.map(c=>c.username===candidateUsername?{...c,votes:[...c.votes,cu.username]}:c)
+      }
+    };
+    setPartyInternalVotes(upd);
+    S.save("partyInternalVotes", upd);
+    notify(`✅ ${candidateUsername} için oy kullandınız!`);
+  };
+
+  const finalizePartyInternalVote = (partyId) => {
+    const vote = partyInternalVotes[partyId];
+    if(!vote) return;
+    const sorted = [...vote.candidates].sort((a,b)=>b.votes.length-a.votes.length);
+    const winner = sorted[0];
+    if(!winner) return notify("❌ Aday yok!");
+    const party = parties.find(p=>p.id===partyId);
+    if(!party) return;
+    const oldLeader = party.leader;
+    const updParties = parties.map(p=>p.id===partyId?{...p,leader:winner.username}:p);
+    setParties(updParties);
+    S.save("parties", updParties);
+    setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>{
+      if(u.username===winner.username) return {...u,partyRole:"Parti Başkanı"};
+      if(u.username===oldLeader) return {...u,partyRole:"Eski Başkan"};
+      return u;
+    }));
+    const updVote = {...partyInternalVotes, [partyId]:{...vote,active:false,winner:winner.username}};
+    setPartyInternalVotes(updVote);
+    S.save("partyInternalVotes", updVote);
+    addHistory(`🏆 "${vote.partyName}" iç seçimini ${winner.username} kazandı! (${winner.votes.length} oy)`);
+    notify(`🏆 Seçim tamamlandı! Yeni lider: ${winner.username} (${winner.votes.length} oy)`);
+  };
+
+  // ── Koalisyon ──────────────────────────────────────────────────────────
+  const proposeCoalition = async (targetPartyId) => {
+    const myP = parties.find(p=>(p.members||[]).includes(cu.username)&&p.leader===cu.username);
+    if(!myP) return notify("❌ Parti lideriniz değilsiniz!");
+    const target = parties.find(p=>p.id===targetPartyId);
+    if(!target) return;
+    const existing = coalitions.find(c=>
+      (c.party1Id===myP.id&&c.party2Id===targetPartyId)||
+      (c.party1Id===targetPartyId&&c.party2Id===myP.id)
+    );
+    if(existing&&existing.status==="active") return notify("❌ Bu partiyle zaten koalisyondasınız!");
+    const msg = await gPrompt("🤝 Koalisyon Teklifi",`${target.name} partisine koalisyon teklifinizi yazın:","Koalisyon gerekçesi");
+    if(msg===null||msg===undefined) return;
+    const coal = {
+      id: Date.now(),
+      party1Id: myP.id,
+      party1Name: myP.name,
+      party1Leader: cu.username,
+      party2Id: targetPartyId,
+      party2Name: target.name,
+      party2Leader: target.leader,
+      msg: msg.trim(),
+      status: "pending",
+      date: new Date().toLocaleDateString("tr-TR")
+    };
+    const upd = [...coalitions, coal];
+    setCoalitions(upd);
+    S.save("coalitions", upd);
+    addHistory(`🤝 "${myP.name}" → "${target.name}" koalisyon teklif etti.`);
+    notify(`✅ "${target.name}" partisine koalisyon teklif edildi!`);
+  };
+
+  const respondCoalition = (coalId, accepted) => {
+    const upd = coalitions.map(c=>c.id===coalId?{...c,status:accepted?"active":"rejected"}:c);
+    setCoalitions(upd);
+    S.save("coalitions", upd);
+    if(accepted) {
+      const coal = coalitions.find(c=>c.id===coalId);
+      addHistory(`🤝 "${coal?.party1Name}" ve "${coal?.party2Name}" koalisyon kurdu!`);
+      notify("✅ Koalisyon kabul edildi! Ortak kabine kurulabilir.");
+    } else {
+      notify("❌ Koalisyon teklifi reddedildi.");
+    }
+  };
+
+  const breakCoalition = (coalId) => {
+    const upd = coalitions.map(c=>c.id===coalId?{...c,status:"broken"}:c);
+    setCoalitions(upd);
+    S.save("coalitions", upd);
+    notify("🔴 Koalisyon bozuldu.");
+  };
+
+  // ── Parti Üye Maaşı ────────────────────────────────────────────────────
+  const payPartySalary = (party, salaryPerMember) => {
+    if(!party) return notify("❌ Parti bulunamadı!");
+    if(party.leader!==cu.username) return notify("❌ Sadece lider maaş ödeyebilir!");
+    const members = (party.members||[]).filter(m=>m!==cu.username);
+    const total = salaryPerMember * members.length;
+    if((party.budget||0)<total) return notify(`❌ Parti kasası yetersiz! Gereken: ₺${total.toLocaleString()}`);
+    if(members.length===0) return notify("❌ Maaş ödenecek üye yok!");
+    const today = new Date().toLocaleDateString("tr-TR");
+    const lastPaid = partySalaryLog[party.id]?.lastPaid;
+    if(lastPaid===today) return notify("❌ Bugün zaten maaş ödenmiş!");
+    const updParties = parties.map(p=>p.id===party.id?{...p,budget:(p.budget||0)-total}:p);
+    setParties(updParties);
+    S.save("parties", updParties);
+    setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>
+      members.includes(u.username)?{...u,money:(u.money||0)+salaryPerMember}:u
+    ));
+    const logUpd = {...partySalaryLog,[party.id]:{lastPaid:today,amount:salaryPerMember,total,paidBy:cu.username}};
+    setPartySalaryLog(logUpd);
+    S.save("partySalaryLog", logUpd);
+    addHistory(`💸 "${party.name}": ${members.length} üyeye ₺${salaryPerMember.toLocaleString()} maaş ödendi.`);
+    notify(`✅ ${members.length} üyeye toplam ₺${total.toLocaleString()} maaş ödendi!`);
+  };
+
+  // ── Maliye'den Parti Borcu ───────────────────────────────────────────
+  const borrowFromTreasury = async (party) => {
+    if(!party||party.leader!==cu.username) return notify("❌ Sadece lider borç alabilir!");
+    const treasury = taxSystem.treasury||0;
+    if(treasury<50000) return notify("❌ Hazine yetersiz! Maliye bakiyesi: "+fmtMoney(treasury));
+    const existingLoan = (partyLoans||[]).find(l=>l.partyId===party.id&&l.status==="active");
+    if(existingLoan) return notify(`❌ Aktif borcunuz var! Kalan: ${fmtMoney(existingLoan.remaining)} (${existingLoan.installmentsLeft} taksit)`);
+    const opts = [
+      {amt:100000, rate:0.15, installments:4},
+      {amt:250000, rate:0.18, installments:6},
+      {amt:500000, rate:0.20, installments:8},
+      {amt:1000000,rate:0.25, installments:10},
+    ];
+    const pick = await gPrompt("🏛️ Maliye Borcu",
+      opts.map((o,i)=>`${i+1}. ${fmtMoney(o.amt)} — %${Math.round(o.rate*100)} faiz, ${o.installments} taksit\n   Geri ödeme: ${fmtMoney(Math.round(o.amt*(1+o.rate)/o.installments))}/taksit`).join("\n"),
+      "1-4","number",{min:1,max:4});
+    if(!pick) return;
+    const opt = opts[(parseInt(pick)||1)-1];
+    if(opt.amt > treasury*0.5) return notify("❌ Hazine bu kadar kredi veremez!");
+    const total = Math.round(opt.amt*(1+opt.rate));
+    const loan = {id:Date.now(),partyId:party.id,partyName:party.name,amount:opt.amt,total,remaining:total,installments:opt.installments,installmentsLeft:opt.installments,installmentAmt:Math.round(total/opt.installments),rate:opt.rate,status:"active",date:new Date().toLocaleDateString("tr-TR"),approvedBy:"Maliye"};
+    const updLoans = [...(partyLoans||[]),loan];
+    setPartyLoans(updLoans); S.save("partyLoans",updLoans);
+    const updParties = parties.map(p=>p.id===party.id?{...p,budget:(p.budget||0)+opt.amt,partyDebt:(p.partyDebt||0)+total}:p);
+    setParties(updParties); S.save("parties",updParties);
+    setTaxSystem(prev=>{const u={...prev,treasury:(prev.treasury||0)-opt.amt};S.save("taxSystem",u);return u;});
+    addHistory(`🏛️ "${party.name}" Maliye'den ${fmtMoney(opt.amt)} borç aldı. (%${Math.round(opt.rate*100)} faiz, ${opt.installments} taksit)`);
+    notify(`✅ ${fmtMoney(opt.amt)} kasaya eklendi! Toplam geri ödeme: ${fmtMoney(total)}`);
+  };
+
+  const payPartyLoan = async (party) => {
+    if(!party||party.leader!==cu.username) return notify("❌ Sadece lider ödeme yapabilir!");
+    const loan = (partyLoans||[]).find(l=>l.partyId===party.id&&l.status==="active");
+    if(!loan) return notify("❌ Aktif parti borcu yok!");
+    if((party.budget||0)<loan.installmentAmt) return notify(`❌ Parti kasası yetersiz! Gereken: ${fmtMoney(loan.installmentAmt)}`);
+    const updParties = parties.map(p=>p.id===party.id?{...p,budget:(p.budget||0)-loan.installmentAmt,partyDebt:Math.max(0,(p.partyDebt||0)-loan.installmentAmt)}:p);
+    setParties(updParties); S.save("parties",updParties);
+    const newRemaining = loan.remaining-loan.installmentAmt;
+    const newLeft = loan.installmentsLeft-1;
+    const updLoans = (partyLoans||[]).map(l=>l.id===loan.id?{...l,remaining:Math.max(0,newRemaining),installmentsLeft:newLeft,status:newLeft<=0?"paid":"active"}:l);
+    setPartyLoans(updLoans); S.save("partyLoans",updLoans);
+    setTaxSystem(prev=>{const u={...prev,treasury:(prev.treasury||0)+loan.installmentAmt};S.save("taxSystem",u);return u;});
+    addHistory(`💳 "${party.name}" Maliye borcundan ${fmtMoney(loan.installmentAmt)} taksit ödedi.`);
+    notify(newLeft<=0?`✅ Maliye borcu tamamen kapandı!`:`✅ Taksit ödendi! Kalan: ${newLeft} taksit (${fmtMoney(Math.max(0,newRemaining))})`);
+  };
+
+  // ── Parti Kasasından Oyuncuya Para Gönder ────────────────────────────
+  const partyTreasuryTransfer = async (party) => {
+    if(!party||party.leader!==cu.username) return notify("❌ Sadece lider parti kasasından transfer yapabilir!");
+    const eligible = allUsers.filter(u=>!u.isBot&&!u.banned);
+    if(!eligible.length) return notify("❌ Kullanıcı bulunamadı!");
+    const namesList = eligible.map((u,i)=>`${i+1}. ${u.username} (${fmtMoney(u.money||0)})`).join("\n");
+    const pick = await gPrompt(`💸 Parti Kasasından Gönder\nKasa: ${fmtMoney(party.budget||0)}`,namesList,"Numara","number",{min:1,max:eligible.length});
+    if(!pick) return;
+    const target = eligible[(parseInt(pick)||1)-1];
+    const amtStr = await gPrompt(`💸 ${target.username}'a ne kadar?`,`Parti kasası: ${fmtMoney(party.budget||0)}`,"Tutar","number",{min:1000});
+    const amt = parseInt(amtStr)||0;
+    if(!amt||amt<=0) return;
+    if((party.budget||0)<amt) return notify("❌ Parti kasası yetersiz!");
+    const updParties = parties.map(p=>p.id===party.id?{...p,budget:(p.budget||0)-amt}:p);
+    setParties(updParties); S.save("parties",updParties);
+    setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.username===target.username?{...u,money:(u.money||0)+amt}:u));
+    addHistory(`💸 "${party.name}" kasasından ${target.username}'a ${fmtMoney(amt)} gönderildi.`);
+    addNotification(target.id,`💸 "${party.name}" kasasından ${fmtMoney(amt)} hesabınıza aktarıldı!`,"info");
+    notify(`✅ ${fmtMoney(amt)} → ${target.username}`);
+  };
+
+  // ── Parti Yönetim Koltukları ─────────────────────────────────────────
+  const PARTY_MGMT_SEATS = ["Eş Genel Başkan","Genel Sekreter","Parti Sözcüsü"];
+
+  const assignPartySeat = async (party, seat) => {
+    if(!party||party.leader!==cu.username) return notify("❌ Sadece lider koltuk ataması yapabilir!");
+    const members = (party.members||[]).filter(m=>m!==cu.username);
+    if(!members.length) return notify("❌ Atanabilecek üye yok!");
+    const namesList = members.map((m,i)=>`${i+1}. ${m}`).join("\n");
+    const pick = await gPrompt(`🏛️ ${seat} Ata`,namesList,"Numara","number",{min:1,max:members.length});
+    if(!pick) return;
+    const chosen = members[(parseInt(pick)||1)-1];
+    const partyKey = party.id;
+    const current = partyMgmtRoles[partyKey]||{};
+    const alreadySeat = Object.entries(current).find(([s,u])=>u===chosen&&s!==seat);
+    if(alreadySeat) { const upd={...current};delete upd[alreadySeat[0]];current.__cleaned=true; }
+    const updRoles = {...partyMgmtRoles,[partyKey]:{...(partyMgmtRoles[partyKey]||{}),[seat]:chosen}};
+    setPartyMgmtRoles(updRoles); S.save("partyMgmtRoles",updRoles);
+    setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.username===chosen?{...u,partyRole:seat}:u));
+    addHistory(`🏛️ "${party.name}": ${chosen} → ${seat} atandı.`);
+    notify(`✅ ${chosen} → ${seat}`);
+  };
+
+  // ── Kampanya Reklam Harcaması (seçim oy ağırlığı) ─────────────────────
+  const spendCampaignAds = async (party) => {
+    if(!party||party.leader!==cu.username) return notify("❌ Sadece lider reklam harcaması yapabilir!");
+    const amtStr = await gPrompt("📊 Kampanya Reklam Harcaması",`Parti kasası: ₺${(party.budget||0).toLocaleString()}\nHarcama seçin:\n1. ₺500.000 — +5% oy ağırlığı\n2. ₺1.000.000 — +12% oy ağırlığı\n3. ₺2.500.000 — +30% oy ağırlığı`,"1-3","number",{min:1,max:3});
+    if(!amtStr) return;
+    const tiers = [{cost:500000,bonus:5},{cost:1000000,bonus:12},{cost:2500000,bonus:30}];
+    const tier = tiers[(parseInt(amtStr)||1)-1];
+    if((party.budget||0)<tier.cost) return notify(`❌ Parti kasası yetersiz! Gereken: ₺${tier.cost.toLocaleString()}`);
+    const updParties = parties.map(p=>p.id===party.id?{...p,budget:(p.budget||0)-tier.cost,adBonus:(p.adBonus||0)+tier.bonus}:p);
+    setParties(updParties);
+    S.save("parties", updParties);
+    addHistory(`📊 "${party.name}" ₺${tier.cost.toLocaleString()} reklam harcadı. +${tier.bonus}% oy ağırlığı`);
+    notify(`✅ Reklam harcandı! Parti üyelerinin oy ağırlığı +${tier.bonus}% arttı!`);
   };
 
   // ==================== EMTİA ====================
@@ -8135,9 +8403,10 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
         {/* ===== GOVERNMENT ===== */}
         {currentPage==="government"&&(
           <div>
-            <div className="card" style={{marginBottom:"1.5rem"}}>
+            <div className="card" style={{marginBottom:"1rem"}}>
               <div className="card-title">🏛️ Devlet Kadrosu</div>
-              <p style={{color:"#bbb",fontSize:"0.85rem"}}>Makamlar seçimle belirlenir. Admin panelinden atama yapılabilir. Her makam için eğitim şartı aranmaktadır.</p>
+              <p style={{color:"#bbb",fontSize:"0.85rem",marginBottom:"0.75rem"}}>Makamlar seçimle belirlenir. Admin panelinden atama yapılabilir. Her makam için eğitim şartı aranmaktadır.</p>
+              <button className="btn btn-sm" style={{background:"rgba(59,130,246,0.1)",color:"#60A5FA",border:"1px solid rgba(59,130,246,0.3)",fontWeight:700}} onClick={()=>setCurrentPage("parliament")}>🏛️ Meclis Koltuk Dağılımına Git →</button>
             </div>
             <div className="grid-auto">
               {GOV_POSITIONS.map((pos,i)=>(
@@ -8160,14 +8429,120 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
         )}
 
         {/* ===== PARLIAMENT ===== */}
-        {currentPage==="parliament"&&(
+        {currentPage==="parliament"&&(()=>{
+          const TOTAL_SEATS = 81;
+          // Seçim sonuçlarından parti oy dağılımı
+          const partyVotes = {};
+          (electionState.candidates||[]).forEach(c=>{
+            const party = (Array.isArray(parties)?parties:[]).find(p=>(Array.isArray(p.members)?p.members:[]).includes(c.username));
+            if(party) partyVotes[party.id] = (partyVotes[party.id]||0) + (c.votes||0);
+            else partyVotes["__bagımsız"] = (partyVotes["__bagımsız"]||0) + (c.votes||0);
+          });
+          const totalVotes = Object.values(partyVotes).reduce((s,v)=>s+v,0)||1;
+          // D'Hondt yöntemiyle koltuk hesabı
+          const partySeatMap = {};
+          if(totalVotes>0){
+            const pList = Object.entries(partyVotes).map(([id,v])=>({id,votes:v,div:v}));
+            for(let i=0;i<TOTAL_SEATS;i++){
+              const winner = pList.reduce((best,p)=>p.div>best.div?p:best,pList[0]);
+              if(!winner||winner.div<=0) break;
+              partySeatMap[winner.id] = (partySeatMap[winner.id]||0)+1;
+              winner.div = winner.votes / ((partySeatMap[winner.id]||1)+1);
+            }
+          }
+          // Tüm partilere renk eşleştir
+          const partyColors = {};
+          (Array.isArray(parties)?parties:[]).forEach(p=>{ partyColors[p.id]=p.color||"#A78BFA"; });
+          partyColors["__bagımsız"]="#888";
+          // Koltuk renk dizisi
+          const seatColors = [];
+          Object.entries(partySeatMap).forEach(([id,cnt])=>{ for(let i=0;i<cnt;i++) seatColors.push(partyColors[id]||"#444"); });
+          while(seatColors.length<TOTAL_SEATS) seatColors.push("#2d3748");
+          // Parti adı eşleştirmesi
+          const getPartyName = (id) => id==="__bagımsız"?"Bağımsız":((Array.isArray(parties)?parties:[]).find(p=>p.id===id)?.name||id);
+          // Meclis yay satırları
+          const rows = [11,14,17,19,20];
+          const seats = [];
+          let idx=0;
+          rows.forEach((count,row)=>{
+            const radius = 62+row*32;
+            for(let i=0;i<count;i++){
+              if(idx>=TOTAL_SEATS) return;
+              const angle = Math.PI-(i/(count-1))*Math.PI;
+              const x = 250+Math.cos(angle)*radius;
+              const y = 230-Math.sin(angle)*radius;
+              seats.push({x,y,color:seatColors[idx]});
+              idx++;
+            }
+          });
+          return (
           <div>
+            <div style={{display:"flex",gap:"0.5rem",marginBottom:"0.75rem",alignItems:"center",flexWrap:"wrap"}}>
+              <button className="btn btn-sm" style={{background:"rgba(59,130,246,0.1)",color:"#60A5FA",border:"1px solid rgba(59,130,246,0.3)"}} onClick={()=>setCurrentPage("government")}>← Devlet Kadrosu</button>
+              <div style={{fontFamily:"Syne,sans-serif",fontSize:"1rem",fontWeight:900,color:"var(--accent)"}}>🏛️ Büyük Millet Meclisi</div>
+            </div>
+            {/* Meclis görsel */}
+            <div style={{background:"linear-gradient(135deg,rgba(14,30,74,0.95),rgba(5,10,25,0.98))",border:"1px solid rgba(59,130,246,0.2)",borderRadius:18,padding:"1rem",marginBottom:"1rem",overflow:"hidden"}}>
+              <div style={{position:"relative",width:"100%",paddingTop:"60%",overflow:"hidden"}}>
+                <svg style={{position:"absolute",top:0,left:0,width:"100%",height:"100%"}} viewBox="0 0 500 310">
+                  {/* Zemin çizgisi */}
+                  <ellipse cx="250" cy="240" rx="220" ry="20" fill="rgba(59,130,246,0.05)" stroke="rgba(59,130,246,0.15)" strokeWidth="1"/>
+                  {/* Koltuklar */}
+                  {seats.map((s,i)=>(
+                    <circle key={i} cx={s.x} cy={s.y} r="7"
+                      fill={s.color}
+                      stroke="rgba(255,255,255,0.15)"
+                      strokeWidth="0.5"
+                      style={{filter:`drop-shadow(0 0 4px ${s.color}88)`}}
+                    />
+                  ))}
+                  {/* Kürsü */}
+                  <rect x="225" y="235" width="50" height="14" rx="4" fill="rgba(255,215,0,0.12)" stroke="rgba(255,215,0,0.3)" strokeWidth="1"/>
+                  <text x="250" y="245" textAnchor="middle" fill="#FFD700" fontSize="7" fontWeight="bold">KÜRSÜ</text>
+                </svg>
+              </div>
+              <div style={{textAlign:"center",fontSize:"0.68rem",color:"#555",marginTop:"0.35rem"}}>{TOTAL_SEATS} sandalye · {totalVotes} toplam oy</div>
+            </div>
+            {/* Parti koltuk dağılımı */}
+            <div style={{background:"rgba(13,24,44,0.9)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:"0.85rem",marginBottom:"1rem"}}>
+              <div style={{fontFamily:"Syne,sans-serif",fontSize:"0.72rem",fontWeight:800,color:"#60A5FA",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"0.65rem"}}>📊 Koltuk Dağılımı</div>
+              {Object.keys(partySeatMap).length===0?(
+                <div style={{textAlign:"center",color:"#444",fontSize:"0.8rem",padding:"1rem"}}>Seçim sonuçları bekleniyor...</div>
+              ):(
+                <div style={{display:"flex",flexDirection:"column",gap:"0.4rem"}}>
+                  {Object.entries(partySeatMap).sort((a,b)=>b[1]-a[1]).map(([id,cnt])=>{
+                    const pct = Math.round(cnt/TOTAL_SEATS*100);
+                    const color = partyColors[id]||"#888";
+                    return(
+                      <div key={id} style={{display:"flex",alignItems:"center",gap:"0.6rem"}}>
+                        <div style={{width:12,height:12,borderRadius:"50%",background:color,flexShrink:0,boxShadow:`0 0 6px ${color}`}}/>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{display:"flex",justifyContent:"space-between",marginBottom:"0.2rem"}}>
+                            <span style={{fontSize:"0.75rem",fontWeight:700,color:"#ddd",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{getPartyName(id)}</span>
+                            <span style={{fontSize:"0.75rem",fontWeight:900,color:color,flexShrink:0,marginLeft:"0.4rem"}}>{cnt} koltuk</span>
+                          </div>
+                          <div style={{height:5,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden"}}>
+                            <div style={{height:"100%",width:`${pct}%`,background:color,borderRadius:3}}/>
+                          </div>
+                        </div>
+                        <span style={{fontSize:"0.65rem",color:"#555",flexShrink:0,width:28,textAlign:"right"}}>%{pct}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {Object.keys(partySeatMap).length>0&&Object.values(partySeatMap).reduce((s,v)=>s+v,0)>=Math.ceil(TOTAL_SEATS/2)+1&&(
+                <div style={{marginTop:"0.65rem",background:"rgba(16,185,129,0.08)",border:"1px solid rgba(16,185,129,0.2)",borderRadius:8,padding:"0.5rem 0.75rem",fontSize:"0.72rem",color:"#10B981"}}>
+                  ✅ Çoğunluk ({Math.ceil(TOTAL_SEATS/2)+1} koltuk): <strong>{getPartyName(Object.entries(partySeatMap).sort((a,b)=>b[1]-a[1])[0][0])}</strong>
+                </div>
+              )}
+            </div>
+            {/* Meclis bilgi kartları */}
             <div className="grid-2" style={{marginBottom:"1rem"}}>
               <div className="card">
                 <div className="card-title">🏛️ Meclis Bilgisi</div>
                 <div style={{display:"flex",flexDirection:"column",gap:"0.5rem"}}>
-                  <div><span style={{color:"#bbb"}}>Toplam Sandalye: </span><span style={{fontWeight:700,fontSize:"1.1rem"}}>162</span></div>
-                  <div style={{fontSize:"0.8rem",color:"#bbb"}}>Her ilde 2 milletvekili</div>
+                  <div><span style={{color:"#bbb"}}>Toplam Sandalye: </span><span style={{fontWeight:700,fontSize:"1.1rem"}}>81</span></div>
                   <div><span style={{color:"#bbb"}}>Aktif Milletvekili: </span><span style={{color:"#FFD700",fontWeight:700}}>{allUsers.filter(u=>u.position==="Milletvekili").length}</span></div>
                   <div><span style={{color:"#bbb"}}>Meclis Başkanı: </span><span>{allUsers.find(u=>u.position==="Meclis Başkanı")?.username||"Seçilmedi"}</span></div>
                 </div>
@@ -8177,7 +8552,6 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 <div style={{display:"flex",flexDirection:"column",gap:"0.4rem",fontSize:"0.9rem"}}>
                   <div><span style={{color:"#bbb"}}>Milletvekili: </span><span style={{color:"#10B981"}}>₺10,000/hafta + 15 UC</span></div>
                   <div><span style={{color:"#bbb"}}>Meclis Başkanı: </span><span style={{color:"#10B981"}}>₺12,000/hafta + 20 UC</span></div>
-                  <div style={{fontSize:"0.8rem",color:"#aaa",marginTop:"0.5rem"}}>Milletvekilleri meclise yasa tasarısı sunar. Meclis Başkanı tasarıları inceler ve oylamaya sunar.</div>
                 </div>
               </div>
             </div>
@@ -8201,7 +8575,8 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
               </div>
             )}
           </div>
-        )}
+          );
+        })()}
 
         {/* ===== PARTIES ===== */}
         {currentPage==="parties"&&(()=>{
@@ -8373,7 +8748,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
 
               {/* ── Tab seçici ── */}
               <div style={{display:"flex",gap:"0.35rem",marginBottom:"1rem",overflowX:"auto",scrollbarWidth:"none"}}>
-                {[{k:"panel",l:"🏠 Panelim"},{k:"list",l:"🗂️ Tüm Partiler"},{k:"members",l:"👥 Üye Dağılımı"},{k:"ittifak",l:"🤝 İttifak"},{k:"create",l:"➕ Parti Kur"}].map(t=>{
+                {[{k:"panel",l:"🏠 Panelim"},{k:"list",l:"🗂️ Tüm Partiler"},{k:"members",l:"👥 Üye Dağılımı"},{k:"manifesto",l:"📜 Manifesto"},{k:"ic-secim",l:"🗳️ İç Seçim"},{k:"koalisyon",l:"🤝 Koalisyon"},{k:"maas",l:"💸 Maaş"},{k:"hazine",l:"🏦 Hazine"},{k:"yonetim",l:"🏛️ Yönetim"},{k:"ittifak",l:"🔗 İttifak"},{k:"create",l:"➕ Parti Kur"}].map(t=>{
                   const tColor = t.k==="panel"&&myP ? (myP.color||"#A78BFA") : "#A78BFA";
                   return (
                     <button key={t.k} onClick={()=>setPTab(t.k)}
@@ -8405,9 +8780,19 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                             <span style={{background:"rgba(255,255,255,0.07)",color:"#aaa",fontSize:"0.58rem",padding:"1px 6px",borderRadius:3}}>{partyMems.length} üye</span>
                           </div>
                         </div>
-                        <div style={{textAlign:"right",flexShrink:0}}>
-                          <div style={{fontSize:"1rem",fontWeight:900,color:"#FFB800",fontFamily:"JetBrains Mono,monospace"}}>₺{((myP.budget||0)/1000).toFixed(0)}K</div>
-                          <div style={{fontSize:"0.58rem",color:"#666",marginTop:"0.1rem"}}>KASA</div>
+                        <div style={{textAlign:"right",flexShrink:0,display:"flex",flexDirection:"column",gap:"0.2rem",alignItems:"flex-end"}}>
+                          <div style={{background:"rgba(255,184,0,0.08)",border:"1px solid rgba(255,184,0,0.2)",borderRadius:8,padding:"0.3rem 0.6rem",textAlign:"center"}}>
+                            <div style={{fontSize:"1rem",fontWeight:900,color:"#FFB800",fontFamily:"JetBrains Mono,monospace"}}>₺{((myP.budget||0)/1000).toFixed(0)}K</div>
+                            <div style={{fontSize:"0.55rem",color:"#666"}}>KASA</div>
+                          </div>
+                          <div style={{background:"rgba(167,139,250,0.08)",border:"1px solid rgba(167,139,250,0.25)",borderRadius:8,padding:"0.3rem 0.6rem",textAlign:"center"}}>
+                            <div style={{fontSize:"0.88rem",fontWeight:900,color:"#A78BFA",fontFamily:"JetBrains Mono,monospace"}}>×{getPartyCoefficient(myP)}</div>
+                            <div style={{fontSize:"0.55rem",color:"#666"}}>KATSAYI</div>
+                          </div>
+                          {(myP.partyDebt||0)>0&&<div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.25)",borderRadius:8,padding:"0.3rem 0.6rem",textAlign:"center"}}>
+                            <div style={{fontSize:"0.8rem",fontWeight:900,color:"#EF4444",fontFamily:"JetBrains Mono,monospace"}}>-₺{((myP.partyDebt||0)/1000).toFixed(0)}K</div>
+                            <div style={{fontSize:"0.55rem",color:"#666"}}>BORÇ</div>
+                          </div>}
                         </div>
                       </div>
 
@@ -8425,6 +8810,11 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                           }},
                           {icon:"📈",label:"Parti Yatırımları",color:"#10D9A0",bg:"rgba(16,217,160,0.1)",action:partyInvestment},
                           {icon:"📣",label:"Parti Propagandası",color:"#F59E0B",bg:"rgba(245,158,11,0.1)",action:partyPropaganda},
+                          {icon:"📊",label:"Kampanya Reklam Harcaması",color:"#818CF8",bg:"rgba(129,140,248,0.1)",action:()=>spendCampaignAds(myP),leaderOnly:true},
+                          {icon:"💸",label:"Üye Maaşı Öde",color:"#10D9A0",bg:"rgba(16,217,160,0.1)",action:()=>setPTab("maas"),leaderOnly:true},
+                          {icon:"🗳️",label:"İç Liderlik Seçimi",color:"#F5C842",bg:"rgba(245,200,66,0.1)",action:()=>setPTab("ic-secim"),leaderOnly:true},
+                          {icon:"📜",label:"Manifesto & İdeoloji",color:"#A78BFA",bg:"rgba(167,139,250,0.1)",action:()=>setPTab("manifesto")},
+                          {icon:"🤝",label:"Koalisyon Kur",color:"#10B981",bg:"rgba(16,185,129,0.1)",action:()=>setPTab("koalisyon"),leaderOnly:true},
                           {icon:"👥",label:"Parti Üyeleri",color:"#EC4899",bg:"rgba(236,72,153,0.1)",action:()=>setPTab("members")},
                           {icon:"📜",label:"Parti Hareketleri",color:"#22D3EE",bg:"rgba(34,211,238,0.1)",action:()=>{
                             const log=(historyLog||[]).filter(l=>l.includes(myP.name)).slice(-10);
@@ -8434,8 +8824,8 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                           {icon:"🏛️",label:"Parti Kongre İşlemleri",color:"#8B5CF6",bg:"rgba(139,92,246,0.1)",action:kongre,leaderOnly:true},
                           {icon:"✏️",label:"Parti Adı Değiştirme",color:"#A78BFA",bg:"rgba(167,139,250,0.1)",action:renameParty,leaderOnly:true},
                           {icon:"📋",label:"Yönetim Kurulu Başvuru",color:"#60A5FA",bg:"rgba(96,165,250,0.1)",action:boardApplication},
-                          {icon:"🚫",label:"Kabine Ataması Yapılamaz",color:"#6B7280",bg:"rgba(107,114,128,0.08)",action:()=>notify("❌ Partiler kabine ataması yapamaz. Kabine ataması bireysel bir yetki işlemidir — Yönetim panelinden (Devlet Başkanı) yapılır.")},
-                          {icon:"🚫",label:"Seçim Adaylığı Yapılamaz",color:"#6B7280",bg:"rgba(107,114,128,0.08)",action:()=>notify("❌ Partiler seçime aday olamaz. Seçim adaylığı bireysel bir işlemdir — Siyaset > Seçim sayfasından adaylık başvurusu yapılır.")},
+                          {icon:"🏛️",label:cu.position==="Devlet Başkanı"?"Bakan Ata":"Bakan Ataması",color:cu.position==="Devlet Başkanı"?"#F59E0B":"#6B7280",bg:cu.position==="Devlet Başkanı"?"rgba(245,158,11,0.1)":"rgba(107,114,128,0.08)",action:()=>cu.position==="Devlet Başkanı"?assignCabinet("Maliye Bakanı"):notify("❌ Bakan atama yetkisi yalnızca Devlet Başkanı'nındır!")},
+                          {icon:"💸",label:"Kasadan Para Gönder",color:"#10D9A0",bg:"rgba(16,217,160,0.1)",action:()=>partyTreasuryTransfer(myP),leaderOnly:true},
                           {icon:"⚖️",label:"Parti Disiplin İşlemleri",color:"#F97316",bg:"rgba(249,115,22,0.1)",action:disiplin,leaderOnly:true},
                           {icon:"🎖️",label:"Rol Ata",color:"#FFB800",bg:"rgba(255,184,0,0.1)",action:()=>{
                             if(!isLeader) return notify("❌ Sadece lider rol atayabilir!");
@@ -8567,6 +8957,8 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                           <div style={{padding:"0.35rem 0.5rem",background:"rgba(255,255,255,0.03)",borderRadius:5}}><span style={{color:"#777"}}>Kuruluş: </span><span style={{fontWeight:600,color:"#ddd"}}>{p.foundationDate}</span></div>
                           {p.viceLeader&&<div style={{padding:"0.35rem 0.5rem",background:"rgba(255,255,255,0.03)",borderRadius:5}}><span style={{color:"#777"}}>B.Yrd: </span><span style={{fontWeight:600,color:"#ddd"}}>{p.viceLeader}</span></div>}
                           <div style={{padding:"0.35rem 0.5rem",background:"rgba(255,184,0,0.06)",borderRadius:5,borderLeft:"2px solid #FFB80077"}}><span style={{color:"#777"}}>Bütçe: </span><span style={{color:"#FFB800",fontWeight:700}}>{fmtMoney((p.budget||0))}</span></div>
+                          <div style={{padding:"0.35rem 0.5rem",background:"rgba(167,139,250,0.06)",borderRadius:5,borderLeft:"2px solid #A78BFA77"}}><span style={{color:"#777"}}>Parti Puanı: </span><span style={{color:"#A78BFA",fontWeight:700}}>{calculatePartyPower(p).toLocaleString()}</span></div>
+                          <div style={{padding:"0.35rem 0.5rem",background:"rgba(16,217,160,0.06)",borderRadius:5}}><span style={{color:"#777"}}>Katsayı: </span><span style={{color:"#10D9A0",fontWeight:700}}>×{getPartyCoefficient(p)}</span></div>
                         </div>
                         {!myP&&(
                           <button className="btn btn-sm" style={{background:`${pc}18`,color:pc,border:`1px solid ${pc}44`,width:"100%",fontWeight:700}} onClick={()=>joinParty(p.id)}>⚑ Partiye Katıl</button>
@@ -8702,10 +9094,588 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
               {/* ══════════════════════════════════════
                   TAB: PARTİ İTTİFAKLARI
                   ══════════════════════════════════════ */}
+              {/* ══ MANİFESTO ══ */}
+              {pTab==="manifesto"&&(
+                <div>
+                  <div style={{background:"rgba(167,139,250,0.06)",border:"1px solid rgba(167,139,250,0.2)",borderRadius:14,padding:"0.85rem",marginBottom:"1rem"}}>
+                    <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,color:"#A78BFA",fontSize:"0.88rem",marginBottom:"0.35rem"}}>📜 Parti Manifestosu & İdeoloji Etkileri</div>
+                    <div style={{fontSize:"0.75rem",color:"#888",lineHeight:1.6}}>Manifestonuzda belirlediğiniz politikalar gerçek oyun etkisi yaratır. Lider manifesto yazar, üyeler okur.</div>
+                  </div>
+                  {parties.map(p=>{
+                    const pc=p.color||"#A78BFA";
+                    const manifest=partyManifestos[p.id]||null;
+                    const isMyPartyLeader=myP?.id===p.id&&isLeader;
+                    const IDEOLOGIES=[
+                      {id:"liberal",label:"🏛️ Liberal",desc:"Şirket vergileri -%10, ticaret serbestisi",effect:"Holding gelirleri +%10"},
+                      {id:"sosyalist",label:"✊ Sosyalist",desc:"Işçi maaşları +%20, vergi adaleti",effect:"Tüm üyeler günde +₺5.000 pasif gelir"},
+                      {id:"milliyetci",label:"🦅 Milliyetçi",desc:"Ordu bütçesi +%30, iç güvenlik",effect:"Çete saldırılarına karşı +%20 savunma"},
+                      {id:"yesilci",label:"🌿 Yeşilci",desc:"Çevre politikaları, tarım desteği",effect:"Çiftçi üyeler +%25 hasat"},
+                      {id:"muhafazakar",label:"⚜️ Muhafazakâr",desc:"Gelenek, aile değerleri, istikrar",effect:"Parti kasasına günde +₺10.000 bağış"},
+                    ];
+                    return (
+                      <div key={p.id} style={{marginBottom:"0.85rem",background:`${pc}08`,border:`1px solid ${pc}22`,borderRadius:14,padding:"1rem"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:"0.6rem",marginBottom:"0.75rem"}}>
+                          <div style={{width:36,height:36,borderRadius:9,background:`${pc}22`,border:`1.5px solid ${pc}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.2rem",overflow:"hidden",flexShrink:0}}>
+                            {p.logo?<img src={p.logo} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:"⚑"}
+                          </div>
+                          <div>
+                            <div style={{fontWeight:800,color:pc,fontSize:"0.9rem"}}>{p.name}</div>
+                            <div style={{fontSize:"0.68rem",color:"#666"}}>{p.ideology}</div>
+                          </div>
+                          {manifest?.ideology&&<span style={{marginLeft:"auto",fontSize:"0.65rem",background:`${pc}18`,color:pc,padding:"2px 8px",borderRadius:4,fontWeight:700,flexShrink:0}}>{IDEOLOGIES.find(i=>i.id===manifest.ideology)?.label||manifest.ideology}</span>}
+                        </div>
+                        {manifest?(
+                          <div>
+                            {manifest.text&&<div style={{fontSize:"0.78rem",color:"#ccc",lineHeight:1.7,marginBottom:"0.6rem",background:"rgba(0,0,0,0.2)",borderRadius:8,padding:"0.6rem",fontStyle:"italic"}}>"{manifest.text}"</div>}
+                            {manifest.ideology&&(()=>{
+                              const ideo=IDEOLOGIES.find(i=>i.id===manifest.ideology);
+                              return ideo?(
+                                <div style={{background:"rgba(16,185,129,0.08)",border:"1px solid rgba(16,185,129,0.2)",borderRadius:8,padding:"0.5rem 0.75rem",marginBottom:"0.5rem"}}>
+                                  <div style={{fontSize:"0.68rem",color:"#10B981",fontWeight:800,marginBottom:"0.2rem"}}>⚡ AKTİF ETKİ</div>
+                                  <div style={{fontSize:"0.75rem",color:"#86EFAC"}}>{ideo.effect}</div>
+                                  <div style={{fontSize:"0.65rem",color:"#555",marginTop:"0.15rem"}}>{ideo.desc}</div>
+                                </div>
+                              ):null;
+                            })()}
+                            {manifest.policies&&manifest.policies.length>0&&(
+                              <div style={{marginBottom:"0.5rem"}}>
+                                <div style={{fontSize:"0.65rem",color:"#666",fontWeight:800,marginBottom:"0.35rem",textTransform:"uppercase"}}>Politikalar</div>
+                                {manifest.policies.map((pol,i)=>(
+                                  <div key={i} style={{display:"flex",gap:"0.4rem",alignItems:"center",padding:"0.25rem 0",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
+                                    <span style={{fontSize:"0.65rem",color:pc,fontWeight:700,flexShrink:0}}>▸</span>
+                                    <span style={{fontSize:"0.75rem",color:"#bbb"}}>{pol}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ):(
+                          <div style={{textAlign:"center",color:"#555",fontSize:"0.78rem",padding:"0.75rem"}}>Henüz manifesto yazılmamış.</div>
+                        )}
+                        {isMyPartyLeader&&(
+                          <button className="btn btn-sm" style={{width:"100%",marginTop:"0.5rem",background:`${pc}15`,color:pc,border:`1px solid ${pc}33`,fontWeight:700}}
+                            onClick={async()=>{
+                              const ideoChoice=await gPrompt("📜 İdeoloji Seç",IDEOLOGIES.map((id,i)=>`${i+1}. ${id.label} — ${id.effect}`).join("\n"),"1-5","number",{min:1,max:5});
+                              if(!ideoChoice) return;
+                              const selectedIdeo=IDEOLOGIES[(parseInt(ideoChoice)||1)-1];
+                              const text=await gPrompt("📜 Manifesto Metni","Parti manifestonuzu yazın (max 200 karakter):","Manifesto");
+                              if(!text) return;
+                              const p1=await gPrompt("📜 Politika 1","1. parti politikanızı yazın:","Politika 1");
+                              const p2=await gPrompt("📜 Politika 2","2. parti politikanızı yazın:","Politika 2");
+                              const p3=await gPrompt("📜 Politika 3","3. parti politikanızı yazın (opsiyonel, boş bırakabilirsiniz):","Politika 3 (opsiyonel)");
+                              const pols=[p1,p2,p3].filter(x=>x&&x.trim());
+                              savePartyManifesto(p.id,{ideology:selectedIdeo.id,text:text.trim().slice(0,200),policies:pols,updatedAt:new Date().toLocaleDateString("tr-TR")});
+                              addHistory(`📜 "${p.name}" manifestosunu güncelledi. İdeoloji: ${selectedIdeo.label}`);
+                            }}>✏️ Manifesto Yaz / Güncelle</button>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {parties.length===0&&<div className="card" style={{textAlign:"center",color:"#555",padding:"2rem"}}>Henüz parti yok.</div>}
+                </div>
+              )}
+
+              {/* ══ İÇ SEÇİM ══ */}
+              {pTab==="ic-secim"&&(
+                <div>
+                  <div style={{background:"rgba(245,200,66,0.06)",border:"1px solid rgba(245,200,66,0.2)",borderRadius:14,padding:"0.85rem",marginBottom:"1rem"}}>
+                    <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,color:"#F5C842",fontSize:"0.88rem",marginBottom:"0.35rem"}}>🗳️ Parti İç Liderlik Seçimi</div>
+                    <div style={{fontSize:"0.75rem",color:"#888",lineHeight:1.6}}>Lider, üyeler arasında liderlik seçimi başlatabilir. En çok oy alan üye yeni lider olur. Demokratik bir süreç!</div>
+                  </div>
+                  {!myP?(
+                    <div className="card" style={{textAlign:"center",color:"#555",padding:"2rem"}}>Önce bir partiye katılın.</div>
+                  ):(()=>{
+                    const activeVote=partyInternalVotes[myP.id];
+                    const totalVoters=(myP.members||[]).length;
+                    return (
+                      <div>
+                        {activeVote&&activeVote.active?(
+                          <div style={{background:"rgba(245,200,66,0.06)",border:"1px solid rgba(245,200,66,0.3)",borderRadius:14,padding:"1rem",marginBottom:"1rem"}}>
+                            <div style={{fontWeight:800,color:"#F5C842",fontSize:"0.9rem",marginBottom:"0.2rem"}}>🗳️ Aktif Liderlik Seçimi</div>
+                            <div style={{fontSize:"0.68rem",color:"#666",marginBottom:"0.85rem"}}>{activeVote.startedAt} · {activeVote.startedBy} başlattı</div>
+                            <div style={{display:"flex",flexDirection:"column",gap:"0.45rem",marginBottom:"0.75rem"}}>
+                              {activeVote.candidates.map(c=>{
+                                const pct=totalVoters>0?Math.round(c.votes.length/totalVoters*100):0;
+                                const hasVoted=c.votes.includes(cu.username);
+                                const alreadyVoted=activeVote.candidates.some(cc=>cc.votes.includes(cu.username));
+                                return (
+                                  <div key={c.username} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(245,200,66,0.15)",borderRadius:10,padding:"0.65rem"}}>
+                                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.35rem"}}>
+                                      <div style={{fontWeight:700,color:"#ddd",fontSize:"0.85rem"}}>{c.username}{c.username===myP.leader&&<span style={{fontSize:"0.6rem",color:"#FFB800",marginLeft:"0.3rem",background:"rgba(255,184,0,0.1)",padding:"1px 4px",borderRadius:2}}>Mevcut Lider</span>}</div>
+                                      <span style={{fontSize:"0.75rem",color:"#F5C842",fontWeight:700,fontFamily:"JetBrains Mono,monospace"}}>{c.votes.length} oy ({pct}%)</span>
+                                    </div>
+                                    <div style={{height:5,background:"rgba(255,255,255,0.06)",borderRadius:3,marginBottom:"0.45rem",overflow:"hidden"}}>
+                                      <div style={{height:"100%",width:`${pct}%`,background:"linear-gradient(90deg,#F5C84299,#F5C842)",borderRadius:3,transition:"width 0.6s"}}/>
+                                    </div>
+                                    {!alreadyVoted&&c.username!==cu.username&&(
+                                      <button className="btn btn-sm" style={{width:"100%",fontSize:"0.72rem",background:"rgba(245,200,66,0.12)",color:"#F5C842",border:"1px solid rgba(245,200,66,0.3)"}}
+                                        onClick={()=>castPartyInternalVote(myP.id,c.username)}>🗳️ Oy Ver</button>
+                                    )}
+                                    {alreadyVoted&&hasVoted&&<div style={{textAlign:"center",fontSize:"0.68rem",color:"#10B981"}}>✓ Oyunuzu kullandınız</div>}
+                                    {alreadyVoted&&!hasVoted&&<div style={{textAlign:"center",fontSize:"0.68rem",color:"#555"}}>Başka adaya oy verdiniz</div>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {isLeader&&(
+                              <button className="btn btn-sm" style={{width:"100%",background:"rgba(239,68,68,0.12)",color:"#EF4444",border:"1px solid rgba(239,68,68,0.3)",fontWeight:700}}
+                                onClick={()=>finalizePartyInternalVote(myP.id)}>🏆 Seçimi Sonuçlandır</button>
+                            )}
+                          </div>
+                        ):(
+                          <div>
+                            {activeVote&&!activeVote.active&&(
+                              <div style={{background:"rgba(16,185,129,0.08)",border:"1px solid rgba(16,185,129,0.25)",borderRadius:12,padding:"0.85rem",marginBottom:"1rem"}}>
+                                <div style={{fontWeight:800,color:"#10B981",fontSize:"0.85rem",marginBottom:"0.2rem"}}>✅ Son Seçim Tamamlandı</div>
+                                <div style={{fontSize:"0.78rem",color:"#aaa"}}>Kazanan: <strong style={{color:"#10B981"}}>{activeVote.winner}</strong></div>
+                                <div style={{fontSize:"0.65rem",color:"#555",marginTop:"0.2rem"}}>Son sonuçlar:</div>
+                                {activeVote.candidates.sort((a,b)=>b.votes.length-a.votes.length).map(c=>(
+                                  <div key={c.username} style={{fontSize:"0.72rem",color:"#888",marginTop:"0.2rem"}}>{c.username===activeVote.winner?"🏆 ":"   "}{c.username} — {c.votes.length} oy</div>
+                                ))}
+                              </div>
+                            )}
+                            {isLeader&&(
+                              <div style={{background:"rgba(15,28,50,0.9)",border:`1px solid ${pColor}22`,borderRadius:14,padding:"0.85rem"}}>
+                                <div style={{fontSize:"0.72rem",color:pColor,fontWeight:800,marginBottom:"0.5rem"}}>🗳️ Yeni İç Seçim Başlat</div>
+                                <div style={{fontSize:"0.75rem",color:"#888",marginBottom:"0.65rem",lineHeight:1.6}}>Üyeler arasından adayları seçin. Seçim başladıktan sonra üyeler oy kullanabilir.</div>
+                                <div style={{maxHeight:120,overflowY:"auto",display:"flex",flexDirection:"column",gap:"0.25rem",marginBottom:"0.5rem"}}>
+                                  {(myP.members||[]).filter(m=>m!==cu.username).map(m=>(
+                                    <label key={m} style={{display:"flex",alignItems:"center",gap:"0.5rem",padding:"0.3rem 0.4rem",background:"rgba(255,255,255,0.02)",borderRadius:7,cursor:"pointer"}}>
+                                      <input type="checkbox" id={`ic_${m}`} style={{accentColor:pColor}}/>
+                                      <span style={{fontSize:"0.82rem",color:"#ccc",fontWeight:600}}>{m}</span>
+                                    </label>
+                                  ))}
+                                  {(myP.members||[]).filter(m=>m!==cu.username).length===0&&<div style={{color:"#555",fontSize:"0.75rem",textAlign:"center"}}>Başka üye yok.</div>}
+                                </div>
+                                <button className="btn btn-sm" style={{width:"100%",background:"rgba(245,200,66,0.12)",color:"#F5C842",border:"1px solid rgba(245,200,66,0.3)",fontWeight:700}}
+                                  onClick={()=>{
+                                    const checked=(myP.members||[]).filter(m=>m!==cu.username&&document.getElementById(`ic_${m}`)?.checked);
+                                    if(checked.length<1) return notify("❌ En az 1 aday seçin!");
+                                    const allCandidates=[cu.username,...checked];
+                                    startPartyInternalVote(myP.id,myP.name,allCandidates);
+                                  }}>🗳️ Seçimi Başlat (Mevcut Lider dahil)</button>
+                              </div>
+                            )}
+                            {!isLeader&&<div className="card" style={{textAlign:"center",color:"#555",padding:"1.5rem"}}>Şu an aktif iç seçim yok.</div>}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* ══ KOALİSYON ══ */}
+              {pTab==="koalisyon"&&(
+                <div>
+                  <div style={{background:"rgba(16,185,129,0.06)",border:"1px solid rgba(16,185,129,0.2)",borderRadius:14,padding:"0.85rem",marginBottom:"1rem"}}>
+                    <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,color:"#10B981",fontSize:"0.88rem",marginBottom:"0.35rem"}}>🤝 Koalisyon Sistemi</div>
+                    <div style={{fontSize:"0.75rem",color:"#888",lineHeight:1.6}}>İki veya daha fazla parti anlaşarak koalisyon kurabilir. Koalisyon ortakları seçimlerde birbirinin adaylarını destekler ve ortak kabine kurabilir.</div>
+                  </div>
+                  {/* Bekleyen teklifler */}
+                  {myP&&(()=>{
+                    const pending=coalitions.filter(c=>c.party2Id===myP.id&&c.status==="pending");
+                    if(!pending.length) return null;
+                    return (
+                      <div style={{background:"rgba(16,185,129,0.06)",border:"1px solid rgba(16,185,129,0.3)",borderRadius:14,padding:"0.85rem",marginBottom:"1rem"}}>
+                        <div style={{fontSize:"0.72rem",color:"#10B981",fontWeight:800,marginBottom:"0.55rem"}}>📨 Gelen Koalisyon Teklifleri</div>
+                        {pending.map(c=>(
+                          <div key={c.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(16,185,129,0.15)",borderRadius:10,padding:"0.65rem",marginBottom:"0.4rem"}}>
+                            <div style={{fontWeight:700,color:"#ddd",fontSize:"0.85rem",marginBottom:"0.15rem"}}>⚑ {c.party1Name}</div>
+                            <div style={{fontSize:"0.7rem",color:"#888",marginBottom:"0.35rem"}}>{c.party1Leader} · {c.date}</div>
+                            {c.msg&&<div style={{fontSize:"0.75rem",color:"#aaa",fontStyle:"italic",marginBottom:"0.5rem"}}>"{c.msg}"</div>}
+                            <div style={{display:"flex",gap:"0.4rem"}}>
+                              {isLeader?(
+                                <>
+                                  <button className="btn btn-sm btn-green" style={{flex:1,fontSize:"0.72rem"}} onClick={()=>respondCoalition(c.id,true)}>✅ Kabul</button>
+                                  <button className="btn btn-sm btn-gray" style={{flex:1,fontSize:"0.72rem"}} onClick={()=>respondCoalition(c.id,false)}>❌ Reddet</button>
+                                </>
+                              ):<div style={{fontSize:"0.72rem",color:"#555"}}>Sadece lider yanıt verebilir.</div>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                  {/* Aktif koalisyonlar */}
+                  {(()=>{
+                    const active=coalitions.filter(c=>c.status==="active");
+                    if(!active.length) return <div className="card" style={{textAlign:"center",color:"#555",padding:"1.5rem",marginBottom:"1rem"}}>Henüz aktif koalisyon yok.</div>;
+                    return (
+                      <div style={{marginBottom:"1rem"}}>
+                        <div style={{fontSize:"0.72rem",color:"#10B981",fontWeight:800,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:"0.55rem"}}>🤝 Aktif Koalisyonlar</div>
+                        {active.map(c=>{
+                          const canBreak=myP&&isLeader&&(c.party1Id===myP.id||c.party2Id===myP.id);
+                          const p1=parties.find(p=>p.id===c.party1Id);
+                          const p2=parties.find(p=>p.id===c.party2Id);
+                          return (
+                            <div key={c.id} style={{background:"rgba(15,28,50,0.9)",border:"1px solid rgba(16,185,129,0.25)",borderRadius:12,padding:"0.85rem",marginBottom:"0.5rem"}}>
+                              <div style={{display:"flex",alignItems:"center",gap:"0.5rem",marginBottom:"0.3rem",flexWrap:"wrap"}}>
+                                <span style={{fontWeight:800,color:p1?.color||"#10B981",fontSize:"0.85rem"}}>⚑ {c.party1Name}</span>
+                                <span style={{color:"#10B981",fontWeight:900}}>+</span>
+                                <span style={{fontWeight:800,color:p2?.color||"#A78BFA",fontSize:"0.85rem"}}>⚑ {c.party2Name}</span>
+                                <span style={{marginLeft:"auto",fontSize:"0.6rem",background:"rgba(16,185,129,0.12)",color:"#10B981",padding:"2px 6px",borderRadius:3,fontWeight:700,flexShrink:0}}>KOALİSYON</span>
+                              </div>
+                              <div style={{fontSize:"0.65rem",color:"#555",marginBottom:"0.4rem"}}>{c.date} · Ortak kabine kurabilirsiniz</div>
+                              {canBreak&&<button className="btn btn-sm btn-gray" style={{fontSize:"0.68rem",width:"100%"}} onClick={()=>breakCoalition(c.id)}>🔴 Koalisyonu Boz</button>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                  {/* Teklif et */}
+                  {myP&&isLeader&&(
+                    <div style={{background:"rgba(15,28,50,0.9)",border:"1px solid rgba(16,185,129,0.15)",borderRadius:14,padding:"0.85rem"}}>
+                      <div style={{fontSize:"0.72rem",color:"#10B981",fontWeight:800,marginBottom:"0.55rem"}}>➕ Koalisyon Teklif Et</div>
+                      {parties.filter(p=>p.id!==myP.id).length===0?(
+                        <div style={{color:"#555",fontSize:"0.78rem"}}>Başka parti yok.</div>
+                      ):(
+                        <div style={{display:"flex",flexDirection:"column",gap:"0.35rem"}}>
+                          {parties.filter(p=>p.id!==myP.id).map(p=>{
+                            const coal=coalitions.find(c=>(c.party1Id===myP.id&&c.party2Id===p.id)||(c.party1Id===p.id&&c.party2Id===myP.id));
+                            const pc=p.color||"#A78BFA";
+                            return (
+                              <div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"0.5rem 0.65rem",background:"rgba(255,255,255,0.02)",borderRadius:10,border:`1px solid ${pc}22`}}>
+                                <div style={{display:"flex",alignItems:"center",gap:"0.5rem"}}>
+                                  <div style={{width:30,height:30,borderRadius:7,background:`${pc}22`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1rem",flexShrink:0,overflow:"hidden"}}>
+                                    {p.logo?<img src={p.logo} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:"⚑"}
+                                  </div>
+                                  <div>
+                                    <div style={{fontWeight:700,color:pc,fontSize:"0.82rem"}}>{p.name}</div>
+                                    <div style={{fontSize:"0.63rem",color:"#666"}}>{(p.members||[]).length} üye</div>
+                                  </div>
+                                </div>
+                                {coal?.status==="active"?<span style={{fontSize:"0.63rem",color:"#10B981",fontWeight:700,background:"rgba(16,185,129,0.1)",padding:"2px 6px",borderRadius:3}}>✓ Koalisyon</span>
+                                :coal?.status==="pending"?<span style={{fontSize:"0.63rem",color:"#F5C842",fontWeight:700,background:"rgba(245,200,66,0.1)",padding:"2px 6px",borderRadius:3}}>⏳ Bekliyor</span>
+                                :<button className="btn btn-sm" style={{fontSize:"0.68rem",background:`${pc}15`,color:pc,border:`1px solid ${pc}33`}} onClick={()=>proposeCoalition(p.id)}>🤝 Teklif Et</button>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ══ MAAŞ ══ */}
+              {pTab==="maas"&&(
+                <div>
+                  <div style={{background:"rgba(16,217,160,0.06)",border:"1px solid rgba(16,217,160,0.2)",borderRadius:14,padding:"0.85rem",marginBottom:"1rem"}}>
+                    <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,color:"#10D9A0",fontSize:"0.88rem",marginBottom:"0.35rem"}}>💸 Üye Maaş Sistemi</div>
+                    <div style={{fontSize:"0.75rem",color:"#888",lineHeight:1.6}}>Parti lideri, parti kasasından üyelere günde bir kez maaş ödeyebilir. Maaş miktarını lider belirler.</div>
+                  </div>
+                  {!myP?(
+                    <div className="card" style={{textAlign:"center",color:"#555",padding:"2rem"}}>Önce bir partiye katılın.</div>
+                  ):(
+                    <div>
+                      <div style={{background:"rgba(15,28,50,0.9)",border:`1px solid ${pColor}22`,borderRadius:14,padding:"1rem",marginBottom:"1rem"}}>
+                        <div style={{display:"flex",justifyContent:"space-between",marginBottom:"0.65rem"}}>
+                          <div>
+                            <div style={{fontSize:"0.72rem",color:"#666",marginBottom:"0.15rem"}}>PARTİ KASASI</div>
+                            <div style={{fontFamily:"JetBrains Mono,monospace",fontWeight:900,fontSize:"1.2rem",color:"#FFB800"}}>₺{(myP.budget||0).toLocaleString()}</div>
+                          </div>
+                          <div style={{textAlign:"right"}}>
+                            <div style={{fontSize:"0.72rem",color:"#666",marginBottom:"0.15rem"}}>MAAŞ ALABİLECEK ÜYE</div>
+                            <div style={{fontFamily:"JetBrains Mono,monospace",fontWeight:900,fontSize:"1.2rem",color:pColor}}>{(myP.members||[]).filter(m=>m!==myP.leader).length} kişi</div>
+                          </div>
+                        </div>
+                        {partySalaryLog[myP.id]&&(
+                          <div style={{background:"rgba(255,255,255,0.03)",borderRadius:8,padding:"0.5rem 0.65rem",marginBottom:"0.65rem",fontSize:"0.72rem",color:"#888"}}>
+                            Son ödeme: <strong style={{color:"#ddd"}}>{partySalaryLog[myP.id].lastPaid}</strong> · Kişi başı: <strong style={{color:"#10D9A0"}}>₺{(partySalaryLog[myP.id].amount||0).toLocaleString()}</strong> · Toplam: <strong style={{color:"#FFB800"}}>₺{(partySalaryLog[myP.id].total||0).toLocaleString()}</strong>
+                          </div>
+                        )}
+                        {isLeader?(
+                          <div>
+                            <div style={{fontSize:"0.72rem",color:pColor,fontWeight:800,marginBottom:"0.4rem"}}>💰 Tüm Üyelere Maaş Öde</div>
+                            <div style={{display:"flex",gap:"0.4rem",marginBottom:"0.4rem"}}>
+                              {[5000,10000,25000,50000].map(amt=>{
+                                const members=(myP.members||[]).filter(m=>m!==myP.leader);
+                                const total=amt*members.length;
+                                const canPay=(myP.budget||0)>=total;
+                                return(<button key={amt} className="btn btn-sm" style={{flex:1,fontSize:"0.68rem",background:canPay?"rgba(16,217,160,0.08)":"rgba(239,68,68,0.06)",color:canPay?"#10D9A0":"#EF4444",border:`1px solid ${canPay?"rgba(16,217,160,0.2)":"rgba(239,68,68,0.2)"}`,padding:"0.35rem 0.2rem"}}
+                                  onClick={()=>payPartySalary(myP,amt)}>₺{(amt/1000).toFixed(0)}K<br/><span style={{fontSize:"0.55rem",opacity:0.7}}>×{members.length}={fmtMoney(total)}</span></button>);
+                              })}
+                            </div>
+                            <div style={{display:"flex",gap:"0.4rem",marginBottom:"0.5rem"}}>
+                              <input id="customSalaryInput" type="number" className="form-input" placeholder="Özel miktar (₺/kişi)" style={{flex:1,fontSize:"0.82rem"}}/>
+                              <button className="btn btn-sm" style={{background:"rgba(16,217,160,0.12)",color:"#10D9A0",border:"1px solid rgba(16,217,160,0.3)",whiteSpace:"nowrap"}}
+                                onClick={()=>{
+                                  const v=parseInt(document.getElementById("customSalaryInput")?.value||0);
+                                  if(!v||v<=0) return notify("❌ Geçersiz miktar!");
+                                  payPartySalary(myP,v);
+                                  document.getElementById("customSalaryInput").value="";
+                                }}>Öde</button>
+                            </div>
+                            {(()=>{
+                              const activeLoan=(partyLoans||[]).find(l=>l.partyId===myP.id&&l.status==="active");
+                              return activeLoan?(
+                                <div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.25)",borderRadius:10,padding:"0.65rem",marginBottom:"0.5rem"}}>
+                                  <div style={{fontSize:"0.7rem",color:"#EF4444",fontWeight:800,marginBottom:"0.3rem"}}>🏛️ Aktif Maliye Borcu</div>
+                                  <div style={{display:"flex",justifyContent:"space-between",fontSize:"0.72rem",color:"#ccc",marginBottom:"0.4rem"}}>
+                                    <span>Kalan: <strong style={{color:"#EF4444"}}>{fmtMoney(activeLoan.remaining)}</strong></span>
+                                    <span>Taksit: <strong style={{color:"#F59E0B"}}>{fmtMoney(activeLoan.installmentAmt)}</strong> × {activeLoan.installmentsLeft}</span>
+                                  </div>
+                                  <button className="btn btn-sm" style={{width:"100%",background:"rgba(239,68,68,0.12)",color:"#EF4444",border:"1px solid rgba(239,68,68,0.3)",fontSize:"0.72rem"}}
+                                    onClick={()=>payPartyLoan(myP)}>💳 Taksit Öde ({fmtMoney(activeLoan.installmentAmt)})</button>
+                                </div>
+                              ):(
+                                <button className="btn btn-sm" style={{width:"100%",background:"rgba(99,102,241,0.08)",color:"#818CF8",border:"1px solid rgba(99,102,241,0.25)",fontSize:"0.72rem"}}
+                                  onClick={()=>borrowFromTreasury(myP)}>🏛️ Maliye'den Borç Al (Faiziyle)</button>
+                              );
+                            })()}
+                          </div>
+                        ):(
+                          <div style={{textAlign:"center",color:"#555",fontSize:"0.78rem",padding:"0.5rem"}}>Maaş ödemesi sadece lider tarafından yapılabilir.</div>
+                        )}
+                      </div>
+                      {/* Üye maaş durumu */}
+                      <div style={{background:"rgba(15,28,50,0.9)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:"0.85rem"}}>
+                        <div style={{fontSize:"0.72rem",color:"#aaa",fontWeight:800,marginBottom:"0.55rem"}}>👥 Üyeler ({(myP.members||[]).length})</div>
+                        <div style={{display:"flex",flexDirection:"column",gap:"0.25rem"}}>
+                          {(myP.members||[]).map(m=>{
+                            const uData=allUsers.find(u=>u.username===m);
+                            const isLeaderMember=m===myP.leader;
+                            return (
+                              <div key={m} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"0.35rem 0.5rem",background:"rgba(255,255,255,0.02)",borderRadius:8}}>
+                                <div style={{display:"flex",alignItems:"center",gap:"0.5rem"}}>
+                                  {uData?.profilePhoto?<img src={uData.profilePhoto} style={{width:22,height:22,borderRadius:"50%",objectFit:"cover"}}/>:<div style={{width:22,height:22,borderRadius:"50%",background:`${pColor}22`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"0.7rem"}}>👤</div>}
+                                  <span style={{fontSize:"0.82rem",fontWeight:600,color:"#ccc"}}>{m}</span>
+                                  {isLeaderMember&&<span style={{fontSize:"0.55rem",background:"rgba(255,184,0,0.15)",color:"#FFB800",padding:"1px 4px",borderRadius:2,fontWeight:800}}>LİDER</span>}
+                                </div>
+                                <span style={{fontSize:"0.72rem",color:isLeaderMember?"#666":"#10D9A0",fontFamily:"JetBrains Mono,monospace"}}>{isLeaderMember?"maaş almaz":"maaş alır"}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ══ HAZİNE: Kasadan Para Gönder ══ */}
+              {pTab==="hazine"&&(
+                <div>
+                  <div style={{background:"rgba(16,217,160,0.06)",border:"1px solid rgba(16,217,160,0.2)",borderRadius:14,padding:"0.85rem",marginBottom:"1rem"}}>
+                    <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,color:"#10D9A0",fontSize:"0.88rem",marginBottom:"0.35rem"}}>🏦 Parti Hazinesi</div>
+                    <div style={{fontSize:"0.75rem",color:"#888",lineHeight:1.6}}>Lider, parti kasasından oyunculara para gönderebilir. Maaş ödemeleri dışında ek ödemeler buradan yapılır.</div>
+                  </div>
+                  {!myP?(
+                    <div className="card" style={{textAlign:"center",color:"#555",padding:"2rem"}}>Önce bir partiye katılın.</div>
+                  ):(
+                    <div>
+                      {/* Kasa durumu */}
+                      <div style={{background:"rgba(15,28,50,0.9)",border:`1px solid ${pColor}22`,borderRadius:14,padding:"1rem",marginBottom:"1rem"}}>
+                        <div style={{display:"flex",justifyContent:"space-between",marginBottom:"0.6rem"}}>
+                          <div>
+                            <div style={{fontSize:"0.68rem",color:"#666"}}>PARTİ KASASI</div>
+                            <div style={{fontFamily:"JetBrains Mono,monospace",fontWeight:900,fontSize:"1.2rem",color:"#FFB800"}}>{fmtMoney(myP.budget||0)}</div>
+                          </div>
+                          {(()=>{
+                            const activeLoan=(partyLoans||[]).find(l=>l.partyId===myP.id&&l.status==="active");
+                            return activeLoan?(
+                              <div style={{textAlign:"right"}}>
+                                <div style={{fontSize:"0.68rem",color:"#666"}}>MALİYE BORCU</div>
+                                <div style={{fontFamily:"JetBrains Mono,monospace",fontWeight:900,fontSize:"1rem",color:"#EF4444"}}>{fmtMoney(activeLoan.remaining)}</div>
+                                <div style={{fontSize:"0.6rem",color:"#888"}}>{activeLoan.installmentsLeft} taksit kaldı</div>
+                              </div>
+                            ):null;
+                          })()}
+                        </div>
+                        {isLeader&&<button className="btn btn-sm" style={{width:"100%",background:"rgba(16,217,160,0.1)",color:"#10D9A0",border:"1px solid rgba(16,217,160,0.3)",fontWeight:700}} onClick={()=>partyTreasuryTransfer(myP)}>💸 Oyuncuya Para Gönder</button>}
+                        {isLeader&&(
+                          <div style={{marginTop:"0.5rem",display:"flex",gap:"0.4rem"}}>
+                            {(()=>{
+                              const activeLoan=(partyLoans||[]).find(l=>l.partyId===myP.id&&l.status==="active");
+                              return activeLoan?(
+                                <button className="btn btn-sm" style={{flex:1,background:"rgba(239,68,68,0.1)",color:"#EF4444",border:"1px solid rgba(239,68,68,0.3)",fontSize:"0.72rem"}} onClick={()=>payPartyLoan(myP)}>💳 Maliye Taksiti Öde ({fmtMoney(activeLoan.installmentAmt)})</button>
+                              ):(
+                                <button className="btn btn-sm" style={{flex:1,background:"rgba(99,102,241,0.08)",color:"#818CF8",border:"1px solid rgba(99,102,241,0.25)",fontSize:"0.72rem"}} onClick={()=>borrowFromTreasury(myP)}>🏛️ Maliye'den Borç Al</button>
+                              );
+                            })()}
+                          </div>
+                        )}
+                      </div>
+                      {/* Borç geçmişi */}
+                      {(partyLoans||[]).filter(l=>l.partyId===myP.id).length>0&&(
+                        <div style={{background:"rgba(15,28,50,0.9)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:"0.85rem"}}>
+                          <div style={{fontSize:"0.7rem",color:"#888",fontWeight:800,marginBottom:"0.55rem"}}>📋 Borç Geçmişi</div>
+                          {(partyLoans||[]).filter(l=>l.partyId===myP.id).map(loan=>(
+                            <div key={loan.id} style={{background:`rgba(${loan.status==="active"?"239,68,68":"16,185,129"},0.05)`,border:`1px solid rgba(${loan.status==="active"?"239,68,68":"16,185,129"},0.18)`,borderRadius:10,padding:"0.65rem",marginBottom:"0.4rem"}}>
+                              <div style={{display:"flex",justifyContent:"space-between",fontSize:"0.78rem"}}>
+                                <span style={{color:loan.status==="active"?"#EF4444":"#10B981",fontWeight:700}}>{loan.status==="active"?"🔴 AKTİF":"✅ ÖDENDİ"}</span>
+                                <span style={{color:"#FFB800",fontWeight:700}}>{fmtMoney(loan.amount)}</span>
+                              </div>
+                              <div style={{fontSize:"0.65rem",color:"#666",marginTop:"0.2rem"}}>%{Math.round(loan.rate*100)} faiz · {loan.installments} taksit · {loan.date}</div>
+                              {loan.status==="active"&&<div style={{fontSize:"0.7rem",color:"#ccc",marginTop:"0.2rem"}}>Kalan: <strong style={{color:"#EF4444"}}>{fmtMoney(loan.remaining)}</strong> ({loan.installmentsLeft} taksit)</div>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ══ YÖNETİM KOLTUKLARİ ══ */}
+              {pTab==="yonetim"&&(
+                <div>
+                  {!myP?(
+                    <div className="card" style={{textAlign:"center",color:"#555",padding:"2rem"}}>Önce bir partiye katılın.</div>
+                  ):(()=>{
+                    const leaderData=allUsers.find(u=>u.username===myP.leader)||{};
+                    const mgmt=partyMgmtRoles[myP.id]||{};
+                    const SEAT_META=[
+                      {key:"Eş Genel Başkan",icon:"🤝",color:"#F5C842"},
+                      {key:"Genel Sekreter",  icon:"📋",color:"#60A5FA"},
+                      {key:"Parti Sözcüsü",   icon:"📢",color:"#A78BFA"},
+                    ];
+                    const allMembersList=(myP.members||[]).filter(m=>m!==myP.leader&&!Object.values(mgmt).includes(m));
+
+                    const OrgNode=({username,role,icon,color,size="md",isLeaderNode=false})=>{
+                      const uData=allUsers.find(u=>u.username===username)||{};
+                      const sz=size==="lg"?52:size==="sm"?32:40;
+                      const fz=size==="lg"?"0.88rem":size==="sm"?"0.7rem":"0.78rem";
+                      return (
+                        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"0.3rem",minWidth:size==="lg"?80:60}}>
+                          <div style={{position:"relative"}}>
+                            <div style={{width:sz,height:sz,borderRadius:"50%",background:username?`${color}22`:"rgba(255,255,255,0.04)",border:`2px solid ${username?color+"88":"rgba(255,255,255,0.1)"}`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",boxShadow:username?`0 0 12px ${color}44`:"none"}}>
+                              {username&&uData.profilePhoto?<img src={uData.profilePhoto} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:
+                               username?<span style={{fontSize:size==="lg"?"1.4rem":size==="sm"?"1rem":"1.2rem"}}>👤</span>:
+                               <span style={{fontSize:"1rem",opacity:0.3}}>?</span>}
+                            </div>
+                            {isLeaderNode&&<div style={{position:"absolute",top:-4,right:-4,background:"#FFB800",borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"0.6rem",border:"1.5px solid #050a14"}}>👑</div>}
+                          </div>
+                          <div style={{textAlign:"center"}}>
+                            <div style={{fontSize:fz,fontWeight:700,color:username?"#ddd":"#444",whiteSpace:"nowrap",maxWidth:72,overflow:"hidden",textOverflow:"ellipsis"}}>{username||"—"}</div>
+                            <div style={{fontSize:"0.58rem",color:username?color:"#333",fontWeight:800,whiteSpace:"nowrap"}}>{icon} {role}</div>
+                          </div>
+                        </div>
+                      );
+                    };
+
+                    return (
+                      <div>
+                        {/* ── Parti kimliği + logo yükle ── */}
+                        <div style={{background:`linear-gradient(135deg,${pColor}12,rgba(0,0,0,0))`,border:`1px solid ${pColor}33`,borderRadius:16,padding:"1rem",marginBottom:"1rem"}}>
+                          <div style={{display:"flex",gap:"0.85rem",alignItems:"center"}}>
+                            {/* Logo + yükle butonu */}
+                            <div style={{position:"relative",flexShrink:0}}>
+                              <div style={{width:64,height:64,borderRadius:14,background:`${pColor}18`,border:`2px solid ${pColor}55`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+                                {myP.logo?<img src={myP.logo} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:"2rem"}}>⚑</span>}
+                              </div>
+                              {isLeader&&(
+                                <button
+                                  onClick={uploadPartyLogo}
+                                  title="Logo Yükle"
+                                  style={{position:"absolute",bottom:-6,right:-6,width:22,height:22,borderRadius:"50%",background:"rgba(110,231,183,0.9)",border:"2px solid #050a14",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:"0.65rem",padding:0,lineHeight:1}}>
+                                  📷
+                                </button>
+                              )}
+                            </div>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontFamily:"Syne,sans-serif",fontWeight:900,fontSize:"1.05rem",color:pColor,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{myP.name}</div>
+                              <div style={{fontSize:"0.72rem",color:"#888",marginTop:"0.1rem"}}>{myP.ideology||"İdeoloji belirlenmemiş"}</div>
+                              <div style={{display:"flex",gap:"0.35rem",marginTop:"0.35rem",flexWrap:"wrap"}}>
+                                <span style={{fontSize:"0.6rem",background:"rgba(255,184,0,0.1)",color:"#FFB800",padding:"1px 6px",borderRadius:3,fontWeight:700}}>{(myP.members||[]).length} üye</span>
+                                <span style={{fontSize:"0.6rem",background:"rgba(167,139,250,0.1)",color:"#A78BFA",padding:"1px 6px",borderRadius:3,fontWeight:700}}>×{getPartyCoefficient(myP)} katsayı</span>
+                                <span style={{fontSize:"0.6rem",background:"rgba(16,217,160,0.1)",color:"#10D9A0",padding:"1px 6px",borderRadius:3,fontWeight:700}}>{calculatePartyPower(myP).toLocaleString()} puan</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* ══ ORG CHART ŞEMASİ ══ */}
+                        <div style={{background:"rgba(10,18,40,0.95)",border:`1px solid ${pColor}22`,borderRadius:16,padding:"1.2rem 0.75rem",marginBottom:"1rem",overflowX:"auto"}}>
+
+                          {/* Katman 1: Genel Başkan */}
+                          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:0}}>
+                            <OrgNode username={myP.leader} role="Genel Başkan" icon="👑" color="#FFB800" size="lg" isLeaderNode={true}/>
+
+                            {/* Dikey bağlantı çizgisi */}
+                            <div style={{width:2,height:20,background:`linear-gradient(${pColor}88,${pColor}22)`,margin:"0 auto"}}/>
+
+                            {/* Yatay köprü */}
+                            <div style={{position:"relative",width:"100%",display:"flex",justifyContent:"center"}}>
+                              <div style={{position:"absolute",top:0,left:"16%",right:"16%",height:2,background:`linear-gradient(90deg,transparent,${pColor}55,${pColor}55,transparent)`}}/>
+                            </div>
+
+                            {/* Katman 2: 3 Yönetim Koltuğu */}
+                            <div style={{display:"flex",gap:"0.5rem",justifyContent:"center",paddingTop:"0.1rem",width:"100%"}}>
+                              {SEAT_META.map((s,si)=>{
+                                const holder=mgmt[s.key]||null;
+                                const colLine=s.color;
+                                return (
+                                  <div key={s.key} style={{display:"flex",flexDirection:"column",alignItems:"center",flex:1,minWidth:0}}>
+                                    {/* Dikey çizgi yukarıdan */}
+                                    <div style={{width:2,height:16,background:`${colLine}66`}}/>
+                                    {/* Koltuk kutusu */}
+                                    <div style={{background:`${colLine}0e`,border:`1px solid ${colLine}${holder?"55":"22"}`,borderRadius:12,padding:"0.65rem 0.4rem",width:"100%",display:"flex",flexDirection:"column",alignItems:"center",gap:"0.3rem",cursor:isLeader?"pointer":"default",transition:"all 0.15s"}}
+                                      onClick={()=>isLeader&&assignPartySeat(myP,s.key)}>
+                                      <OrgNode username={holder} role={s.key} icon={s.icon} color={colLine} size="sm"/>
+                                      {isLeader&&(
+                                        <div style={{fontSize:"0.55rem",color:holder?colLine:"#444",fontWeight:700,background:`${colLine}11`,padding:"1px 6px",borderRadius:3,marginTop:"0.15rem"}}>
+                                          {holder?"✏️ Değiştir":"➕ Ata"}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* Katman 3 bağlantısı */}
+                            {allMembersList.length>0&&<>
+                              <div style={{width:2,height:16,background:`rgba(255,255,255,0.1)`,margin:"0 auto"}}/>
+                              <div style={{width:"80%",height:2,background:"rgba(255,255,255,0.06)",margin:"0 auto"}}/>
+                            </>}
+
+                            {/* Katman 3: Diğer Üyeler */}
+                            {allMembersList.length>0&&(
+                              <div style={{display:"flex",gap:"0.5rem",flexWrap:"wrap",justifyContent:"center",paddingTop:"0.75rem",width:"100%"}}>
+                                {allMembersList.map(m=>{
+                                  const uData=allUsers.find(u=>u.username===m)||{};
+                                  return (
+                                    <div key={m} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"0.2rem"}}>
+                                      <div style={{width:2,height:10,background:"rgba(255,255,255,0.08)"}}/>
+                                      <div style={{width:36,height:36,borderRadius:"50%",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+                                        {uData.profilePhoto?<img src={uData.profilePhoto} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:"1rem"}}>👤</span>}
+                                      </div>
+                                      <div style={{fontSize:"0.58rem",color:"#888",textAlign:"center",maxWidth:52,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m}</div>
+                                      <div style={{fontSize:"0.52rem",color:"#444",fontWeight:700}}>{uData.partyRole||"Üye"}</div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* ── Logo yükleme kartı (lider için) ── */}
+                        {isLeader&&(
+                          <div style={{background:"rgba(110,231,183,0.05)",border:"1px solid rgba(110,231,183,0.2)",borderRadius:12,padding:"0.75rem",marginBottom:"0.75rem",display:"flex",alignItems:"center",gap:"0.75rem"}}>
+                            <div style={{width:40,height:40,borderRadius:10,background:"rgba(110,231,183,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.3rem",flexShrink:0}}>🖼️</div>
+                            <div style={{flex:1}}>
+                              <div style={{fontSize:"0.78rem",fontWeight:700,color:"#6EE7B7",marginBottom:"0.15rem"}}>Parti Logosu</div>
+                              <div style={{fontSize:"0.65rem",color:"#555"}}>Maks. 500KB · JPG / PNG / GIF</div>
+                            </div>
+                            <button className="btn btn-sm" style={{background:"rgba(110,231,183,0.12)",color:"#6EE7B7",border:"1px solid rgba(110,231,183,0.3)",flexShrink:0}} onClick={uploadPartyLogo}>
+                              {myP.logo?"Değiştir":"Yükle"}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
               {pTab==="ittifak"&&(
                 <div>
                   <div style={{background:"rgba(96,165,250,0.06)",border:"1px solid rgba(96,165,250,0.2)",borderRadius:14,padding:"0.85rem",marginBottom:"1rem"}}>
-                    <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,color:"#60A5FA",fontSize:"0.88rem",marginBottom:"0.35rem"}}>🤝 Parti İttifak Sistemi</div>
+                    <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,color:"#60A5FA",fontSize:"0.88rem",marginBottom:"0.35rem"}}>🔗 Parti İttifak Sistemi</div>
                     <div style={{fontSize:"0.78rem",color:"#888",lineHeight:1.6}}>Parti liderleri diğer partilerle stratejik ittifak kurabilir. İttifaklar seçimlerde koordinasyonu artırır ve ortak açıklamalar yapılmasını sağlar.</div>
                   </div>
 
@@ -15399,7 +16369,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 {id:"overview",icon:"📊",label:"Genel",color:"#F59E0B"},
                 {id:"units",icon:"🪖",label:"Birlikler",color:"#EF4444"},
                 {id:"tech",icon:"🔬",label:"Teknoloji",color:"#A78BFA"},
-                {id:"darbe",icon:"🏛️",label:"Darbe",color:"#F97316"},
+                {id:"darbe",icon:"🏛 ��",label:"Darbe",color:"#F97316"},
                 {id:"alliance",icon:"🤝",label:"Ittifak",color:"#60A5FA"},
                 {id:"ops",icon:"📋",label:"Operasyon",color:"#10B981"},
               ];
@@ -16439,7 +17409,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 {s:"Deniz savaşında 'amfibik harekât' ne anlama gelir?",c:["Denizaltı saldırısı","Karaya çıkartma operasyonu","Deniz mayını temizleme","Filo tatbikatı"],d:1},
                 {s:"Türk Deniz Kuvvetleri'nin günümüzdeki amiral rütbesi kaç çeşittir?",c:["2","3","4","5"],d:2},
                 {s:"Deniz mili nedir?",c:["1,852 metre","1,609 metre","1,000 metre","2,000 metre"],d:0},
-                {s:"Savaş gemisinde 'iskele' yönü hangi taraftır?",c:["Sağ","Sol","Ön","Arka"],d:1},
+                {s:"Savaş gemisinde 'iskele' yönü hangi taraftır?",c:["Sağ","Sol"," �n","Arka"],d:1},
                 {s:"NATO'nun deniz kuvvetleri tatbikat bölgesi nerede yapılır?",c:["Sadece Atlantik","Sadece Akdeniz","Her iki alanda da","Sadece Pasifik"],d:2},
               ]
             }
