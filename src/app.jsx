@@ -4878,6 +4878,24 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
         sock.on("parliamentUpdate", (data)=>{ if(Array.isArray(data)) window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"parliamentMsgs",value:data}})); });
         sock.on("usersSnapshot", (users)=>{ if(Array.isArray(users)) window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"allUsers",value:users}})); });
         sock.on("serverAction", (data)=>{ if(data&&data.key==="money") window.dispatchEvent(new CustomEvent("fb-sync",{detail:{key:"serverMoney",value:data.value}})); });
+        sock.on("gameEvent", (data)=>{
+          if(!data||!data.type) return;
+          const typeMap = {
+            'city_capture':'city', 'mafia_war':'gang', 'election_result':'election',
+            'election_start':'election', 'law_passed':'law', 'combat':'warning', 'new_party':'system'
+          };
+          const bType = typeMap[data.type]||'system';
+          setBroadcastNotif({
+            type:bType, title:data.title||'', message:data.description||data.message||'',
+            sender:'Sistem', ts:data.ts||Date.now()
+          });
+          setBroadcastHistory(prev=>{
+            const n={type:bType,title:data.title||'',message:data.description||data.message||'',sender:'Sistem',ts:data.ts||Date.now()};
+            const updated=[n,...prev].slice(0,50);
+            try{localStorage.setItem("broadcastHistory",JSON.stringify(updated));}catch{}
+            return updated;
+          });
+        });
         sock.on("adminBroadcast", (data)=>{
           if(!data||!data.message) return;
           setBroadcastNotif({...data, ts:data.ts||Date.now()});
@@ -5513,6 +5531,8 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
     updateUser({ money:(cu.money||0)-1000000, partyId:p.id, partyRole:"Parti Başkanı" });
     S.save("parties", [...(Array.isArray(parties)?parties:[]), p]);
     notify(`✅ "${name}" partisi kuruldu! Renk: ${COLOR_NAMES[colorIdx]} · Bütçe: ₺100,000`);
+    // Tüm oyunculara yeni parti bildir
+    try { if(window._socket) window._socket.emit("partyUpdate", {...p, isNew:true}); } catch(e){}
     setPTab("panel");
   };
 
@@ -5713,6 +5733,10 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
     }));
     setActiveElectionType(typeKey);
     notify(`🗳️ ${etype.title} seçimi başladı! Parti liderleri aday gösterebilir.`);
+    // Tüm oyunculara seçim başladığını bildir
+    try {
+      if(window._socket) window._socket.emit("electionUpdate", {type:"election_start", electionTitle:etype.title, ts:Date.now()});
+    } catch(e){}
   };
 
   const vote = (typeKey, candidateUsername) => {
@@ -5772,6 +5796,15 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
 
     setElections(prev=>({...prev,[typeKey]:{...prev[typeKey],active:false,results}}));
     notify(`🗳️ ${el.typeTitle} seçimi sona erdi!`);
+    // Tüm oyunculara seçim sonucunu bildir
+    try {
+      if(window._socket) window._socket.emit("electionEnd", {
+        electionId:typeKey,
+        electionTitle:el.typeTitle,
+        winner:winner||null,
+        totalVotes:Object.values(el.votes).reduce((a,b)=>a+b,0)
+      });
+    } catch(e){}
   };
 
   // ==================== YENİ SİSTEMLER ====================
@@ -5815,7 +5848,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
       const newAbstain = type==="abstain"?[...(l.votes.abstain||[]),cu.username]:(l.votes.abstain||[]);
       const newVotes = {for:newFor,against:newAgainst,abstain:newAbstain};
       let status = "Oylamada";
-      if(newFor.length>=threshold){ status="Kabul Edildi"; setLaws(pp=>[...(Array.isArray(pp)?pp:[]),{...l,votes:newVotes,status:"Yürürlükte",effectDate:new Date().toLocaleDateString("tr-TR")}]); addHistory(`✅ "${l.title}" yasası kabul edildi!`); notify(`✅ "${l.title}" yasası ${threshold} oyla kabul edildi!`); }
+      if(newFor.length>=threshold){ status="Kabul Edildi"; const passedL={...l,votes:newVotes,status:"Yürürlükte",effectDate:new Date().toLocaleDateString("tr-TR")}; setLaws(pp=>[...(Array.isArray(pp)?pp:[]),passedL]); addHistory(`✅ "${l.title}" yasası kabul edildi!`); notify(`✅ "${l.title}" yasası ${threshold} oyla kabul edildi!`); try{if(window._socket)window._socket.emit("lawUpdate",{laws:[passedL],proposals:[],passedLaw:{title:l.title,category:l.category||"genel"}});}catch(e){} }
       else if(newAgainst.length>=threshold){ status="Reddedildi"; addHistory(`❌ "${l.title}" yasası ${threshold} ret oyuyla reddedildi.`); notify(`❌ "${l.title}" yasası reddedildi.`); }
       return {...l,votes:newVotes,status};
     }));

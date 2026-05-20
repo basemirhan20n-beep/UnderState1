@@ -384,6 +384,13 @@ io.on("connection", (socket) => {
       city: cityId,
       ts: now
     });
+    io.emit('adminBroadcast', {
+      type: 'city',
+      title: `🏙️ Şehir El Değiştirdi!`,
+      message: `${gangName}, ${cityId} şehrini ele geçirdi!`,
+      sender: 'Sistem',
+      ts: now
+    });
     console.log(`🏙️  ${gangName} → ${cityId} ele geçirdi`);
   });
 
@@ -528,6 +535,13 @@ io.on("connection", (socket) => {
       city: city || '',
       ts: Date.now()
     });
+    io.emit('adminBroadcast', {
+      type: 'gang',
+      title: '⚔️ Çete Savaşı Sonuçlandı!',
+      message: `${attackers.name} vs ${defenders.name} — Kazanan: ${warResult.winnerName}${city ? ` (${city} el değiştirdi)` : ''}`,
+      sender: 'Sistem',
+      ts: Date.now()
+    });
 
     await sb.saveGameState('lastMafiaWar', warResult).catch(() => {});
     console.log(`⚔️  Çete savaşı: ${attackers.name} vs ${defenders.name} → ${warResult.winnerName}`);
@@ -613,6 +627,13 @@ io.on("connection", (socket) => {
       description: winner ? `${winner[0]} ${winner[1]} oyla seçimi kazandı!` : 'Seçim tamamlandı',
       ts: Date.now()
     });
+    io.emit('adminBroadcast', {
+      type: 'election',
+      title: '🏆 Seçim Sonuçlandı!',
+      message: winner ? `${winner[0]}, ${winner[1]} oyla seçimi kazandı!` : 'Seçim sona erdi, sonuçlar açıklandı.',
+      sender: 'Sistem',
+      ts: Date.now()
+    });
     console.log(`🏆 Seçim ${electionId} sonuçlandı. Kazanan: ${winner ? winner[0] : 'belirsiz'}`);
   });
 
@@ -673,16 +694,46 @@ io.on("connection", (socket) => {
   socket.on("electionUpdate", (data) => {
     io.emit("electionUpdate", data);
     sb.saveGameState('electionState', data).catch(() => {});
+    // Yeni seçim başladığında tüm oyunculara bildir
+    if (data.type === 'election_start' && data.electionTitle) {
+      io.emit('adminBroadcast', {
+        type: 'election',
+        title: '🗳️ Seçim Başladı!',
+        message: `${data.electionTitle} seçimi başladı! Adaylar oyunuzu bekliyor.`,
+        sender: 'Sistem',
+        ts: Date.now()
+      });
+    }
   });
 
   socket.on("partyUpdate", (data) => {
     io.emit("partyUpdate", data);
+    // Yeni parti kurulduğunda bildir
+    if (data.isNew && data.name) {
+      io.emit('adminBroadcast', {
+        type: 'system',
+        title: '🎉 Yeni Parti Kuruldu!',
+        message: `"${data.name}" adlı yeni bir parti kuruldu. Partiye katılmak için Partiler sayfasına gidin!`,
+        sender: 'Sistem',
+        ts: Date.now()
+      });
+    }
   });
 
   socket.on("lawUpdate", (data) => {
     io.emit("lawUpdate", data);
     if (data.proposals) sb.saveGameState('lawProposals', data.proposals).catch(() => {});
     if (data.laws) sb.saveGameState('laws', data.laws).catch(() => {});
+    // Yeni yasa kabul edildiğinde bildir
+    if (data.passedLaw && data.passedLaw.title) {
+      io.emit('adminBroadcast', {
+        type: 'law',
+        title: '📜 Yasa Kabul Edildi!',
+        message: `"${data.passedLaw.title}" yasası mecliste kabul edildi ve yürürlüğe girdi!`,
+        sender: 'Sistem',
+        ts: Date.now()
+      });
+    }
   });
 
   socket.on("gangsUpdate", (data) => {
