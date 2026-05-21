@@ -1,47 +1,41 @@
-const express = require('express');
-const cors = require('cors');
-const http = require('http');
-const socketIo = require('socket.io');
+import express from "express";
+import http from "http";
+import { Server } from "socket.io";
+import cors from "cors";
 
 const app = express();
-
-// CORS ayarları
 app.use(cors());
-app.use(express.json());
-app.use(express.static('public')); // Static dosyalar için
-
-// ⚠️ BU SATIRLAR ÇOK ÖNEMLİ - Render için PORT yapılandırması
-const PORT = process.env.PORT || 3000;
-const HOST = '0.0.0.0'; // Render için gerekli
 
 const server = http.createServer(app);
-const io = socketIo(server, {
+
+const io = new Server(server, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"]
   }
 });
 
-// Ana route - Health check için
-app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/index.html');
-});
+const ROOM = "main-room";
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK', timestamp: new Date() });
-});
+io.on("connection", (socket) => {
+  console.log("🔵 Connected:", socket.id);
 
-// Socket.io bağlantıları
-io.on('connection', (socket) => {
-  console.log('Kullanıcı bağlandı:', socket.id);
-  
-  socket.on('disconnect', () => {
-    console.log('Kullanıcı ayrıldı:', socket.id);
+  socket.join(ROOM);
+
+  socket.on("playerMove", (data) => {
+    socket.to(ROOM).emit("playerMove", {
+      id: socket.id,
+      ...data
+    });
+  });
+
+  socket.on("disconnect", () => {
+    console.log("🔴 Disconnected:", socket.id);
+    socket.to(ROOM).emit("playerLeave", socket.id);
   });
 });
 
-// Server başlatma - ÖNEMLİ: HOST parametresi ekleyin
-server.listen(PORT, HOST, () => {
-  console.log(`Server ${HOST}:${PORT} adresinde çalışıyor`);
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log("🚀 Server running on", PORT);
 });
