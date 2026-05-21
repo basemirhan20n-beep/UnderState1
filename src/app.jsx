@@ -2171,7 +2171,7 @@ function OrtakliIslerPage({cu, allUsers, setAllUsers, collabRequests, setCollabR
                       <div style={{fontSize:"0.65rem",color:"#aaa"}}>Mevcut: {fmtMoney((economy[item.key]||item.def))}</div>
                     </div>
                     <button className="btn btn-sm" style={{background:"rgba(34,211,238,0.12)",color:"#22D3EE",border:"1px solid rgba(34,211,238,0.3)",fontSize:"0.72rem"}}
-                      onClick={()=>gPrompt(item.label,"Yeni değer (₺):","Miktar","number",{min:0,default:String(item.def)}).then(r=>{const v=parseInt(r);if(!isNaN(v)&&v>0){setEconomy(p=>({...p,[item.key]:v}));notify("✅ Güncellendi: ${fmtMoney(v)});}})}>✏️ Ayarla</button>
+                      onClick={()=>gPrompt(item.label,"Yeni değer (₺):","Miktar","number",{min:0,default:String(item.def)}).then(r=>{const v=parseInt(r);if(!isNaN(v)&&v>0){setEconomy(p=>({...p,[item.key]:v}));notify(`✅ Güncellendi: ${fmtMoney(v)}`);}})}>✏️ Ayarla</button>
                   </div>
                 ))}
               </div>
@@ -2199,7 +2199,7 @@ function OrtakliIslerPage({cu, allUsers, setAllUsers, collabRequests, setCollabR
                 <button className="btn btn-sm" style={{width:"100%",marginBottom:"0.4rem",background:"rgba(239,68,68,0.08)",color:"#EF4444",border:"1px solid rgba(239,68,68,0.25)",textAlign:"left",padding:"0.5rem 0.7rem",fontSize:"0.78rem"}}
                   onClick={()=>gPrompt("Emin misiniz?","Tüm ticaret verileri silinecek. SIFIRLA yazın:","","text").then(r=>{if(r==="SIFIRLA"){setImportExport({imports:[],exports:[],balance:0});S.save("importExport",{imports:[],exports:[],balance:0});notify("✅ Ticaret dengesi sıfırlandı!");}})}>🔄 Ticaret Dengesini Sıfırla</button>
                 <button className="btn btn-sm" style={{width:"100%",background:"rgba(245,158,11,0.08)",color:"#F59E0B",border:"1px solid rgba(245,158,11,0.25)",textAlign:"left",padding:"0.5rem 0.7rem",fontSize:"0.78rem"}}
-                  onClick={()=>gPrompt("Toplu Bonus","Tüm oyunculara verilecek miktar (₺):","Miktar","number",{min:1,default:"50000"}).then(r=>{const v=parseInt(r);if(!isNaN(v)&&v>0){setAllUsers(prev=>prev.map(u=>u.isBot?u:{...u,money:(u.money||0)+v}));notify("✅ Bonus verildi: ${fmtMoney(v)});}})}>💰 Tüm Oyunculara Bonus Ver</button>
+                  onClick={()=>gPrompt("Toplu Bonus","Tüm oyunculara verilecek miktar (₺):","Miktar","number",{min:1,default:"50000"}).then(r=>{const v=parseInt(r);if(!isNaN(v)&&v>0){setAllUsers(prev=>prev.map(u=>u.isBot?u:{...u,money:(u.money||0)+v}));notify(`✅ Bonus verildi: ${fmtMoney(v)}`);}})}>💰 Tüm Oyunculara Bonus Ver</button>
               </div>
             </div>
           )}
@@ -7311,7 +7311,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
       (c.party1Id===targetPartyId&&c.party2Id===myP.id)
     );
     if(existing&&existing.status==="active") return notify("❌ Bu partiyle zaten koalisyondasınız!");
-    const msg = await gPrompt("🤝 Koalisyon Teklifi",`${target.name} partisine koalisyon teklifinizi yazın:","Koalisyon gerekçesi");
+    const msg = await gPrompt("🤝 Koalisyon Teklifi",`${target.name} partisine koalisyon teklifinizi yazın:`,"Koalisyon gerekçesi");
     if(msg===null||msg===undefined) return;
     const coal = {
       id: Date.now(),
@@ -7856,6 +7856,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
           </div>
         )}
       </div>{/* end zIndex:2 content wrapper */}
+    </div>
     );
   }
 
@@ -8603,8 +8604,8 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
     const loan={id:Date.now(),tierId:tier.id,name:tier.name,amount:tier.amount,interest:tier.interest,total:Math.floor(tier.amount*(1+tier.interest)),paid:0,startDate:Date.now(),dueDate:Date.now()+(tier.weeks*7*24*3600000),weeksLeft:tier.weeks};
     setActiveLoan(loan);S.save("activeLoan",loan);
     updateUser({money:(cu.money||0)+tier.amount,creditScore:Math.max(0,(cu.creditScore||500)-10)});
-    notify("✅ ${fmtMoney(tier.amount)}+" kredi hesabınıza yüklendi!");
-    addHistory("💳 "+tier.name+": ${fmtMoney(tier.amount)}+" alındı.");
+    notify(`✅ +${fmtMoney(tier.amount)} kredi hesabınıza yüklendi!`);
+    addHistory(`💳 ${tier.name}: +${fmtMoney(tier.amount)} alındı.`);
   };
   const payLoan = function(amount){
     if(!activeLoan)return;
@@ -8621,7 +8622,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
       const u={...activeLoan,paid:activeLoan.paid+pay};
       setActiveLoan(u);S.save("activeLoan",u);
       updateUser({money:(cu.money||0)-pay});
-      notify("✅ ${fmtMoney(pay)}+" ödendi. Kalan: ${fmtMoney(rem)});
+      notify(`✅ +${fmtMoney(pay)} ödendi. Kalan: ${fmtMoney(rem)}`);
     }
   };
 
@@ -8973,7 +8974,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                         <div style={{fontSize:"0.72rem",color:"#aaa"}}>{cr.desc} · {cr.date}</div>
                       </div>
                       <div style={{textAlign:"right"}}>
-                        {cr.fine>0&&<div style={{fontSize:"0.72rem",color:"#EF4444"}}>{fmtMoney(cr.fine?)}" ceza</div>}
+                        {cr.fine>0&&<div style={{fontSize:"0.72rem",color:"#EF4444"}}>{fmtMoney(cr.fine||0)} ceza</div>}
                         <div style={{fontSize:"0.65rem",color:cr.resolved?"#10B981":"#F59E0B"}}>{cr.resolved?"✅ Kapatıldı":"⏳ Aktif"}</div>
                       </div>
                     </div>
@@ -9635,8 +9636,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                         style={{padding:"0.4rem 0.8rem",borderRadius:8,border:"1px solid rgba(245,158,11,0.35)",background:"rgba(245,158,11,0.1)",color:"#F59E0B",fontWeight:700,cursor:"pointer",fontSize:"0.75rem",fontFamily:"inherit"}}
                         onClick={async()=>{
                           const eligible = (Array.isArray(allUsers)?allUsers:[]).filter(u=>!u.isBot&&u.username);
-                          const list = eligible.map((u,i)=>`${i+1}. ${u.username} (${u.position||"Vatandaş"})`).join("
-");
+                          const list = eligible.map((u,i)=>`${i+1}. ${u.username} (${u.position||"Vatandaş"})`).join("\n");
                           const pick = await gPrompt(`🏛️ ${pos} Ata`,list,"Numara","number",{min:1,max:eligible.length});
                           if(!pick) return;
                           const target = eligible[(parseInt(pick)||1)-1];
@@ -9657,8 +9657,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                       onClick={async()=>{
                         const deputies=(Array.isArray(allUsers)?allUsers:[]).filter(u=>u.position==="Milletvekili"||u.position==="Meclis Başkanı");
                         if(!deputies.length) return notify("❌ Görevde milletvekili yok!");
-                        const list=deputies.map((u,i)=>`${i+1}. ${u.username} (${u.position})`).join("
-");
+                        const list=deputies.map((u,i)=>`${i+1}. ${u.username} (${u.position})`).join("\n");
                         const pick=await gPrompt("🔴 Makam Kaldır",list,"Numara","number",{min:1,max:deputies.length});
                         if(!pick) return;
                         const target=deputies[(parseInt(pick)||1)-1];
@@ -9672,8 +9671,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                     <button
                       style={{padding:"0.4rem 0.8rem",borderRadius:8,border:"1px solid rgba(239,68,68,0.4)",background:"rgba(239,68,68,0.1)",color:"#EF4444",fontWeight:700,cursor:"pointer",fontSize:"0.75rem",fontFamily:"inherit"}}
                       onClick={async()=>{
-                        const gir=await gPrompt("⚠️ Tüm Milletvekili Makamlarını Sıfırla","Bu işlem TÜM Milletvekili ve Meclis Başkanı makamlarını kaldırır!
-Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
+                        const gir=await gPrompt("⚠️ Tüm Milletvekili Makamlarını Sıfırla","Bu işlem TÜM Milletvekili ve Meclis Başkanı makamlarını kaldırır!\nOnaylamak için 'SİFİRLA' yazın:","SİFİRLA");
                         if(!gir||gir.trim().toUpperCase()!=="SİFİRLA") return;
                         const updUsers=(Array.isArray(allUsers)?allUsers:[]).map(u=>(u.position==="Milletvekili"||u.position==="Meclis Başkanı")?{...u,position:"Vatandaş"}:u);
                         setAllUsers(updUsers); S.save("rep_users",updUsers);
@@ -11739,7 +11737,7 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
                       <span style={{fontWeight:700}}>{item.name}</span>
                       <span style={{fontSize:"0.72rem",color:"#bbb",marginLeft:"0.5rem"}}>x{item.amount} · {item.buyDate}</span>
                     </div>
-                    <span style={{fontSize:"0.75rem",color:"#EF4444"}}>{fmtMoney(item.price?)}"/adet</span>
+                    <span style={{fontSize:"0.75rem",color:"#EF4444"}}>{fmtMoney(item.price||0)}/adet</span>
                   </div>
                 ))}
               </div>
@@ -13199,7 +13197,7 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
             const rec=positionTasks[key]||{last:0,count:0};
             const elapsed=Math.floor((now-rec.last)/1000);
             if(elapsed<task.cd){notify("⏳ Cooldown: "+fmtTime(task.cd-elapsed));return;}
-            if((cu.money||0)<task.cost){notify("❌ Yetersiz bakiye! ${fmtMoney(task.cost)}+" gerekli.");return;}
+            if((cu.money||0)<task.cost){notify(`❌ Yetersiz bakiye! ${fmtMoney(task.cost)} gerekli.`);return;}
             // Deduct cost
             setAllUsers(prev=>prev.map(u=>u.username===cu.username?{...u,money:(u.money||0)-task.cost+(task.reward||0),score:(u.score||0)+(task.puan||0),meritPoints:(u.meritPoints||0)+Math.floor((task.puan||0)/2)}:u));
             setPositionTasks(prev=>{
@@ -13210,7 +13208,7 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
             if(task.asker&&task.asker>0){
               setAllUsers(prev=>prev.map(u=>u.username===cu.username?{...u,askerPuan:(u.askerPuan||0)+task.asker}:u));
             }
-            notify("✅ "+task.name+" tamamlandı! +${fmtMoney(task.reward)}+" +"+task.puan+" puan"+(task.asker?" +"+task.asker+"⚔️":"")+" 🏆 Liderlik");
+            notify(`✅ ${task.name} tamamlandı! +${fmtMoney(task.reward)} +${task.puan} puan${task.asker?" +"+task.asker+"⚔️":""} 🏆 Liderlik`);
           };
 
           // Her makam için yetki tanımları
@@ -13474,10 +13472,10 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
             const rec=positionTasks[key]||{last:0,count:0};
             const elapsed=Math.floor((now-rec.last)/1000);
             if(elapsed<task.cd){notify("⏳ Cooldown: "+fmtTimeG(task.cd-elapsed));return;}
-            if((cu.money||0)<task.cost){notify("❌ Yetersiz bakiye! ${fmtMoney(task.cost)}+" gerekli.");return;}
+            if((cu.money||0)<task.cost){notify(`❌ Yetersiz bakiye! ${fmtMoney(task.cost)} gerekli.`);return;}
             setAllUsers(prev=>prev.map(u=>u.username===cu.username?{...u,money:(u.money||0)-task.cost+(task.reward||0),score:(u.score||0)+(task.puan||0),meritPoints:(u.meritPoints||0)+Math.floor((task.puan||0)/2),askerPuan:(u.askerPuan||0)+(task.asker||0)}:u));
             setPositionTasks(prev=>{const upd={...prev,[key]:{last:now,count:(rec.count||0)+1}};S.save("positionTasks",upd);return upd;});
-            notify("✅ "+task.name+" tamamlandı! +${fmtMoney(task.reward)}+" +"+task.puan+"🏅 +"+(task.asker||0)+"⚔️");
+            notify(`✅ ${task.name} tamamlandı! +${fmtMoney(task.reward)} +${task.puan}🏅 +${task.asker||0}⚔️`);
           };
           const sendCoupVote=(which)=>{
             const voter=cu.username;
@@ -14543,7 +14541,7 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
           };
 
           const doBuy = (s) => {
-            const qty = parseInt(prompt(s.holdingName+" - ${fmtMoney(s.sharePrice)}+"/adet, Mevcut: "+s.availableShares+" adet. Kaç adet al?")||"0");
+            const qty = parseInt(prompt(`${s.holdingName} - ${fmtMoney(s.sharePrice)}/adet, Mevcut: ${s.availableShares} adet. Kaç adet al?`)||"0");
             if(!qty||qty<1) return;
             if(qty>s.availableShares) return notify("❌ Yeterli hisse yok!");
             const total=qty*s.sharePrice;
@@ -14561,7 +14559,7 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
           const doSell = (p) => {
             const s=mkt.find(x=>x.id===p.stockId);
             if(!s) return notify("❌ Hisse artık listede değil!");
-            const qty=parseInt(prompt(p.holdingName+" - ${fmtMoney(s.sharePrice)}+"/adet, Elinde: "+p.amount+" adet. Kaç adet sat?")||"0");
+            const qty=parseInt(prompt(`${p.holdingName} - ${fmtMoney(s.sharePrice)}/adet, Elinde: ${p.amount} adet. Kaç adet sat?`)||"0");
             if(!qty||qty<1||qty>p.amount) return notify("❌ Geçersiz miktar!");
             const total=qty*s.sharePrice;
             const profit=total-qty*p.avgPrice;
@@ -15029,7 +15027,7 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
                       <div style={{textAlign:"center",padding:"0.75rem",fontSize:"1.2rem",color:"#FFD700",fontFamily:"Syne,sans-serif"}}>🥇 {lastRace.winnerName}</div>
                       {horseBets.filter(b=>b.raceId===lastRace.id&&b.settled&&b.userId===cu.id).map(b=>(
                         <div key={b.id} style={{textAlign:"center",color:b.won?"#10B981":"#EF4444",fontWeight:700}}>
-                          {b.won?`✅ KAZANDINIZ: +${fmtMoney(b.payout?)}`:`❌ Kaybettiniz: -${fmtMoney(b.amount)}`}
+                          {b.won?`✅ KAZANDINIZ: +${fmtMoney(b.payout||0)}`:`❌ Kaybettiniz: -${fmtMoney(b.amount)}`}
                         </div>
                       ))}
                     </div>
@@ -15267,7 +15265,7 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
                     {/* Sonuç */}
                     {bjPhase==="done"&&bjResult&&(
                       <div className={"bj-result "+(bjResult==="blackjack"?"blackjack":bjResult==="win"?"win":bjResult==="push"?"push":"lose")} style={{margin:"0 auto 1rem",maxWidth:280}}>
-                        {bjResult==="blackjack"?"🎉 BLACKJACK! +${fmtMoney((Math.floor(bjBet*2.5)-bjBet))}:bjResult==="win"?"✅ Kazandın! +${fmtMoney(bjBet)}:bjResult==="push"?"🤝 Beraberlik":bjResult==="bust"?"💥 Bust — Kaybettin":"❌ Kaybettin"}
+                        {bjResult==="blackjack"?`🎉 BLACKJACK! +${fmtMoney(Math.floor(bjBet*2.5)-bjBet)}`:bjResult==="win"?`✅ Kazandın! +${fmtMoney(bjBet)}`:bjResult==="push"?"🤝 Beraberlik":bjResult==="bust"?"💥 Bust — Kaybettin":"❌ Kaybettin"}
                       </div>
                     )}
                     {/* Aksiyonlar */}
@@ -20773,7 +20771,7 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
           updateUser({money:(cu.money||0)-myTax,taxDue:0});
           setEconomy(prev=>({...prev,treasury:prev.treasury+myTax}));
           addHistory(`🏛️ Vergi beyanı yapıldı: ${fmtMoney(myTax)} Hazine'ye ödendi.`);
-          notify("✅ Vergi ödemesi başarılı! Hazine'ye ${fmtMoney(myTax)}+" aktarıldı.");
+          notify(`✅ Vergi ödemesi başarılı! Hazine'ye ${fmtMoney(myTax)} aktarıldı.`);
           triggerAchievement({id:"taxpayer",icon:"🏛️",title:"Vergi Mükellefi",desc:"İlk vergi beyannamenizi verdiniz!"});
         };
         return (
@@ -20815,7 +20813,7 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
                       <tr key={d.id} style={{borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
                         <td style={{padding:"0.35rem 0.4rem",color:"#ddd"}}>{d.username}</td>
                         <td style={{padding:"0.35rem 0.4rem",color:"#aaa"}}>{d.date}</td>
-                        <td style={{padding:"0.35rem 0.4rem",color:"#FFD700"}}>{fmtMoney(d.amount?)}"</td>
+                        <td style={{padding:"0.35rem 0.4rem",color:"#FFD700"}}>{fmtMoney(d.amount||0)}</td>
                         <td style={{padding:"0.35rem 0.4rem"}}><span style={{color:d.paid?"#10B981":"#EF4444",fontSize:"0.72rem"}}>{d.paid?"✅ Ödendi":"⏳ Bekliyor"}</span></td>
                       </tr>
                     ))}</tbody>
@@ -22102,7 +22100,7 @@ Onaylamak için 'SİFİRLA' yazın:","SİFİRLA");
           <div className="info-box" style={{marginBottom:"1rem"}}>🛡️ Holding, gayrimenkul ve araç sigortası. Yangın/deprem olayında sigortalı olmak ciddi avantaj sağlar!</div>
           <div className="grid-2" style={{marginBottom:"1rem"}}>
             <div className="stat-box"><div className="val" style={{color:"#10B981"}}>{(Array.isArray(insurances)?insurances:[]).filter(i=>i.owner===cu.username).length}</div><div className="lbl">Aktif Poliçe</div></div>
-            <div className="stat-box"><div className="val stat-red">{fmtMoney((Array.isArray(insurances)?insurances:[]).filter(i=>i.owner===cu.username).reduce((s,i=>s+(i.monthlyPremium||0),0))}/ay</div><div className="lbl">Aylık Prim</div></div>
+            <div className="stat-box"><div className="val stat-red">{fmtMoney((Array.isArray(insurances)?insurances:[]).filter(i=>i.owner===cu.username).reduce((s,i)=>s+(i.monthlyPremium||0),0))}/ay</div><div className="lbl">Aylık Prim</div></div>
           </div>
           <div className="card" style={{marginBottom:"1rem"}}>
             <div className="card-title">📋 Sigorta Türleri</div>
@@ -24833,7 +24831,7 @@ if(cityDevTab==="build") return(
                 <div className="card">
                   <div className="card-title">📊 Mutluluk Faktörleri</div>
                   {[
-                    {l:"💰 Servet",score:money_score,max:30,tip:"Nakit: ${fmtMoney(((cu.money||0)))}},
+                    {l:"💰 Servet",score:money_score,max:30,tip:`Nakit: ${fmtMoney(cu.money||0)}`},
                     {l:"🏛️ Makam",score:pos_score,max:20,tip:cu.position||"Makam sahibi değil"},
                     {l:"👥 Arkadaşlar",score:friends_score,max:15,tip:friendsList.filter(f=>f.userId===cu.id).length+" arkadaş"},
                     {l:"🏠 Ev",score:house_score,max:10,tip:(Array.isArray(realEstate)?realEstate:[]).filter(p=>p.owner===cu.username).length+" mülk"},
@@ -25745,7 +25743,7 @@ if(cityDevTab==="build") return(
                       <div style={{fontSize:"0.68rem",color:"#666",marginTop:"0.1rem"}}>{r.msgText.substring(0,50)}...</div>
                     </div>
                     <span style={{color:r.status==="ceza_verildi"?"#10B981":"#EF4444",fontWeight:700,fontSize:"0.75rem",flexShrink:0,marginLeft:"0.5rem"}}>
-                      {r.status==="ceza_verildi"?`${fmtMoney(r.fine?)} Ceza`:"Reddedildi"}
+                      {r.status==="ceza_verildi"?`${fmtMoney(r.fine||0)} Ceza`:"Reddedildi"}
                     </span>
                   </div>
                 ))}
@@ -26963,7 +26961,7 @@ if(cityDevTab==="build") return(
           const updated = auctionItems.map(a=>a.id===aId?{...a,currentBid:bidAmt,currentBidder:cu.username,currentBidderId:cu.id}:a);
           setAuctionItems(updated); S.save("auctionItems",updated);
           updateUser({money:(cu.money||0)-bidAmt});
-          notify("✅ Teklif verildi: ${fmtMoney(bidAmt)});
+          notify(`✅ Teklif verildi: ${fmtMoney(bidAmt)}`);
         };
 
         // ─── Artırmayı tamamla ────────────────────────────────────────────────
@@ -26975,7 +26973,7 @@ if(cityDevTab==="build") return(
             setAllUsers(prev=>prev.map(u=>u.id===it.seller?{...u,money:(u.money||0)+it.currentBid}:u));
             if(it.assetType==="luxury")  setLuxuryAssets(prev=>prev.map(a=>a.id===it.assetId?{...a,owner:it.currentBidder}:a));
             if(it.assetType==="realestate") setRealEstate(prev=>prev.map(p=>p.id===it.assetId?{...p,owner:it.currentBidder}:p));
-            notify("✅ "+it.name+" — @"+it.currentBidder+" kazandı! ${fmtMoney(it.currentBid)}+" kazandınız.");
+            notify(`✅ ${it.name} — @${it.currentBidder} kazandı! ${fmtMoney(it.currentBid)} kazandınız.`);
           } else {
             if(it.inventoryKey) {
               setCraftingInv(prev=>({...prev,[it.inventoryKey]:(prev[it.inventoryKey]||0)+1}));
@@ -27351,7 +27349,7 @@ if(cityDevTab==="build") return(
           setCraftingInv(nI); S.save("craftingInv",nI);
           const updated=[...auctionItems,item];
           setAuctionItems(updated); S.save("auctionItems",updated);
-          notify("🏷️ "+r.name+" açık artırmaya koyuldu! Başlangıç: ${fmtMoney(startPrice)}+" • 24 saat");
+          notify(`🏷️ ${r.name} açık artırmaya koyuldu! Başlangıç: ${fmtMoney(startPrice)} • 24 saat`);
           setCurrentPage("auction"); setAuctTab("mine");
         };
         const GATHER_CD = 30*60*1000;

@@ -941,8 +941,8 @@ function _hideLoading() {
 _advanceBar(10, 'Başlatılıyor...');
 
 // ── IndexedDB cache (fast reload after first visit) ──────────────────────────
-var IDB_NAME = 'us_cache_v2';
-var IDB_KEY  = 'compiled_v210_major';
+var IDB_NAME = 'us_cache_v11';
+var IDB_KEY  = 'compiled_v219_ok';
 
 function idbGet(key, cb) {
   try {
@@ -990,10 +990,10 @@ function execCode(code) {
   } catch(e) { _showError('Kod calistirilamadi: ' + e.message); }
 }
 
-// Fetch src/app.js (pre-compiled), cache in IDB
+// Fetch src/app.jsx (kaynak), Babel ile dönüştür ve cache'le
 function compileAndRun() {
   _advanceBar(82, 'Oyun yükleniyor...');
-  fetch('src/app.js?v=' + IDB_KEY)
+  fetch('src/app.jsx?v=' + IDB_KEY)
     .then(function(r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.text();
