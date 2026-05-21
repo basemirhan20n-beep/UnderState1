@@ -7588,12 +7588,13 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
     }
     return (
       <div className="login-wrap" style={{
-        position:"relative",
-        background:"#000",minHeight:"100vh",
+        position:"fixed",inset:0,
+        background:"#000",
         display:"flex",flexDirection:"column",
-        alignItems:"center",justifyContent:"center",
+        alignItems:"center",
+        overflowY:"auto",overflowX:"hidden",
+        WebkitOverflowScrolling:"touch",
         padding:"clamp(1rem,4vw,2rem)",
-        overflowY:"auto"
       }}>
         {/* Video background */}
         <video src="/login-bg.mp4" autoPlay muted loop playsInline
@@ -8096,80 +8097,64 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
 
   return (
     <div className="app-wrap">
-      {/* HEADER */}
-      <div className="header">
-        <div className="header-left">
-          <div>
-            <div className="logo-text">UNDERSTATE</div>
-            <div className="user-greeting" style={{display:"flex",alignItems:"center",gap:"0.5rem",flexWrap:"wrap"}}>
-              Hoş geldin, {cu?.username||"..."} {cu?.role==="admin"&&<span className="admin-badge">ADMIN</span>}
-              {onlinePlayers>0&&<span className="online-badge"><span className="dot"/>{onlinePlayers} çevrimiçi</span>}
+      {/* ── KOMPAKt MOBİL HEADER ── */}
+      <div style={{
+        position:"sticky",top:0,zIndex:100,
+        background:"rgba(6,12,24,0.97)",
+        borderBottom:"1px solid rgba(255,255,255,0.06)",
+        backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",
+        padding:"0.35rem 0.75rem",
+        display:"flex",alignItems:"center",justifyContent:"space-between",
+        height:52,flexShrink:0,
+      }}>
+        {/* Sol: Avatar + İsim + Unvan */}
+        <div style={{display:"flex",alignItems:"center",gap:"0.5rem",cursor:"pointer",minWidth:0,flex:1}}
+          onClick={()=>setCurrentPage("profile")}>
+          <div style={{
+            width:34,height:34,borderRadius:"50%",flexShrink:0,
+            background:"linear-gradient(135deg,rgba(208,0,0,0.7),rgba(30,0,0,0.9))",
+            border:"2px solid rgba(208,0,0,0.5)",
+            display:"flex",alignItems:"center",justifyContent:"center",
+            fontSize:"0.95rem",fontWeight:900,color:"#fff",
+          }}>{(cu?.username||"?")[0]?.toUpperCase()}</div>
+          <div style={{minWidth:0}}>
+            <div style={{fontWeight:700,fontSize:"0.8rem",color:"#fff",lineHeight:1.2,display:"flex",alignItems:"center",gap:"0.3rem"}}>
+              {cu?.username||"..."}
+              {cu?.role==="admin"&&<span style={{background:"#D00000",color:"#fff",fontSize:"0.45rem",padding:"1px 4px",borderRadius:3,fontWeight:900,letterSpacing:"0.06em"}}>ADMIN</span>}
+            </div>
+            <div style={{fontSize:"0.62rem",color:"#6B8199",lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+              {cu?.title||cu?.position||"Vatandaş"}
+              {onlinePlayers>0&&<span style={{color:"#22C55E",marginLeft:"0.4rem"}}>● {onlinePlayers}</span>}
             </div>
           </div>
         </div>
-        <div className="header-stats">
-                
-          {/* v4: XP & Prestij göstergesi */}
-          {cu&&(()=>{
-            const xpData = getUserXP(cu.username);
-            const tier = getPrestigeTier(xpData.prestige||0);
-            const elPhase = electionState.phase;
-            const timeToNext = Math.max(0, (electionState.nextElection||0)-Date.now());
-            const daysLeft = Math.floor(timeToNext/86400000);
-            const hoursLeft = Math.floor((timeToNext%86400000)/3600000);
-            return (
-              <>
-                <div className="stat-item" style={{cursor:"pointer",borderLeft:`2px solid ${tier.color}33`}} onClick={()=>setCurrentPage("prestige")} title="Prestij & Kariyer">
-                  <div className="stat-label" style={{color:tier.color}}>⭐ PRESTİJ</div>
-                  <div className="stat-value" style={{color:tier.color,fontWeight:900}}>{xpData.prestige||0}</div>
-                </div>
-                <div className="stat-item" style={{cursor:"pointer"}} onClick={()=>setCurrentPage("prestige")} title="Seviye">
-                  <div className="stat-label">🎖️ UNVAN</div>
-                  <div className="stat-value" style={{color:tier.color,fontSize:"0.62rem"}}>{tier.label}</div>
-                </div>
-                <div className="stat-item" style={{cursor:"pointer",borderRight:`2px solid ${elPhase==="voting"?"rgba(239,68,68,0.4)":elPhase==="campaign"?"rgba(245,200,66,0.4)":"rgba(255,255,255,0.1)"}`}} onClick={()=>setCurrentPage("election")} title="Seçim durumu">
-                  <div className="stat-label" style={{color:elPhase==="voting"?"#EF4444":elPhase==="campaign"?"#F5C842":"#666"}}>🗳️ SEÇİM</div>
-                  <div className="stat-value" style={{color:elPhase==="voting"?"#EF4444":elPhase==="campaign"?"#F5C842":"#888",fontSize:"0.62rem"}}>
-                    {elPhase==="idle"||elPhase==="results"?`${daysLeft}g ${hoursLeft}s`:elPhase==="campaign"?"KAMPANYA":"OYLAMA"}
-                  </div>
-                </div>
-              </>
-            );
-          })()}
-          <div className="stat-item"><div className="stat-label">💵 NAKİT</div><div className={`stat-value stat-green`}>{fmtMoney((cu.money||0))}</div></div>
-          <div className="stat-item"><div className="stat-label">🏦 BANKA</div><div className={`stat-value stat-blue`}>{fmtMoney((cu.bankMoney||0))}</div></div>
-          <div className="stat-item"><div className="stat-label">🪙 UC</div><div className={`stat-value stat-gold`}>{cu.underCoin||0}</div></div>
-          <div className="stat-item"><div className="stat-label">🏅 LİYAKAT</div><div className={`stat-value stat-teal`}>{cu.meritPoints||0}</div></div>
-          <div className="stat-item"><div className="stat-label">❤️ SADAKAT</div><div className={`stat-value`} style={{color:"#A78BFA"}}>{cu.loyaltyPoints||0}</div></div>
-          <div className="stat-item"><div className="stat-label">❤️ CAN</div><div className={`stat-value`} style={{color:(cu.hp||100)>50?"#10B981":(cu.hp||100)>20?"#F59E0B":"#EF4444"}}>{cu.hp||100}/100</div></div>
-          <div className="stat-item" style={{borderLeft:"1px solid rgba(255,215,0,0.2)",paddingLeft:"0.75rem"}}>
-            <div className="stat-label">💎 NET DEĞER</div>
-            <div className="stat-value" style={{color:"#FFD700"}}>{fmtMoney(((cu.money||0)+(cu.bankMoney||0)+holdings.filter(h=>h.ceo===cu.username).reduce((s,h)=>s+(h.value||0),0)+(Array.isArray(realEstate)?realEstate:[]).filter(p=>p.owner===cu.username).reduce((s,p)=>s+(p.value||0),0)))}"</div>
+        {/* Sağ: İstatistikler + Aksiyon butonları */}
+        <div style={{display:"flex",alignItems:"center",gap:"0.3rem",flexShrink:0}}>
+          <div style={{background:"rgba(16,185,129,0.12)",border:"1px solid rgba(16,185,129,0.28)",borderRadius:8,padding:"0.18rem 0.45rem",textAlign:"center",cursor:"pointer",minWidth:58}}
+            onClick={()=>setCurrentPage("bank")}>
+            <div style={{fontSize:"0.4rem",color:"#6EE7B7",fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase"}}>PARA</div>
+            <div style={{fontSize:"0.68rem",fontWeight:700,color:"#10B981",fontFamily:"JetBrains Mono,monospace",lineHeight:1.2}}>{fmtMoney(cu?.money||0)}</div>
           </div>
-        </div>
-        <div className="header-actions">
-          <button className="icon-btn" title="Sidebar Aç/Kapat" onClick={()=>{const s=!sidebarCollapsed;setSidebarCollapsed(s);S.save("sidebarCollapsed",s);}} style={{display:"none"}} id="sidebar-toggle">☰</button>
-          <style>{`@media(min-width:901px){#sidebar-toggle{display:inline-flex!important;}}`}</style>
-          {/* Tema Seçici */}
-          <div style={{position:"relative"}} id="theme-picker-wrap">
-            <button className="icon-btn" title="Tema" onClick={()=>{const el=document.getElementById("theme-dropdown");el.style.display=el.style.display==="block"?"none":"block";}}>🎨</button>
-            <div id="theme-dropdown" style={{display:"none",position:"absolute",right:0,top:"calc(100% + 6px)",background:"rgba(10,0,10,0.98)",border:"1px solid var(--border)",borderRadius:"0.6rem",padding:"0.4rem",zIndex:9999,minWidth:140,boxShadow:"0 8px 30px rgba(0,0,0,0.7)"}}>
-              {[{id:"red",color:"#00C9FF",label:"🔵 Nexus"},{id:"gold",color:"#FFB800",label:"🟡 Altın"},{id:"dark",color:"#8B6DFF",label:"🟣 Violet"},{id:"blue",color:"#3B82F6",label:"💙 Mavi"}].map(t=>(
-                <div key={t.id} onClick={()=>{setTheme(t.id);document.getElementById("theme-dropdown").style.display="none";notify(`🎨 Tema değiştirildi: ${t.label}`);}} style={{display:"flex",alignItems:"center",gap:"0.5rem",padding:"0.4rem 0.6rem",borderRadius:"0.4rem",cursor:"pointer",background:theme===t.id?"rgba(255,255,255,0.08)":"transparent",color:theme===t.id?t.color:"#ccc",fontSize:"0.82rem",fontWeight:theme===t.id?700:400}}>
-                  <span style={{width:10,height:10,borderRadius:"50%",background:t.color,display:"inline-block",flexShrink:0}}/>
-                  {t.label}
-                  {theme===t.id&&<span style={{marginLeft:"auto",fontSize:"0.7rem"}}>✓</span>}
-                </div>
-              ))}
-            </div>
+          <div style={{background:"rgba(52,211,224,0.12)",border:"1px solid rgba(52,211,224,0.28)",borderRadius:8,padding:"0.18rem 0.45rem",textAlign:"center",cursor:"pointer",minWidth:52}}
+            onClick={()=>setCurrentPage("profile")}>
+            <div style={{fontSize:"0.4rem",color:"#67E8F9",fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase"}}>UC</div>
+            <div style={{fontSize:"0.68rem",fontWeight:700,color:"#34D3E0",fontFamily:"JetBrains Mono,monospace",lineHeight:1.2}}>{cu?.underCoin||0}</div>
           </div>
-          <button className="icon-btn" title="Şehir Sohbeti" onClick={()=>setShowCityChat(p=>!p)}>🏙️</button>
-          <button className="icon-btn" title="Günlük Ödül" onClick={()=>{ const today=new Date().toISOString().slice(0,10); if(dailyStreak.claimedToday&&dailyStreak.lastDay===today){notify("✅ Bugünkü ödülünü zaten aldın!");return;} setShowDailyReward(true);}}>🎁 {dailyStreak.streak>0?`${dailyStreak.streak}🔥`:""}</button>
-          <button className="icon-btn" title="Referans Sistemi" onClick={()=>setShowReferral(true)}>🔗</button>
-          <button className="icon-btn" title="Push Bildirim Aç" onClick={requestNotifPermission}>🔔</button>
-          <button className="icon-btn" title="Oyun Rehberi" onClick={()=>setShowTutorial(true)}>📖</button>
-          <button className="icon-btn" title="Arayüz Ayarları" onClick={()=>setCurrentPage("qolsettings")}>⚙️</button>
-          <button className="icon-btn" onClick={()=>setShowLogoutModal(true)}>⏻</button>
+          <div style={{position:"relative"}}>
+            <button className="icon-btn" onClick={()=>setCurrentPage("notifcenter")}
+              style={{borderRadius:"50%",width:32,height:32,padding:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"0.95rem",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)"}}>
+              🔔
+            </button>
+            {notifications.filter(n=>!n.read).length>0&&(
+              <span style={{position:"absolute",top:-3,right:-3,background:"#EF4444",color:"#fff",fontSize:"0.42rem",fontWeight:900,minWidth:14,height:14,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 2px",border:"2px solid #060C18"}}>
+                {notifications.filter(n=>!n.read).length}
+              </span>
+            )}
+          </div>
+          <button className="icon-btn" onClick={()=>setShowLogoutModal(true)}
+            style={{borderRadius:"50%",width:32,height:32,padding:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"0.9rem",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)"}}>
+            ⏻
+          </button>
         </div>
       </div>
       {/* 📺 CANLI HABER TİCKER */}
@@ -26464,6 +26449,174 @@ if(cityDevTab==="build") return(
         );
       })()}
 
+      {/* ── M_DEVLET: Devlet & Siyaset Tab ── */}
+      {currentPage==="m_devlet"&&(()=>{
+        const goPage = (pg) => { setCurrentPage(pg); setTimeout(()=>{window.scrollTo({top:0,behavior:"smooth"});},50); };
+        return (
+          <div className="mp">
+            <div className="mp-header">
+              <span className="mp-header-title" style={{color:"#A78BFA"}}>DEVLET</span>
+              <div className="mp-header-actions">
+                <button className="mp-icon-btn" onClick={()=>goPage("qolsettings")}>⚙️</button>
+                <button className="mp-icon-btn" onClick={()=>goPage("notifcenter")} style={{position:"relative"}}>🔔<span style={{position:"absolute",top:-3,right:-3,background:"#EF4444",width:8,height:8,borderRadius:"50%",display:"block"}}/></button>
+              </div>
+            </div>
+            <div className="mp-wrap">
+              <div className="mp-section">
+                <div className="mp-section-title" style={{color:"#A78BFA"}}><span>🏛️</span><span>HÜKÜMET & YÖNETİM</span></div>
+                <div className="mp-cards-3">
+                  {[
+                    {icon:"🏛️",label:"Hükümet",   sub:"Gov",    page:"government"},
+                    {icon:"🗳️",label:"Meclis",     sub:"Parl.",  page:"parliament"},
+                    {icon:"✅",label:"Seçimler",   sub:"Vote",   page:"election"},
+                    {icon:"⚑",label:"Partiler",   sub:"Parties",page:"parties"},
+                    {icon:"📜",label:"Yasalar",    sub:"Laws",   page:"laws"},
+                    {icon:"💵",label:"Bütçe",      sub:"Budget", page:"budget"},
+                    {icon:"🤝",label:"Diplomasi",  sub:"Diplo.", page:"alliances"},
+                    {icon:"📣",label:"Kampanya",   sub:"Camp.",  page:"campaign"},
+                    {icon:"📊",label:"Anketler",   sub:"Polls",  page:"anket"},
+                    {icon:"🏙️",label:"Belediye",   sub:"City",   page:"belediye"},
+                    {icon:"🏘️",label:"Şehir",      sub:"Mgmt",   page:"sehiryonetim"},
+                    {icon:"💰",label:"Vergi",      sub:"Tax",    page:"taxinfo"},
+                  ].map(c=>(
+                    <button key={c.page+c.label} className="mp-card" style={{borderColor:"rgba(167,139,250,0.15)"}} onClick={()=>goPage(c.page)}>
+                      <span className="mp-card-icon">{c.icon}</span>
+                      <span className="mp-card-label">{c.label}</span>
+                      <span className="mp-card-sub">{c.sub}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="mp-section">
+                <div className="mp-section-title" style={{color:"#A78BFA"}}><span>🏛️</span><span>BAKANLIKLAR</span></div>
+                <div className="mp-cards-3">
+                  {[
+                    {icon:"🛡️",label:"İçişleri",  sub:"Interior",page:"interior"},
+                    {icon:"💰",label:"Maliye",     sub:"Finance", page:"finance"},
+                    {icon:"⚖️",label:"Adalet",     sub:"Justice", page:"adalet"},
+                    {icon:"🏥",label:"Sağlık",     sub:"Health",  page:"health"},
+                    {icon:"📦",label:"Ticaret",    sub:"Trade",   page:"trade"},
+                    {icon:"🎖️",label:"Prestij",    sub:"Prestige",page:"prestige"},
+                  ].map(c=>(
+                    <button key={c.page+c.label} className="mp-card" style={{borderColor:"rgba(167,139,250,0.15)"}} onClick={()=>goPage(c.page)}>
+                      <span className="mp-card-icon">{c.icon}</span>
+                      <span className="mp-card-label">{c.label}</span>
+                      <span className="mp-card-sub">{c.sub}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── M_SAVAS: Savaş & Yeraltı Tab ── */}
+      {currentPage==="m_savas"&&(()=>{
+        const goPage = (pg) => { setCurrentPage(pg); setTimeout(()=>{window.scrollTo({top:0,behavior:"smooth"});},50); };
+        return (
+          <div className="mp">
+            <div className="mp-header">
+              <span className="mp-header-title" style={{color:"#EF4444"}}>SAVAŞ</span>
+              <div className="mp-header-actions">
+                <button className="mp-icon-btn" onClick={()=>goPage("qolsettings")}>⚙️</button>
+                <button className="mp-icon-btn" onClick={()=>goPage("notifcenter")} style={{position:"relative"}}>🔔<span style={{position:"absolute",top:-3,right:-3,background:"#EF4444",width:8,height:8,borderRadius:"50%",display:"block"}}/></button>
+              </div>
+            </div>
+            <div className="mp-wrap">
+              <div className="mp-section">
+                <div className="mp-section-title" style={{color:"#EF4444"}}><span>⚔️</span><span>SAVAŞ & MİLİTER</span></div>
+                <div className="mp-cards-3">
+                  {[
+                    {icon:"⚔️",label:"PvP Savaş",   sub:"Fight",  page:"pvp"},
+                    {icon:"🌍",label:"Uluslar.",    sub:"IntWar", page:"intlwar"},
+                    {icon:"🏰",label:"Kale",        sub:"Castle", page:"kale"},
+                    {icon:"🗺️",label:"Arazi",       sub:"Land",   page:"arazi"},
+                    {icon:"🚔",label:"Polis",       sub:"Police", page:"police"},
+                    {icon:"⚖️",label:"Mahkeme",     sub:"Court",  page:"court"},
+                    {icon:"🕵️",label:"Casusluk",   sub:"Spy",    page:"spy"},
+                    {icon:"🪖",label:"Ordu",        sub:"Army",   page:"paraliordu"},
+                    {icon:"🏙️",label:"Şehir Sav.", sub:"City",   page:"sehirsavasi"},
+                    {icon:"🏛️",label:"Harita",      sub:"Map",    page:"worldmap"},
+                  ].map(c=>(
+                    <button key={c.page+c.label} className="mp-card" style={{borderColor:"rgba(239,68,68,0.15)"}} onClick={()=>goPage(c.page)}>
+                      <span className="mp-card-icon">{c.icon}</span>
+                      <span className="mp-card-label">{c.label}</span>
+                      <span className="mp-card-sub">{c.sub}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="mp-section">
+                <div className="mp-section-title" style={{color:"#EF4444"}}><span>💀</span><span>YERALTÜ & ÖRGÜt</span></div>
+                <div className="mp-cards-3">
+                  {[
+                    {icon:"💀",label:"Çeteler",    sub:"Gangs",    page:"gangs"},
+                    {icon:"👨‍👩‍👧‍👦",label:"Aileler",  sub:"Families", page:"families"},
+                    {icon:"🔫",label:"Silahlar",   sub:"Weapons",  page:"weapons"},
+                    {icon:"🏛️",label:"Hapishane",  sub:"Prison",   page:"prison"},
+                  ].map(c=>(
+                    <button key={c.page+c.label} className="mp-card" style={{borderColor:"rgba(239,68,68,0.15)"}} onClick={()=>goPage(c.page)}>
+                      <span className="mp-card-icon">{c.icon}</span>
+                      <span className="mp-card-label">{c.label}</span>
+                      <span className="mp-card-sub">{c.sub}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── M_ADMIN: Ayarlar & Admin Tab ── */}
+      {currentPage==="m_admin"&&(()=>{
+        const goPage = (pg) => { setCurrentPage(pg); setTimeout(()=>{window.scrollTo({top:0,behavior:"smooth"});},50); };
+        return (
+          <div className="mp">
+            <div className="mp-header">
+              <span className="mp-header-title" style={{color:"#94A3B8"}}>ADMİN & AYARLAR</span>
+              <div className="mp-header-actions">
+                <button className="mp-icon-btn" onClick={()=>goPage("notifcenter")} style={{position:"relative"}}>🔔<span style={{position:"absolute",top:-3,right:-3,background:"#EF4444",width:8,height:8,borderRadius:"50%",display:"block"}}/></button>
+              </div>
+            </div>
+            <div className="mp-wrap">
+              <div className="mp-section">
+                <div className="mp-section-title"><span>⚙️</span><span>AYARLAR & ARAÇLAR</span></div>
+                <div className="mp-cards-3">
+                  {[
+                    {icon:"⚙️",label:"Arayüz",      sub:"UI",       page:"qolsettings"},
+                    {icon:"👤",label:"Profil",       sub:"Profile",  page:"profile"},
+                    {icon:"📊",label:"İstatistik",  sub:"Stats",    page:"istatistik"},
+                    {icon:"🔗",label:"Referans",    sub:"Referral",  page:"referral"},
+                    {icon:"🏆",label:"Sezon",       sub:"Season",   page:"seasonrank"},
+                    {icon:"📖",label:"Rehber",      sub:"Guide",    page:"wiki"},
+                    {icon:"📜",label:"Geçmiş",      sub:"History",  page:"history"},
+                    {icon:"🎖️",label:"Prestij",     sub:"Prestige", page:"prestige"},
+                  ].map(c=>(
+                    <button key={c.page+c.label} className="mp-card" onClick={()=>goPage(c.page)}>
+                      <span className="mp-card-icon">{c.icon}</span>
+                      <span className="mp-card-label">{c.label}</span>
+                      <span className="mp-card-sub">{c.sub}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {cu&&cu.role==="admin"&&(
+                <div className="mp-section" style={{borderColor:"rgba(239,68,68,0.3)"}}>
+                  <div className="mp-section-title" style={{color:"#EF4444"}}><span>🛡️</span><span>ADMIN PANELİ</span></div>
+                  <div className="mp-menu-row" style={{borderColor:"rgba(239,68,68,0.3)",background:"rgba(239,68,68,0.08)"}} onClick={()=>goPage("admin")}>
+                    <span className="mp-menu-row-icon">⚡</span>
+                    <span className="mp-menu-row-label" style={{color:"#FCA5A5",fontWeight:700}}>Admin Panelini Aç</span>
+                    <span className="mp-menu-row-arrow" style={{color:"#EF4444"}}>›</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {currentPage==="m_menu"&&(()=>{
         const goPage = (pg) => { setCurrentPage(pg); setTimeout(()=>{window.scrollTo({top:0,behavior:"smooth"});},50); };
         const sections = [
@@ -26608,20 +26761,22 @@ if(cityDevTab==="build") return(
           </div>
         );
       })()}
-      {/* ===== MOBİL ALT NAVİGASYON — 4 SEKME ===== */}
+      {/* ===== ALT NAVİGASYON — 6 SEKME ===== */}
       <div className="mobile-bottom-nav">
         {[
-          {id:"m_home",     icon:"🏠", label:"Ana Sayfa",  rgb:"59,130,246"},
-          {id:"m_siyaset",  icon:"🏛️", label:"Siyaset",    rgb:"245,200,66"},
-          {id:"m_ekonomi",  icon:"💰", label:"Ekonomi",     rgb:"16,185,129"},
-          {id:"m_sosyal",   icon:"💬", label:"Sosyal",      rgb:"139,92,246"},
-          {id:"m_dunya",    icon:"🌍", label:"Dünya",       rgb:"59,130,246"},
+          {id:"m_home",    icon:"🏠", label:"ANA SAYFA", rgb:"59,130,246"},
+          {id:"m_ekonomi", icon:"💰", label:"EKONOMİ",   rgb:"16,185,129"},
+          {id:"m_savas",   icon:"⚔️", label:"SAVAŞ",     rgb:"239,68,68"},
+          {id:"m_devlet",  icon:"🏛️", label:"DEVLET",    rgb:"139,92,246"},
+          {id:"m_sosyal",  icon:"💬", label:"SOSYAL",    rgb:"245,200,66"},
+          {id:"m_admin",   icon:"⚙️", label:"ADMİN",    rgb:"148,163,184"},
         ].map(tab=>{
           const isActive = currentPage===tab.id||
-            (tab.id==="m_siyaset"&&["government","parliament","election_v4","election","parties","laws","anket","scandal","budget","alliances","interior","finance","trade","health","adalet","campaign","prestige","taxinfo","positionpanel","referandum","belediye","sehiryonetim"].includes(currentPage))||
-            (tab.id==="m_ekonomi"&&["holdings","bank","stock","market2","mining","fabrika","commodity","rawchain","tezgah","ixport","auction","crafting","luxury","sigorta","lottery","ortakliisler","vergimuhasebe","jobs","realestate","tarim","sehirsavasi","hayvan","restaurant"].includes(currentPage))||
+            (tab.id==="m_ekonomi"&&["holdings","bank","stock","market2","mining","fabrika","commodity","rawchain","tezgah","ixport","auction","crafting","luxury","sigorta","lottery","ortakliisler","vergimuhasebe","jobs","realestate","tarim","hayvan","restaurant"].includes(currentPage))||
+            (tab.id==="m_savas"&&["gangs","families","arazi","pvp","spy","court","police","paraliordu","kale","intlwar","army","prison","sehirsavasi","m_dunya"].includes(currentPage))||
+            (tab.id==="m_devlet"&&["government","parliament","election_v4","election","parties","laws","anket","scandal","budget","alliances","interior","finance","trade","health","adalet","campaign","prestige","taxinfo","positionpanel","referandum","belediye","sehiryonetim","m_siyaset"].includes(currentPage))||
             (tab.id==="m_sosyal"&&["social","globalchat","sehirchat","dm","members","friends","newspaper","activityfeed","profile","education","schools","dailytasks","achievements","sinav","flash","techtree","happiness","istatistik","events","eventlist","casino","futbol","muzik","notifcenter","history","wiki","duyurular","npcplayers"].includes(currentPage))||
-            (tab.id==="m_dunya"&&["gangs","families","arazi","pvp","spy","court","police","paraliordu","kale","intlwar","army","prison","worldmap","alliances","m_menu"].includes(currentPage));
+            (tab.id==="m_admin"&&["admin","qolsettings","referral","seasonleader","seasonrank"].includes(currentPage));
           return (
             <div key={tab.id}
               className={`mbn-item${isActive?" active":""}`}
