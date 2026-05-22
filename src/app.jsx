@@ -7352,7 +7352,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
     notify("🔴 Koalisyon bozuldu.");
   };
 
-  // ── Parti Üye Maaşı ────────────────────────────────────────────────────
+  // ── Parti Üye Maaşı ────────────────────────ri�───────────────────────────
   const payPartySalary = (party, salaryPerMember) => {
     if(!party) return notify("❌ Parti bulunamadı!");
     if(party.leader!==cu.username) return notify("❌ Sadece lider maaş ödeyebilir!");
@@ -25926,7 +25926,7 @@ if(cityDevTab==="build") return(
                     {[
                       {icon:"🏦",label:"Banka",page:"bank"},
                       {icon:"📈",label:"Borsa",page:"stock"},
-                      {icon:"🏪",label:"Market",page:"market2"},
+                      {icon:"ku��",label:"Market",page:"market2"},
                       {icon:"💛",label:"Holding",page:"holdings"},
                       {icon:"🏠",label:"Emlak",page:"realestate"},
                       {icon:"🔨",label:"İhale",page:"auction"},
