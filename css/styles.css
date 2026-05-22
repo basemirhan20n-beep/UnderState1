@@ -891,7 +891,7 @@
 
     /* ═══════ LEGACY COMPAT ═══════ */
     .tag-red { background:rgba(245,101,101,0.12);color:#FC8181;border:1px solid rgba(245,101,101,0.25); }
-    /* ═══════ MOBILE-ONLY PAGES ═══════ */
+    /* ═══.7�═══ MOBILE-ONLY PAGES ═══════ */
     .mp { display:none; }
     @media(max-width:900px){ .mp { display:block; animation:fadeIn 0.18s ease; } }
 
