@@ -7569,17 +7569,17 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
           {/* Game Logo */}
           <div style={{position:"absolute",top:"clamp(1.5rem,5vh,3rem)",left:0,right:0,textAlign:"center",zIndex:3}}>
             <div style={{fontFamily:"Syne,sans-serif",fontWeight:900,fontSize:"clamp(2rem,7vw,4rem)",letterSpacing:"0.12em",lineHeight:1}}>
-              <span style={{color:"#D00000"}}>[ </span>
-              <span style={{color:"#D00000"}}>U</span>
+              <span style={{color:"#F5C842"}}>[ </span>
+              <span style={{color:"#F5C842"}}>U</span>
               <span style={{color:"#fff"}}>NDERSTATE</span>
-              <span style={{color:"#D00000"}}> ]</span>
+              <span style={{color:"#F5C842"}}> ]</span>
             </div>
             <div style={{color:"rgba(255,255,255,0.5)",fontSize:"clamp(0.7rem,2vw,1rem)",letterSpacing:"0.25em",marginTop:"0.5rem",textTransform:"uppercase"}}>Şehir & Devlet Simülasyonu</div>
           </div>
           {/* Skip / Continue button */}
           <div style={{position:"absolute",bottom:"90px",left:0,right:0,display:"flex",justifyContent:"center",zIndex:3,gap:"1rem"}}>
             <button onClick={()=>{ try{sessionStorage.setItem("us_videoDone","1");}catch(e){} setVideoPhase("login"); }}
-              style={{padding:"0.75rem 2.5rem",borderRadius:"3rem",background:"rgba(208,0,0,0.85)",border:"2px solid rgba(208,0,0,0.9)",color:"#fff",fontWeight:900,fontSize:"1rem",cursor:"pointer",fontFamily:"Syne,sans-serif",letterSpacing:"0.1em",boxShadow:"0 4px 20px rgba(208,0,0,0.4)",backdropFilter:"blur(4px)"}}>
+              style={{padding:"0.75rem 2.5rem",borderRadius:"3rem",background:"linear-gradient(135deg,#F5C842,#D97706)",border:"none",color:"#0A1628",fontWeight:900,fontSize:"1rem",cursor:"pointer",fontFamily:"Syne,sans-serif",letterSpacing:"0.1em",boxShadow:"0 4px 24px rgba(245,200,66,0.45)",backdropFilter:"blur(4px)"}}>
               GİRİŞ YAP →
             </button>
           </div>
@@ -25785,220 +25785,135 @@ if(cityDevTab==="build") return(
         
         return (
           <div className="mp">
-              <div className="ministry-header">🏠 Oyun Ana Merkezi</div>
-            {/* Header kaynak göstergeleri */}
-            <div style={{background:"linear-gradient(135deg,#14273D,#0A1628)",borderBottom:"1px solid rgba(59,130,246,0.2)",padding:"0.5rem 0.75rem"}}>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:"0.25rem",maxWidth:600,margin:"0 auto"}}>
-                <div style={{background:"rgba(16,185,129,0.15)",border:"1.5px solid rgba(16,185,129,0.4)",borderRadius:12,padding:"0.25rem 0.4rem",display:"flex",alignItems:"center",gap:4}}>
-                  <span style={{fontSize:"1.1rem"}}>💵</span>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:"0.5rem",color:"rgba(16,185,129,0.7)",fontWeight:700,letterSpacing:"0.05em"}}>NAKİT</div>
-                    <div style={{fontSize:"0.72rem",fontWeight:800,color:"#10B981",fontFamily:"JetBrains Mono,monospace",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{fmtNum(totalCash)}</div>
-                  </div>
-                </div>
-                <div style={{background:"rgba(139,92,246,0.15)",border:"1.5px solid rgba(139,92,246,0.4)",borderRadius:12,padding:"0.25rem 0.4rem",display:"flex",alignItems:"center",gap:4}}>
-                  <span style={{fontSize:"1.1rem"}}>💎</span>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:"0.5rem",color:"rgba(139,92,246,0.7)",fontWeight:700,letterSpacing:"0.05em"}}>KRİSTAL</div>
-                    <div style={{fontSize:"0.72rem",fontWeight:800,color:"#8B5CF6",fontFamily:"JetBrains Mono,monospace"}}>{fmtNum(cu.cryptoBalance||cu.underCoin||0)}</div>
-                  </div>
-                </div>
-                <div style={{background:"rgba(245,158,11,0.15)",border:"1.5px solid rgba(245,158,11,0.4)",borderRadius:12,padding:"0.25rem 0.4rem",display:"flex",alignItems:"center",gap:4}}>
-                  <span style={{fontSize:"1.1rem"}}>🪙</span>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:"0.5rem",color:"rgba(245,158,11,0.7)",fontWeight:700,letterSpacing:"0.05em"}}>ALTIN</div>
-                    <div style={{fontSize:"0.72rem",fontWeight:800,color:"#F59E0B",fontFamily:"JetBrains Mono,monospace"}}>{fmtNum(cu.gold||0)}</div>
-                  </div>
-                </div>
-                <div style={{background:"rgba(59,130,246,0.15)",border:"1.5px solid rgba(59,130,246,0.4)",borderRadius:12,padding:"0.25rem 0.4rem",display:"flex",alignItems:"center",gap:4}}>
-                  <span style={{fontSize:"1.1rem"}}>💰</span>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:"0.5rem",color:"rgba(59,130,246,0.7)",fontWeight:700,letterSpacing:"0.05em"}}>DEĞER</div>
-                    <div style={{fontSize:"0.72rem",fontWeight:800,color:"#3B82F6",fontFamily:"JetBrains Mono,monospace",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{fmtNum(netWorth)}</div>
-                  </div>
-                </div>
-                <div style={{background:"rgba(239,68,68,0.15)",border:"1.5px solid rgba(239,68,68,0.4)",borderRadius:12,padding:"0.25rem 0.4rem",display:"flex",alignItems:"center",gap:4}}>
-                  <span style={{fontSize:"1.1rem"}}>🏆</span>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:"0.5rem",color:"rgba(239,68,68,0.7)",fontWeight:700,letterSpacing:"0.05em"}}>PUAN</div>
-                    <div style={{fontSize:"0.72rem",fontWeight:800,color:"#EF4444",fontFamily:"JetBrains Mono,monospace"}}>{fmtNum(cu.score||0)}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="mp-wrap">
-              
-              {/* BASIT PROFIL KARTI */}
-              <div style={{background:"rgba(20,39,61,0.5)",border:"1.5px solid rgba(59,130,246,0.2)",borderRadius:14,padding:"0.65rem",marginBottom:"0.55rem"}}>
-                <div style={{display:"flex",alignItems:"center",gap:"0.5rem"}}>
-                  <div style={{width:48,height:48,borderRadius:"50%",background:"linear-gradient(135deg,#3B82F6,#1D4ED8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.4rem",fontWeight:900,color:"#fff",flexShrink:0,cursor:"pointer"}} onClick={()=>goPage("profile")}>{cu.username?.[0]?.toUpperCase()||"?"}</div>
-                  <div style={{flex:1}}>
-                    <div style={{fontFamily:"Syne,sans-serif",fontSize:"0.95rem",fontWeight:800,color:"#fff"}}>{cu.username}{cu.role==="admin"&&<span style={{fontSize:"0.5rem",background:"rgba(239,68,68,0.2)",color:"#EF4444",border:"1px solid rgba(239,68,68,0.3)",borderRadius:3,padding:"0px 4px",fontWeight:800,marginLeft:4}}>VIP</span>}</div>
-                    <div style={{fontSize:"0.6rem",color:"#6B8199",fontWeight:600}}>{cu.position||"Vatandaş"} • {cu.city||"Ankara"}</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* EĞİTİM HIZLI ERİŞİM */}
-              <div style={{marginBottom:"0.5rem",display:"flex",gap:"0.35rem",flexWrap:"wrap"}}>
+            {/* ── Kaynak Çubuğu ── */}
+            <div style={{background:"linear-gradient(180deg,rgba(8,16,32,0.98),rgba(6,12,24,0.95))",borderBottom:"1px solid rgba(245,200,66,0.12)",padding:"0.5rem 0.75rem"}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.4rem"}}>
                 {[
-                  {icon:"📚",label:"Eğitim Kas",page:"education",color:"#3B82F6",bg:"rgba(59,130,246,0.15)"},
-                  {icon:"🎓",label:"Sınav",page:"sinav",color:"#10B981",bg:"rgba(16,185,129,0.15)"},
-                  {icon:"💼",label:"Ek İş",page:"jobs",color:"#F59E0B",bg:"rgba(245,158,11,0.15)"},
-                  {icon:"🎰",label:"Casino",page:"casino",color:"#8B5CF6",bg:"rgba(139,92,246,0.15)"},
-                ].map(item=>(
-                  <button key={item.page} onClick={()=>goPage(item.page)} style={{flex:1,minWidth:"calc(25% - 0.27rem)",background:item.bg,border:"1.5px solid "+item.color.replace(")",",0.4)").replace("rgb","rgba"),borderRadius:10,padding:"0.4rem 0.2rem",display:"flex",flexDirection:"column",alignItems:"center",gap:"0.15rem",cursor:"pointer"}}>
-                    <span style={{fontSize:"1.2rem"}}>{item.icon}</span>
-                    <span style={{fontSize:"0.55rem",fontWeight:700,color:item.color}}>{item.label}</span>
-                  </button>
+                  {icon:"💵",label:"NAKİT",val:fmtNum(totalCash),color:"#10B981",border:"rgba(16,185,129,0.25)"},
+                  {icon:"🪙",label:"ALTIN",val:fmtNum(cu.gold||0),color:"#F5C842",border:"rgba(245,200,66,0.25)"},
+                  {icon:"💎",label:"UC",val:fmtNum(cu.underCoin||0),color:"#A78BFA",border:"rgba(167,139,250,0.25)"},
+                ].map(r=>(
+                  <div key={r.label} style={{background:"rgba(255,255,255,0.04)",border:`1px solid ${r.border}`,borderRadius:10,padding:"0.3rem 0.5rem",display:"flex",alignItems:"center",gap:6}}>
+                    <span style={{fontSize:"1.05rem"}}>{r.icon}</span>
+                    <div style={{minWidth:0}}>
+                      <div style={{fontSize:"0.46rem",color:"rgba(255,255,255,0.4)",fontWeight:800,letterSpacing:"0.07em"}}>{r.label}</div>
+                      <div style={{fontSize:"0.72rem",fontWeight:900,color:r.color,fontFamily:"JetBrains Mono,monospace",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.val}</div>
+                    </div>
+                  </div>
                 ))}
               </div>
+            </div>
 
-              {/* İŞ YERLERİM */}
-              <div style={{marginBottom:"0.55rem"}}>
-                <h3 style={{fontFamily:"Syne,sans-serif",fontSize:"0.85rem",fontWeight:800,color:"#98ADBE",letterSpacing:"0.05em",marginBottom:"0.4rem",padding:"0 0.15rem"}}>{t("myWorkplaces").toUpperCase()}</h3>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.4rem"}}>
+            <div className="mp-wrap">
+
+              {/* ── Profil Kartı ── */}
+              <div style={{background:"linear-gradient(135deg,rgba(14,28,50,0.85),rgba(8,16,32,0.9))",border:"1px solid rgba(245,200,66,0.2)",borderRadius:16,padding:"0.9rem",marginBottom:"0.55rem",backdropFilter:"blur(20px)"}}>
+                <div style={{display:"flex",alignItems:"center",gap:"0.7rem"}}>
+                  <div style={{width:52,height:52,borderRadius:"50%",background:"linear-gradient(135deg,#F5C842,#D97706)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.5rem",fontWeight:900,color:"#0A1628",flexShrink:0,cursor:"pointer",boxShadow:"0 0 20px rgba(245,200,66,0.35)"}} onClick={()=>goPage("profile")}>
+                    {cu.username?.[0]?.toUpperCase()||"?"}
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontFamily:"Syne,sans-serif",fontSize:"1rem",fontWeight:800,color:"#fff",display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                      {cu.username}
+                      {cu.role==="admin"&&<span style={{fontSize:"0.48rem",background:"rgba(245,200,66,0.12)",color:"#F5C842",border:"1px solid rgba(245,200,66,0.3)",borderRadius:3,padding:"1px 5px",fontWeight:800}}>ADMİN</span>}
+                    </div>
+                    <div style={{fontSize:"0.6rem",color:"rgba(255,255,255,0.4)",marginTop:"0.1rem"}}>{cu.position||"Vatandaş"} · {cu.city||"Ankara"}</div>
+                    <div style={{marginTop:"0.35rem",display:"flex",alignItems:"center",gap:"0.4rem"}}>
+                      <span style={{fontSize:"0.55rem",color:"#F5C842",fontWeight:800,flexShrink:0}}>Sv.{cu.level||1}</span>
+                      <div style={{flex:1,background:"rgba(255,255,255,0.07)",borderRadius:4,height:4,overflow:"hidden"}}>
+                        <div style={{height:"100%",background:"linear-gradient(90deg,#F5C842,#D97706)",width:`${Math.min(100,((cu.score||0)%1000)/10)}%`,borderRadius:4,transition:"width 0.5s"}}/>
+                      </div>
+                      <span style={{fontSize:"0.5rem",color:"rgba(255,255,255,0.25)",flexShrink:0}}>{(cu.score||0)%1000}/1000 XP</span>
+                    </div>
+                  </div>
+                  <button onClick={()=>goPage("notifcenter")} style={{background:"rgba(245,200,66,0.08)",border:"1px solid rgba(245,200,66,0.2)",borderRadius:10,width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:"1.1rem",flexShrink:0}}>
+                    🔔
+                  </button>
+                </div>
+              </div>
+
+              {/* ── Günlük Görevler ── */}
+              <div style={{background:"rgba(14,28,50,0.7)",border:"1px solid rgba(245,200,66,0.15)",borderRadius:14,padding:"0.75rem",marginBottom:"0.55rem",backdropFilter:"blur(16px)"}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"0.5rem"}}>
+                  <div style={{fontFamily:"Syne,sans-serif",fontSize:"0.78rem",fontWeight:800,color:"#F5C842",letterSpacing:"0.07em"}}>🎯 GÜNLÜK GÖREVLER</div>
+                  <button onClick={()=>goPage("dailytasks")} style={{fontSize:"0.62rem",color:"rgba(245,200,66,0.6)",background:"none",border:"none",cursor:"pointer",fontWeight:700,fontFamily:"inherit"}}>Tümü →</button>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:"0.28rem"}}>
                   {[
-                    {icon:"🏪",name:"Mağaza",count:2,page:"market2"},
-                    {icon:"🌾",name:"Tarım",count:0,page:"tarim"},
-                    {icon:"🐄",name:"Hayvancılık",count:0,page:"hayvan"},
-                    {icon:"🏭",name:"Sanayi",count:0,page:"fabrika"},
-                    {icon:"⛏️",name:"Maden",count:0,page:"mining"},
-                    {icon:"🏞️",name:"Arazi",count:0,page:"realestate"},
-                  ].map(biz=>(
-                    <div key={biz.name} onClick={()=>goPage(biz.page)} style={{background:"rgba(20,39,61,0.4)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,padding:"0.6rem 0.35rem",textAlign:"center",cursor:"pointer",position:"relative"}}>
-                      {biz.count>0&&<div style={{position:"absolute",top:-5,right:-5,background:"#EF4444",color:"#fff",fontSize:"0.55rem",fontWeight:800,borderRadius:"50%",width:18,height:18,display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid var(--bg)"}}>{biz.count}</div>}
-                      <div style={{fontSize:"2rem",marginBottom:"0.15rem"}}>{biz.icon}</div>
-                      <div style={{fontSize:"0.62rem",fontWeight:700,color:"#E0E7FF"}}>{biz.name}</div>
+                    {label:"Borsada işlem yap",done:false,reward:"500₺"},
+                    {label:"Seçime katıl veya kampanya aç",done:false,reward:"1.000₺"},
+                    {label:"Sohbette mesaj gönder",done:true,reward:"200₺"},
+                  ].map((task,i)=>(
+                    <div key={i} style={{display:"flex",alignItems:"center",gap:"0.45rem",padding:"0.28rem 0.4rem",borderRadius:8,background:task.done?"rgba(16,185,129,0.05)":"rgba(255,255,255,0.02)"}}>
+                      <span style={{fontSize:"0.85rem",flexShrink:0}}>{task.done?"✅":"⬜"}</span>
+                      <span style={{flex:1,fontSize:"0.7rem",color:task.done?"rgba(255,255,255,0.3)":"rgba(255,255,255,0.8)",textDecoration:task.done?"line-through":"none"}}>{task.label}</span>
+                      <span style={{fontSize:"0.62rem",color:"#10B981",fontWeight:800,flexShrink:0}}>{task.reward}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* HIZLI ERİŞİM */}
-              <div style={{marginBottom:"0.55rem"}}>
-                <h3 style={{fontFamily:"Syne,sans-serif",fontSize:"0.85rem",fontWeight:800,color:"#98ADBE",letterSpacing:"0.05em",marginBottom:"0.4rem",padding:"0 0.15rem"}}>HIZLI ERİŞİM</h3>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"0.4rem"}}>
-                  {[
-                    {icon:"🎯",name:"Etkinlikler",page:"events"},
-                    {icon:"💼",name:"Ek İşler",page:"jobs"},
-                    {icon:"🍔",name:"Restoran",page:"restaurant"},
-                    {icon:"🏛️",name:"Devlet İhalesi",page:"auction"},
-                  ].map(item=>(
-                    <div key={item.name} onClick={()=>goPage(item.page)} style={{background:"rgba(20,39,61,0.4)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,padding:"0.6rem 0.35rem",textAlign:"center",cursor:"pointer"}}>
-                      <div style={{fontSize:"1.8rem",marginBottom:"0.15rem"}}>{item.icon}</div>
-                      <div style={{fontSize:"0.58rem",fontWeight:700,color:"#E0E7FF"}}>{item.name}</div>
+              {/* ── Eğitim İlerlemesi ── */}
+              {!cu.educationCompleted&&(
+                <div onClick={()=>goPage("education")} style={{background:"rgba(14,28,50,0.7)",border:"1px solid rgba(59,130,246,0.2)",borderRadius:14,padding:"0.75rem",marginBottom:"0.55rem",cursor:"pointer",backdropFilter:"blur(16px)"}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"0.42rem"}}>
+                    <div style={{fontFamily:"Syne,sans-serif",fontSize:"0.78rem",fontWeight:800,color:"#60A5FA",letterSpacing:"0.07em"}}>📚 EĞİTİM</div>
+                    <span style={{fontSize:"0.62rem",color:"rgba(96,165,250,0.6)",fontWeight:700}}>Devam →</span>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:"0.5rem"}}>
+                    <span style={{fontSize:"0.7rem",color:"#93C5FD",fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>{cu.educationLevel||"İlkokul"}</span>
+                    <div style={{flex:1,background:"rgba(255,255,255,0.07)",borderRadius:4,height:5,overflow:"hidden"}}>
+                      <div style={{height:"100%",background:"linear-gradient(90deg,#3B82F6,#60A5FA)",width:`${Math.min(100,Math.round((eduProg/eduTotal)*100))}%`,transition:"width 0.4s"}}/>
+                    </div>
+                    <span style={{fontSize:"0.62rem",color:"rgba(255,255,255,0.35)",flexShrink:0}}>{eduProg}/{eduTotal}</span>
+                  </div>
+                  {eduRem>0&&<div style={{marginTop:"0.28rem",fontSize:"0.63rem",color:"#F59E0B"}}>⏳ {Math.floor(eduRem/60)}:{String(eduRem%60).padStart(2,"0")} kaldı</div>}
+                </div>
+              )}
+
+              {/* ── Aktif Seçimler ── */}
+              {activeElectionCount>0&&(
+                <div onClick={()=>goPage("election")} style={{background:"linear-gradient(135deg,rgba(139,92,246,0.1),rgba(14,28,50,0.8))",border:"1px solid rgba(139,92,246,0.28)",borderRadius:14,padding:"0.75rem",marginBottom:"0.55rem",cursor:"pointer",backdropFilter:"blur(16px)"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:"0.55rem"}}>
+                    <span style={{fontSize:"1.4rem"}}>🗳️</span>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:"0.8rem",fontWeight:800,color:"#A78BFA",fontFamily:"Syne,sans-serif"}}>{activeElectionCount} AKTİF SEÇİM</div>
+                      <div style={{fontSize:"0.62rem",color:"rgba(255,255,255,0.35)",marginTop:"0.1rem"}}>Oy kullanmak için dokun →</div>
+                    </div>
+                    <div style={{background:"rgba(139,92,246,0.18)",border:"1px solid rgba(139,92,246,0.35)",borderRadius:8,padding:"0.2rem 0.6rem",fontSize:"0.72rem",fontWeight:900,color:"#A78BFA"}}>{activeElectionCount}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Son Olaylar ── */}
+              {autoHeadlines.length>0&&(
+                <div style={{background:"rgba(14,28,50,0.7)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:"0.75rem",marginBottom:"0.55rem",backdropFilter:"blur(16px)"}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"0.5rem"}}>
+                    <div style={{fontFamily:"Syne,sans-serif",fontSize:"0.78rem",fontWeight:800,color:"rgba(255,255,255,0.65)",letterSpacing:"0.07em"}}>📰 SON OLAYLAR</div>
+                    <button onClick={()=>goPage("newspaper")} style={{fontSize:"0.62rem",color:"rgba(255,255,255,0.35)",background:"none",border:"none",cursor:"pointer",fontWeight:700,fontFamily:"inherit"}}>Tümü →</button>
+                  </div>
+                  {autoHeadlines.slice(0,3).map((n,i)=>(
+                    <div key={n.id||i} style={{fontSize:"0.71rem",color:"rgba(255,255,255,0.6)",padding:"0.28rem 0",borderBottom:i<2?"1px solid rgba(255,255,255,0.05)":"none",lineHeight:1.45}}>
+                      {n.title}
                     </div>
                   ))}
                 </div>
-              </div>
+              )}
 
-
-              {/* MENÜLER - Basit ve Kategorize */}
-              <div style={{marginBottom:"0.55rem"}}>
-                <h3 style={{fontFamily:"Syne,sans-serif",fontSize:"0.85rem",fontWeight:800,color:"#98ADBE",letterSpacing:"0.05em",marginBottom:"0.4rem",padding:"0 0.15rem"}}>{t("allMenus").toUpperCase()}</h3>
-                
-                {/* SİYASET */}
-                <div style={{marginBottom:"0.4rem"}}>
-                  <div style={{fontSize:"0.65rem",fontWeight:800,color:"#6B8199",marginBottom:"0.25rem",padding:"0 0.15rem"}}>🏛️ {t("politics")}</div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.35rem"}}>
-                    {[
-                      {icon:"🗳️",label:"Seçim",page:"election"},
-                      {icon:"🏛️",label:"Devlet",page:"government"},
-                      {icon:"⚖️",label:"Kanun",page:"laws"},
-                      {icon:"📜",label:"Meclis",page:"parliament"},
-                      {icon:"🎗️",label:"Parti",page:"parties"},
-                      {icon:"📣",label:"Kampanya",page:"campaign"},
-                    ].map(item=>(
-                      <button key={item.page} onClick={()=>goPage(item.page)} style={{background:"rgba(20,39,61,0.3)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,padding:"0.5rem 0.3rem",textAlign:"center",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:"0.2rem"}}>
-                        <span style={{fontSize:"1.4rem"}}>{item.icon}</span>
-                        <span style={{fontSize:"0.6rem",fontWeight:700,color:"#E0E7FF"}}>{item.label}</span>
-                      </button>
-                    ))}
-                  </div>
+              {/* ── Gelir & Net Değer ── */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.45rem",marginBottom:"0.55rem"}}>
+                <div onClick={()=>goPage("bank")} style={{background:"rgba(14,28,50,0.7)",border:"1px solid rgba(16,185,129,0.2)",borderRadius:14,padding:"0.75rem",cursor:"pointer",backdropFilter:"blur(16px)"}}>
+                  <div style={{fontSize:"0.52rem",color:"rgba(16,185,129,0.65)",fontWeight:800,letterSpacing:"0.07em",marginBottom:"0.22rem"}}>💰 GÜNLÜK GELİR</div>
+                  <div style={{fontSize:"1.05rem",fontWeight:900,color:"#10B981",fontFamily:"JetBrains Mono,monospace"}}>{fmtNum(cu.dailyIncome||0)}</div>
+                  <div style={{fontSize:"0.55rem",color:"rgba(255,255,255,0.25)",marginTop:"0.08rem"}}>₺/gün</div>
                 </div>
-
-                {/* EKONOMİ */}
-                <div style={{marginBottom:"0.4rem"}}>
-                  <div style={{fontSize:"0.65rem",fontWeight:800,color:"#6B8199",marginBottom:"0.25rem",padding:"0 0.15rem"}}>💰 {t("economic")}</div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.35rem"}}>
-                    {[
-                      {icon:"🏦",label:"Banka",page:"bank"},
-                      {icon:"📈",label:"Borsa",page:"stock"},
-                      {icon:"ku��",label:"Market",page:"market2"},
-                      {icon:"💛",label:"Holding",page:"holdings"},
-                      {icon:"🏠",label:"Emlak",page:"realestate"},
-                      {icon:"🔨",label:"İhale",page:"auction"},
-                    ].map(item=>(
-                      <button key={item.page} onClick={()=>goPage(item.page)} style={{background:"rgba(20,39,61,0.3)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,padding:"0.5rem 0.3rem",textAlign:"center",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:"0.2rem"}}>
-                        <span style={{fontSize:"1.4rem"}}>{item.icon}</span>
-                        <span style={{fontSize:"0.6rem",fontWeight:700,color:"#E0E7FF"}}>{item.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* SOSYAL */}
-                <div style={{marginBottom:"0.4rem"}}>
-                  <div style={{fontSize:"0.65rem",fontWeight:800,color:"#6B8199",marginBottom:"0.25rem",padding:"0 0.15rem"}}>🌐 {t("social")}</div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.35rem"}}>
-                    {[
-                      {icon:"💬",label:"Sohbet",page:"globalchat"},
-                      {icon:"📱",label:"Sosyal",page:"social"},
-                      {icon:"📰",label:"Gazete",page:"newspaper"},
-                      {icon:"✉️",label:"Mesaj",page:"mailbox"},
-                      {icon:"🏆",label:"Lider",page:"seasonrank"},
-                      {icon:"📡",label:"Feed",page:"activityfeed"},
-                    ].map(item=>(
-                      <button key={item.page} onClick={()=>goPage(item.page)} style={{background:"rgba(20,39,61,0.3)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,padding:"0.5rem 0.3rem",textAlign:"center",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:"0.2rem"}}>
-                        <span style={{fontSize:"1.4rem"}}>{item.icon}</span>
-                        <span style={{fontSize:"0.6rem",fontWeight:700,color:"#E0E7FF"}}>{item.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* SAVAŞ */}
-                <div style={{marginBottom:"0.4rem"}}>
-                  <div style={{fontSize:"0.65rem",fontWeight:800,color:"#6B8199",marginBottom:"0.25rem",padding:"0 0.15rem"}}>⚔️ SAVAŞ</div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.35rem"}}>
-                    {[
-                      {icon:"⚔️",label:"PvP",page:"pvp"},
-                      {icon:"💀",label:"Çete",page:"gangs"},
-                      {icon:"👨‍👩‍👧‍👦",label:"Aile",page:"families"},
-                      {icon:"🏰",label:"Kale",page:"kale"},
-                      {icon:"🔫",label:"Silah",page:"weapons"},
-                      {icon:"🌍",label:"Savaş",page:"intlwar"},
-                    ].map(item=>(
-                      <button key={item.page} onClick={()=>goPage(item.page)} style={{background:"rgba(20,39,61,0.3)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,padding:"0.5rem 0.3rem",textAlign:"center",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:"0.2rem"}}>
-                        <span style={{fontSize:"1.4rem"}}>{item.icon}</span>
-                        <span style={{fontSize:"0.6rem",fontWeight:700,color:"#E0E7FF"}}>{item.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* DİĞER */}
-                <div>
-                  <div style={{fontSize:"0.65rem",fontWeight:800,color:"#6B8199",marginBottom:"0.25rem",padding:"0 0.15rem"}}>⚙️ DİĞER</div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.35rem"}}>
-                    {[
-                      {icon:"🎰",label:"Casino",page:"casino"},
-                      {icon:"🗺️",label:"Harita",page:"citymap"},
-                      {icon:"🔬",label:"Teknoloji",page:"techtree"},
-                      {icon:"⚙️",label:"Ayarlar",page:"qolsettings"},
-                      {icon:"📊",label:"Profil",page:"profile"},
-                      {icon:"🎁",label:"Görev",page:"dailytasks"},
-                    ].map(item=>(
-                      <button key={item.page} onClick={()=>goPage(item.page)} style={{background:"rgba(20,39,61,0.3)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,padding:"0.5rem 0.3rem",textAlign:"center",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:"0.2rem"}}>
-                        <span style={{fontSize:"1.4rem"}}>{item.icon}</span>
-                        <span style={{fontSize:"0.6rem",fontWeight:700,color:"#E0E7FF"}}>{item.label}</span>
-                      </button>
-                    ))}
-                  </div>
+                <div onClick={()=>goPage("bank")} style={{background:"rgba(14,28,50,0.7)",border:"1px solid rgba(245,200,66,0.2)",borderRadius:14,padding:"0.75rem",cursor:"pointer",backdropFilter:"blur(16px)"}}>
+                  <div style={{fontSize:"0.52rem",color:"rgba(245,200,66,0.65)",fontWeight:800,letterSpacing:"0.07em",marginBottom:"0.22rem"}}>📊 NET DEĞER</div>
+                  <div style={{fontSize:"1.05rem",fontWeight:900,color:"#F5C842",fontFamily:"JetBrains Mono,monospace"}}>{fmtNum(netWorth)}</div>
+                  <div style={{fontSize:"0.55rem",color:"rgba(255,255,255,0.25)",marginTop:"0.08rem"}}>toplam varlık</div>
                 </div>
               </div>
+
               {cu.role==="admin"&&(
                 <div className="mp-section" style={{borderColor:"rgba(239,68,68,0.3)"}}>
                   <div className="mp-section-title" style={{color:"#EF4444"}}><span>🛡️</span><span>ADMIN PANELİ</span></div>

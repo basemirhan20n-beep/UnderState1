@@ -855,22 +855,26 @@
     </script>
 
     <!-- App Styles -->
-    <link rel="stylesheet" href="css/styles.css?v=205">
+    <link rel="stylesheet" href="css/styles.css?v=206">
 </head>
 <body>
 
 <div id="root"></div>
 
 <!-- LOADING SCREEN -->
-<div id="loading-screen" style="position:fixed;inset:0;z-index:9999;background:#050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;font-family:'DM Sans',sans-serif;">
-  <div style="font-family:'Syne',sans-serif;font-size:clamp(1.6rem,5vw,2.5rem);letter-spacing:0.35rem;display:flex;align-items:baseline;">
-    <span style="color:#D00000;font-weight:900;text-shadow:0 0 20px rgba(208,0,0,0.8);">[U</span><span style="color:#fff;font-weight:900;">NDER</span><span style="color:#D00000;font-weight:900;">]</span>
+<div id="loading-screen" style="position:fixed;inset:0;z-index:9999;background:#060C18;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;font-family:'DM Sans',sans-serif;">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%,rgba(245,200,66,0.06) 0%,transparent 65%);pointer-events:none;"></div>
+  <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:1.5rem;">
+    <div style="font-family:'Syne',sans-serif;font-size:clamp(1.6rem,5vw,2.5rem);letter-spacing:0.35rem;display:flex;align-items:baseline;">
+      <span style="color:#F5C842;font-weight:900;text-shadow:0 0 24px rgba(245,200,66,0.6);">[U</span><span style="color:#fff;font-weight:900;">NDER</span><span style="color:#F5C842;font-weight:900;">]</span>
+    </div>
+    <div style="font-size:0.65rem;letter-spacing:0.22em;color:rgba(255,255,255,0.25);text-transform:uppercase;font-weight:600;">Şehir &amp; Devlet Simülasyonu</div>
+    <div id="loading-bar-wrap" style="width:200px;height:2px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
+      <div id="loading-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#F5C842,#D97706);border-radius:2px;box-shadow:0 0 12px rgba(245,200,66,0.5);transition:width 0.4s ease;"></div>
+    </div>
+    <div id="loading-text" style="color:rgba(255,255,255,0.3);font-size:0.72rem;letter-spacing:0.12rem;text-transform:uppercase;">Yükleniyor...</div>
+    <div id="loading-error" style="display:none;color:#F5C842;font-size:0.85rem;text-align:center;max-width:280px;line-height:1.6;"></div>
   </div>
-  <div id="loading-bar-wrap" style="width:200px;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;">
-    <div id="loading-bar" style="height:100%;width:0%;background:#D00000;border-radius:2px;box-shadow:0 0 10px #D00000;transition:width 0.4s ease;"></div>
-  </div>
-  <div id="loading-text" style="color:#555;font-size:0.8rem;letter-spacing:0.1rem;text-transform:uppercase;">Yükleniyor...</div>
-  <div id="loading-error" style="display:none;color:#D00000;font-size:0.85rem;text-align:center;max-width:280px;line-height:1.6;"></div>
 </div>
 <style>
   #loading-screen { transition: opacity 0.5s ease; }
@@ -941,8 +945,8 @@ function _hideLoading() {
 _advanceBar(10, 'Başlatılıyor...');
 
 // ── IndexedDB cache (fast reload after first visit) ──────────────────────────
-var IDB_NAME = 'us_cache_v11';
-var IDB_KEY  = 'compiled_v219_ok';
+var IDB_NAME = 'us_cache_v12';
+var IDB_KEY  = 'compiled_v220_ok';
 
 function idbGet(key, cb) {
   try {

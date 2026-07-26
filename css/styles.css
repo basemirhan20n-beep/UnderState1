@@ -1,46 +1,53 @@
     /* ═══════════════════════════════════════
-       UNDERSTATE — OBSIDIAN DESIGN SYSTEM v5
-       Premium • Immersive • Game-Grade
+       UNDERSTATE — GOLD DESIGN SYSTEM v6
+       AAA Mobile • Dark Navy + Gold • Premium
        ═══════════════════════════════════════ */
     :root {
         --bg:      #060C18;
-        --bg2:     #0B1527;
-        --bg3:     #101D33;
-        --bg4:     #162640;
-        --bg5:     #1C304D;
+        --bg2:     #0A1628;
+        --bg3:     #0E1C34;
+        --bg4:     #142240;
+        --bg5:     #1A2A4A;
 
-        --border:  rgba(255,255,255,0.06);
-        --border2: rgba(255,255,255,0.12);
+        --border:  rgba(255,255,255,0.05);
+        --border2: rgba(255,255,255,0.10);
+        --border-gold: rgba(245,200,66,0.22);
 
-        --text:       #E8EDF2;
-        --text-muted: #5A7089;
-        --text-dim:   #8BA0B5;
+        --text:       #E8EDF5;
+        --text-muted: #4A6480;
+        --text-dim:   #7A96B2;
 
-        --accent:       #3B82F6;
-        --accent-dark:  #2563EB;
-        --accent-light: #60A5FA;
-        --accent-rgb:   59,130,246;
-        --accent-glow:  rgba(59,130,246,0.2);
+        /* Primary accent: Gold */
+        --accent:       #F5C842;
+        --accent-dark:  #D4A017;
+        --accent-light: #FDE68A;
+        --accent-rgb:   245,200,66;
+        --accent-glow:  rgba(245,200,66,0.18);
 
         --green:   #10B981;
         --green2:  #059669;
-        --gold:    #F59E0B;
+        --gold:    #F5C842;
         --gold2:   #D97706;
         --red:     #EF4444;
         --red2:    #DC2626;
         --violet:  #8B5CF6;
         --pink:    #EC4899;
         --orange:  #F97316;
+        --blue:    #3B82F6;
 
         --red-dark:    #7A1020;
         --red-light:   rgba(255,71,87,0.15);
         --red-light2:  #FC8181;
         --gold-dark:   #92400E;
-        --border-gold: rgba(245,200,66,0.25);
 
-        --card-bg: rgba(11,21,39,0.85);
-        --card-border: rgba(255,255,255,0.05);
+        --card-bg:     rgba(10,22,40,0.85);
+        --card-border: rgba(245,200,66,0.08);
         --card-radius: 16px;
+
+        /* Glassmorphism */
+        --glass-bg:     rgba(14,28,50,0.75);
+        --glass-border: rgba(245,200,66,0.14);
+        --glass-blur:   blur(20px);
     }
 
     /* ═══════ THEMES ═══════ */
@@ -67,6 +74,8 @@
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
         background: #060C18;
+        background-image: radial-gradient(ellipse at 30% 0%, rgba(245,200,66,0.04) 0%, transparent 55%),
+                          radial-gradient(ellipse at 80% 80%, rgba(59,130,246,0.03) 0%, transparent 50%);
         background-attachment: fixed;
         color: var(--text);
         font-family:'DM Sans',sans-serif;
@@ -287,10 +296,10 @@
         position:relative; overflow:hidden;
     }
     .btn::after { content:''; position:absolute; inset:0; background:linear-gradient(to bottom,rgba(255,255,255,0.05),transparent); pointer-events:none; }
-    /* Primary — ana eylem (kirmizi) */
-    .btn-primary { background:#D00000; color:#fff; border:none; box-shadow:0 4px 16px rgba(208,0,0,0.35); }
-    .btn-primary:not(:disabled):hover { box-shadow:0 6px 24px rgba(208,0,0,0.55); }
-    .btn-primary:not(:disabled):active { box-shadow:0 2px 8px rgba(208,0,0,0.3); }
+    /* Primary — ana eylem (gold) */
+    .btn-primary { background:linear-gradient(135deg,#F5C842,#D97706); color:#0A1628; border:none; box-shadow:0 4px 16px rgba(245,200,66,0.35); font-weight:800; }
+    .btn-primary:not(:disabled):hover { box-shadow:0 6px 24px rgba(245,200,66,0.55); }
+    .btn-primary:not(:disabled):active { box-shadow:0 2px 8px rgba(245,200,66,0.3); }
     /* White — acik tema CTA */
     .btn-white  { background:#fff; color:#0F172A; border:none; box-shadow:0 2px 8px rgba(0,0,0,0.15); }
     .btn-white:not(:disabled):hover { background:#F1F5F9; box-shadow:0 4px 16px rgba(0,0,0,0.2); }
@@ -720,26 +729,27 @@
 
     .mobile-bottom-nav {
         display:flex; position:fixed; bottom:0; left:0; right:0;
-        height:60px;
-        background:rgba(6,12,24,0.98);
-        border-top:1px solid rgba(255,255,255,0.06);
+        height:62px;
+        background:rgba(6,10,20,0.97);
+        border-top:1px solid rgba(245,200,66,0.12);
         z-index:900; align-items:stretch;
         padding-bottom:env(safe-area-inset-bottom,0px);
-        backdrop-filter:blur(16px);
-        -webkit-backdrop-filter:blur(16px);
+        backdrop-filter:blur(24px);
+        -webkit-backdrop-filter:blur(24px);
+        box-shadow:0 -4px 24px rgba(0,0,0,0.5);
     }
     .mbn-item {
         flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
-        gap:2px; cursor:pointer; position:relative; user-select:none;
+        gap:3px; cursor:pointer; position:relative; user-select:none;
         -webkit-user-select:none; touch-action:manipulation;
-        transition:all 0.15s ease; border-radius:10px; margin:5px 2px;
+        transition:all 0.18s ease; border-radius:12px; margin:5px 3px;
         border:1px solid transparent;
     }
-    .mbn-item:active { transform:scale(0.9); }
-    .mbn-icon { font-size:1.2rem; line-height:1; transition:all 0.15s ease; }
-    .mbn-label { font-size:0.48rem; color:#4B5E73; font-weight:800; letter-spacing:0.03em; transition:color 0.15s; text-transform:uppercase; }
-    .mbn-item.active .mbn-label { font-weight:900; }
-    .mbn-item.active .mbn-icon { transform:scale(1.1); }
+    .mbn-item:active { transform:scale(0.88); }
+    .mbn-icon { font-size:1.25rem; line-height:1; transition:all 0.18s ease; }
+    .mbn-label { font-size:0.46rem; color:#3A5270; font-weight:800; letter-spacing:0.04em; transition:color 0.18s; text-transform:uppercase; }
+    .mbn-item.active .mbn-label { font-weight:900; color:var(--accent); }
+    .mbn-item.active .mbn-icon { transform:scale(1.15); filter:drop-shadow(0 0 8px rgba(245,200,66,0.5)); }
 
     /* Genel layout düzeltmeleri */
     .content { display:block !important; }
