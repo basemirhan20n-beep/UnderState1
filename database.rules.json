@@ -54,8 +54,7 @@
           ".read": "auth != null",
           "$userId": {
             ".write": "auth != null && auth.uid === $userId",
-            ".validate": "newData.isNumber()",
-            ".priority": -1
+            ".validate": "newData.isNumber()"
           }
         }
       }
