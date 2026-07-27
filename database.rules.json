@@ -2,26 +2,25 @@
   "rules": {
     "games": {
       "$gameId": {
-        /* ============ MESAJLAR - Herkese okuma/yazma ============ */
         "messages": {
-          ".read": true,
-          ".write": true,
+          ".read": "auth != null",
+          ".write": "auth != null",
           "$msgId": {
             ".validate": "newData.hasChildren(['id', 'sender', 'text', 'timestamp', 'channel'])",
             "id": { ".validate": "newData.isString()" },
-            "sender": { ".validate": "newData.isString()" },
-            "text": { ".validate": "newData.isString()" },
-            "timestamp": { ".validate": "newData.isNumber()" },
-            "channel": { ".validate": "newData.isString()" }
+            "sender": { ".validate": "newData.isString() && newData.val().length <= 64" },
+            "text": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 2000" },
+            "timestamp": { ".validate": "newData.isNumber() && newData.val() <= now + 60000" },
+            "channel": { ".validate": "newData.isString() && newData.val().length <= 64" },
+            "$other": { ".validate": false }
           }
         },
 
-        /* ============ CİHAZ KAYITLARI - Kullanıcıya özel ============ */
         "userDevices": {
           "$userId": {
             "$deviceId": {
-              ".read": "auth.uid === $userId || root.child('games').child($gameId).child('presence').child(auth.uid).exists()",
-              ".write": "auth.uid === $userId",
+              ".read": "auth != null && (auth.uid === $userId || root.child('games').child($gameId).child('presence').child(auth.uid).exists())",
+              ".write": "auth != null && auth.uid === $userId",
               ".validate": "newData.hasChildren(['deviceId', 'deviceName'])",
               "deviceId": { ".validate": "newData.isString()" },
               "deviceName": { ".validate": "newData.isString()" },
@@ -32,13 +31,12 @@
           }
         },
 
-        /* ============ PRESENCE (Online Durumu) - Herkese okuma ============ */
         "presence": {
-          ".read": true,
+          ".read": "auth != null",
           "$userId": {
-            ".write": "auth.uid === $userId",
+            ".write": "auth != null && auth.uid === $userId",
             ".validate": "newData.hasChildren(['username', 'lastSeen'])",
-            "username": { ".validate": "newData.isString()" },
+            "username": { ".validate": "newData.isString() && newData.val().length <= 64" },
             "lastSeen": { ".validate": "newData.isNumber()" },
             "at": { ".validate": "newData.isNumber()" },
             "deviceId": { ".validate": "newData.isString() || !newData.exists()" },
@@ -46,18 +44,16 @@
           }
         },
 
-        /* ============ REALTIME STATE - Oyun verileri ============ */
         "realtime": {
-          ".read": true,
-          ".write": true,
+          ".read": "auth != null",
+          ".write": "auth != null",
           ".validate": "newData.isObject()"
         },
 
-        /* ============ HEARTBEAT (Canlılık sinyali) - Hızlı güncelleme ============ */
         "heartbeat": {
-          ".read": true,
+          ".read": "auth != null",
           "$userId": {
-            ".write": "auth.uid === $userId",
+            ".write": "auth != null && auth.uid === $userId",
             ".validate": "newData.isNumber()",
             ".priority": -1
           }

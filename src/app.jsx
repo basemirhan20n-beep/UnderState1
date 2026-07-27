@@ -27,6 +27,17 @@ const S = {
       window._fbServerSyncedKeys.delete(k); // tek seferlik - sil ve çık
       return;
     }
+    // 2b. GÜVENLİK: 'users' listesi uzağa (Firebase RTDB/Firestore, Supabase, Socket.IO)
+    // senkronize edilmeden önce şifre alanını asla göndermiyoruz. Yerel localStorage
+    // kopyasında (yukarıda kaydedildi) legacy hesapların geçiş kontrolü için password
+    // kalabilir, ama dışarıya hiçbir zaman gitmez.
+    if (k === "users" && Array.isArray(v)) {
+      v = v.map(u => {
+        if (!u || typeof u !== "object") return u;
+        const { password, ...rest } = u;
+        return rest;
+      });
+    }
     // 3. Firebase kuyruğuna ekle (büyük loglar hariç sık sync)
     if (window._logKeys && window._logKeys.includes(k)) {
       // Log verileri 30 sn'de bir sync (bant genişliği tasarrufu)
@@ -5072,54 +5083,94 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
 
   const _hashPass = (raw) => btoa(unescape(encodeURIComponent(raw + "_us_salt_2024")));
 
+  /* GÜVENLİK NOTU: Eskiden burada "admin"/"admin123" client-side kodun içine
+     gömülü, herkesin tarayıcı kaynağından okuyabileceği bir admin arka kapısı
+     vardı. Bu kaldırıldı — admin hesabı artık diğer hesaplar gibi gerçek
+     Firebase Authentication + normal kayıt akışından geçmeli, "role" alanı
+     güvenilir bir yoldan (Firebase Console / Admin SDK) atanmalıdır. */
   const handleLogin = async () => {
-    if (loginForm.user === "admin" && loginForm.pass === "admin123") {
-      const existingAdmin = allUsers.find(u => u.username === "admin") || allUsers.find(u => u.role === "admin");
-      let admin;
-      let updatedUsers;
-      if (!existingAdmin) {
-        admin = { id:"admin", uid:"admin", username:"admin", password:_hashPass("admin123"), role:"admin",
-          money:999999999, bankMoney:999999999, educationLevel:"Profesör", educationProgress:9999,
-          educationCompleted:true, educationCompletionCount:99, underCoin:999999, position:"Devlet Başkanı", city:"Ankara",
-          banned:false, email:"admin@understate.gov", phone:"-", foundUs:"-",
-          meritPoints:999999, loyaltyPoints:999999, score:999999, level:100, xp:999999, hp:100,
-          creditScore:1000, profilePhoto:null, photoChanges:0,
-          partyId:null, familyId:null, gangId:null, holdings:[],
-          inventory:["Balta","Kazma","Silah","Zırh"], createdAt:new Date().toLocaleDateString(), lastLogin:new Date().toISOString(),
-          eduPackage:true, eduPackageExpiry:Date.now()+365*24*60*60*1000
-        };
-        updatedUsers = [...(Array.isArray(allUsers)?allUsers:[]), admin];
-      } else {
-        admin = {...existingAdmin, role:"admin", banned:false, password:_hashPass("admin123"),
-          educationLevel:"Profesör", educationCompleted:true, educationProgress:3000,
-          eduPackage:true, eduPackageExpiry:Date.now()+365*24*60*60*1000
-        };
-        updatedUsers = (Array.isArray(allUsers)?allUsers:[]).map(u => u.id===existingAdmin.id ? admin : u);
-      }
-      S.save("users", updatedUsers);
-      setAllUsers(updatedUsers);
-      doLogin(admin); return;
-    }
-    const hashedInput = _hashPass(loginForm.pass);
-    const found = allUsers.find(u => u.username === loginForm.user && (u.password === hashedInput || u.password === loginForm.pass));
+    const found = allUsers.find(u => u.username === loginForm.user);
     if (!found) { notify("❌ Kullanıcı adı veya şifre hatalı!"); return; }
-    if (found.password === loginForm.pass) {
-      const migrated = {...found, password: hashedInput};
-      const updated = allUsers.map(u => u.id===found.id ? migrated : u);
-      S.save("users", updated); setAllUsers(updated);
-      doLogin(migrated); return;
+
+    // 1) Gerçek Firebase Authentication ile giriş dene (hesap zaten migrate olmuşsa)
+    if (window._fbAuth && found.email) {
+      try {
+        await window._fbAuth.signIn(found.email, loginForm.pass);
+        doLogin(found);
+        return;
+      } catch (e) {
+        if (e.code !== "auth/user-not-found" && e.code !== "auth/invalid-credential" && e.code !== "auth/wrong-password") {
+          notify("❌ Giriş hatası: " + e.message);
+          return;
+        }
+        // auth/user-not-found → bu hesap henüz Firebase Auth'a taşınmamış (legacy).
+        // Aşağıdaki eski-hash kontrolüyle devam edip başarılıysa sessizce taşıyoruz.
+        // auth/wrong-password / invalid-credential → gerçek hesap var ama şifre yanlış:
+        if (e.code === "auth/wrong-password" || e.code === "auth/invalid-credential") {
+          if (!found.password) { notify("❌ Kullanıcı adı veya şifre hatalı!"); return; }
+          // legacy password alanı hâlâ duruyorsa aşağıda da kontrol edilecek, yoksa direkt hata
+        }
+      }
     }
-    doLogin(found);
+
+    // 2) Legacy kontrol: eski (zayıf) hash ile karşılaştır, tek seferlik migrate et
+    if (!found.password) { notify("❌ Kullanıcı adı veya şifre hatalı!"); return; }
+    const hashedInput = _hashPass(loginForm.pass);
+    const legacyMatch = found.password === hashedInput || found.password === loginForm.pass;
+    if (!legacyMatch) { notify("❌ Kullanıcı adı veya şifre hatalı!"); return; }
+
+    let migratedUser = {...found};
+    delete migratedUser.password; // artık hiç saklamıyoruz
+    if (window._fbAuth && found.email) {
+      try {
+        const fbUser = await window._fbAuth.signUp(found.email, loginForm.pass);
+        migratedUser.uid = fbUser.uid;
+        console.log("[Auth] Legacy hesap gerçek Firebase Authentication'a taşındı ✓", found.username);
+      } catch (e) {
+        // E-posta zaten Firebase'de kayıtlıysa (örn. önceki bir denemeden) tekrar dene: signIn
+        if (e.code === "auth/email-already-in-use") {
+          try { await window._fbAuth.signIn(found.email, loginForm.pass); }
+          catch (e2) { notify("❌ Hesap geçişi başarısız: " + e2.message); return; }
+        } else {
+          notify("❌ Hesap geçişi başarısız: " + e.message);
+          return;
+        }
+      }
+    }
+    const updated = allUsers.map(u => u.id===found.id ? migratedUser : u);
+    S.save("users", updated); setAllUsers(updated);
+    doLogin(migratedUser);
   };
 
   const handleRegister = async () => {
     if (!regForm.user||!regForm.pass||!regForm.email) return notify("❌ Tüm zorunlu alanları doldurun!");
     if (regForm.pass !== regForm.confirmPass) return notify("❌ Şifreler eşleşmiyor!");
+    if (regForm.pass.length < 6) return notify("❌ Şifre en az 6 karakter olmalı!");
     if (allUsers.find(u => u.username === regForm.user)) return notify("❌ Bu kullanıcı adı alınmış!");
     if (allUsers.find(u => u.email && u.email.toLowerCase() === regForm.email.toLowerCase())) return notify("❌ Bu e-posta adresi zaten kayıtlı!");
-    const hashedPass = btoa(unescape(encodeURIComponent(regForm.pass + "_us_salt_2024")));
+
+    // Gerçek Firebase Authentication hesabı oluştur — şifre artık Firebase'in
+    // güvenli altyapısında tutulur, uygulama kodunda hiç saklanmaz.
+    let fbUid = null;
+    if (window._fbAuth) {
+      try {
+        const fbUser = await window._fbAuth.signUp(regForm.email, regForm.pass);
+        fbUid = fbUser.uid;
+      } catch (e) {
+        const msgMap = {
+          "auth/email-already-in-use": "❌ Bu e-posta adresi zaten kayıtlı!",
+          "auth/invalid-email": "❌ Geçersiz e-posta adresi!",
+          "auth/weak-password": "❌ Şifre çok zayıf, en az 6 karakter kullanın!"
+        };
+        notify(msgMap[e.code] || ("❌ Kayıt hatası: " + e.message));
+        return;
+      }
+    } else {
+      console.warn("[Auth] window._fbAuth hazır değil, hesap yerel olarak (geçici) oluşturuluyor.");
+    }
+
     const baseUser = {
-      id:Date.now().toString(), username:regForm.user, password:hashedPass, email:regForm.email,
+      id:Date.now().toString(), uid: fbUid, username:regForm.user, email:regForm.email,
       phone:regForm.phone||"-", foundUs:regForm.found||"-", role:"user", gender:regForm.gender||"erkek",
       money:10000, bankMoney:0, educationLevel:"İlkokul", educationProgress:0, educationCompleted:false,
       underCoin:50, position:null, city:regForm.city||"İstanbul", banned:false,
@@ -6463,13 +6514,26 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
   };
 
   // ==================== CHANGE PASSWORD ====================
-  const changePass = () => {
-    if(passForm.current!==cu.password) return notify("❌ Mevcut şifre yanlış!");
+  const changePass = async () => {
     if(passForm.new!==passForm.confirm) return notify("❌ Yeni şifreler eşleşmiyor!");
-    if(passForm.new.length<4) return notify("❌ Şifre en az 4 karakter olmalı!");
-    updateUser({ password:passForm.new });
-    setPassForm({current:"",new:"",confirm:""});
-    notify("✅ Şifre değiştirildi!");
+    if(passForm.new.length<6) return notify("❌ Şifre en az 6 karakter olmalı!");
+    if(!cu?.email) return notify("❌ Hesabınızda e-posta bulunamadı, destek ile iletişime geçin.");
+    if(!window._fbAuth) return notify("❌ Kimlik doğrulama servisi hazır değil, birazdan tekrar deneyin.");
+    try {
+      await window._fbAuth.changePassword(cu.email, passForm.current, passForm.new);
+      // Yerelde hâlâ eski legacy 'password' alanı varsa temizle
+      if (cu.password) updateUser({ password: undefined });
+      setPassForm({current:"",new:"",confirm:""});
+      notify("✅ Şifre değiştirildi!");
+    } catch (e) {
+      const msgMap = {
+        "auth/wrong-password": "❌ Mevcut şifre yanlış!",
+        "auth/invalid-credential": "❌ Mevcut şifre yanlış!",
+        "auth/weak-password": "❌ Yeni şifre çok zayıf!",
+        "auth/requires-recent-login": "❌ Güvenlik nedeniyle tekrar giriş yapmanız gerekiyor."
+      };
+      notify(msgMap[e.code] || ("❌ Şifre değiştirilemedi: " + e.message));
+    }
   };
 
   // ==================== ORDU SİSTEMİ ====================
@@ -7718,7 +7782,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 <input className="form-input" placeholder="Cep Telefonu" type="tel" value={regForm.phone} onChange={e=>setRegForm({...regForm,phone:e.target.value})} />
               </div>
               <div className="form-group">
-                <input className="form-input" type="password" placeholder="Şifre *" value={regForm.pass} onChange={e=>setRegForm({...regForm,pass:e.target.value})} />
+                <input className="form-input" type="password" placeholder="Şifre * (en az 6 karakter)" value={regForm.pass} onChange={e=>setRegForm({...regForm,pass:e.target.value})} />
               </div>
               <div className="form-group">
                 <input className="form-input" type="password" placeholder="Şifre Tekrar *" value={regForm.confirmPass} onChange={e=>setRegForm({...regForm,confirmPass:e.target.value})} />
@@ -7802,55 +7866,33 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
 
               {resetStep===1 && (
                 <div>
-                  <p style={{color:"#94A3B8",fontSize:"0.88rem",marginBottom:"1rem",lineHeight:1.6}}>Kayıt olduğun e-posta adresini gir. Sıfırlama kodu göndereceğiz.</p>
+                  <p style={{color:"#94A3B8",fontSize:"0.88rem",marginBottom:"1rem",lineHeight:1.6}}>Kayıt olduğun e-posta adresini gir. Firebase üzerinden gerçek bir şifre sıfırlama bağlantısı göndereceğiz.</p>
                   <input value={resetEmail} onChange={e=>setResetEmail(e.target.value)} placeholder="E-posta adresin" type="email"
                     style={{width:"100%",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,padding:"0.75rem 1rem",color:"#fff",fontSize:"0.95rem",outline:"none",boxSizing:"border-box",marginBottom:"1rem"}} />
                   <button disabled={resetLoading} onClick={async()=>{
-                    if(!resetEmail.trim()) return notify("❌ E-posta girin");
+                    const email = resetEmail.trim().toLowerCase();
+                    if(!email) return notify("❌ E-posta girin");
+                    if(!window._fbAuth) return notify("❌ Kimlik doğrulama servisi hazır değil, birazdan tekrar deneyin.");
                     setResetLoading(true);
                     try {
-                      const r = await fetch('/api/mail/reset-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:resetEmail.trim().toLowerCase()})});
-                      const d = await r.json();
-                      if(d.token) { setResetToken(d.token); setResetStep(2); notify("✅ Kod e-postanıza gönderildi!"); }
-                      else { setResetStep(2); notify("✅ Eğer bu e-posta kayıtlıysa kod gönderildi."); }
-                    } catch(e) { notify("❌ Hata: " + e.message); }
-                    setResetLoading(false);
+                      await window._fbAuth.sendReset(email);
+                    } catch(e) {
+                      // Kullanıcıya, kayıtlı olup olmadığı belli olmasın diye 'user-not-found'
+                      // dışındaki hatalar hariç genel bir mesaj gösteriyoruz.
+                      if (e.code && e.code !== "auth/user-not-found") {
+                        notify("❌ Hata: " + e.message);
+                        setResetLoading(false);
+                        return;
+                      }
+                    }
+                    // Hesap henüz Firebase Auth'a taşınmamışsa (legacy, hiç giriş yapılmamış)
+                    // sendPasswordResetEmail 'user-not-found' döner — bu durumda kullanıcıyı
+                    // normal girişe yönlendiriyoruz, çünkü ilk girişte otomatik migrate edilir.
+                    notify("✅ Eğer bu e-posta kayıtlıysa sıfırlama bağlantısı gönderildi. Gelen kutunu (ve spam'i) kontrol et.");
+                    setResetStep(0);
                   }} style={{width:"100%",background:"#D00000",border:"none",borderRadius:8,padding:"0.75rem",color:"#fff",fontWeight:800,fontSize:"0.95rem",cursor:"pointer",opacity:resetLoading?0.6:1}}>
-                    {resetLoading ? "Gönderiliyor..." : "Kod Gönder"}
+                    {resetLoading ? "Gönderiliyor..." : "Sıfırlama Bağlantısı Gönder"}
                   </button>
-                </div>
-              )}
-
-              {resetStep===2 && (
-                <div>
-                  <p style={{color:"#94A3B8",fontSize:"0.88rem",marginBottom:"0.75rem",lineHeight:1.6}}>E-postana gelen 6 haneli kodu ve yeni şifreni gir.</p>
-                  <input value={resetCode} onChange={e=>setResetCode(e.target.value)} placeholder="6 haneli kod" maxLength={6}
-                    style={{width:"100%",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(208,0,0,0.3)",borderRadius:8,padding:"0.75rem 1rem",color:"#D00000",fontSize:"1.5rem",fontWeight:900,letterSpacing:"0.4rem",outline:"none",boxSizing:"border-box",marginBottom:"0.75rem",textAlign:"center",fontFamily:"monospace"}} />
-                  <input value={resetNewPass} onChange={e=>setResetNewPass(e.target.value)} placeholder="Yeni şifre (en az 4 karakter)" type="password"
-                    style={{width:"100%",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,padding:"0.75rem 1rem",color:"#fff",fontSize:"0.95rem",outline:"none",boxSizing:"border-box",marginBottom:"1rem"}} />
-                  <button disabled={resetLoading} onClick={async()=>{
-                    if(!resetCode.trim()||resetCode.trim().length<6) return notify("❌ 6 haneli kodu girin");
-                    if(!resetNewPass||resetNewPass.length<4) return notify("❌ Şifre en az 4 karakter olmalı");
-                    setResetLoading(true);
-                    try {
-                      const hashedNew = btoa(unescape(encodeURIComponent(resetNewPass + "_us_salt_2024")));
-                      const r = await fetch('/api/mail/reset-confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:resetToken,code:resetCode.trim(),newPasswordHash:hashedNew})});
-                      const d = await r.json();
-                      if(d.ok) {
-                        // localStorage'daki kullanıcıyı da güncelle
-                        const users = S.load("users",[]);
-                        const updated = users.map(u=>u.username===d.username?{...u,password:hashedNew}:u);
-                        S.save("users",updated); setAllUsers(updated);
-                        notify("✅ Şifren güncellendi! Giriş yapabilirsin.");
-                        setResetStep(0);
-                        setLoginForm({user:d.username,pass:""});
-                      } else { notify("❌ " + (d.reason||"Hata")); }
-                    } catch(e) { notify("❌ Hata: " + e.message); }
-                    setResetLoading(false);
-                  }} style={{width:"100%",background:"#10B981",border:"none",borderRadius:8,padding:"0.75rem",color:"#fff",fontWeight:800,fontSize:"0.95rem",cursor:"pointer",opacity:resetLoading?0.6:1}}>
-                    {resetLoading ? "Doğrulanıyor..." : "Şifremi Sıfırla"}
-                  </button>
-                  <button onClick={()=>setResetStep(1)} style={{width:"100%",background:"none",border:"none",color:"#64748B",fontSize:"0.82rem",cursor:"pointer",marginTop:"0.5rem",textDecoration:"underline"}}>← Farklı e-posta dene</button>
                 </div>
               )}
             </div>

@@ -1,0 +1,15 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /games/{gameId}/{document=**} {
+      // Anonim dahil giriş yapmış tüm istemcilere izin ver (uygulama herkesi
+      // otomatik olarak signInAnonymously ile oturum açtırıyor).
+      // NOT: Bu, tamamen açık ('allow read, write: if true') durumuna göre
+      // ciddi bir iyileştirmedir, ama state/main dokümanı hâlâ her giriş
+      // yapmış istemci tarafından okunabilir/yazılabilir durumda. Kullanıcı
+      // parola/hesap verisi bu doküman içinde tutulduğu sürece bu, tam bir
+      // çözüm değildir — bkz. AUTH_SECURITY_NOTES.md
+      allow read, write: if request.auth != null;
+    }
+  }
+}

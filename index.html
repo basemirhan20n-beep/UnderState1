@@ -18,7 +18,7 @@
     <link rel="shortcut icon" href="favicon.jpg" type="image/jpeg">
 
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
@@ -427,6 +427,33 @@
             window._fbUid = auth.currentUser.uid;
             console.log("[Auth] Anonim giriş başarılı ✓ uid:", auth.currentUser.uid);
           }
+
+          /* === Gerçek Firebase Authentication (email/şifre) yardımcı fonksiyonları ===
+             Kullanıcı adı tabanlı arayüzü korumak için gerçek e-posta/şifre kimlik
+             doğrulaması kullanıyoruz — şifreler artık Firebase'in güvenli altyapısında
+             tutuluyor, uygulama kodunda hiçbir zaman ham/geri döndürülebilir biçimde
+             saklanmıyor. window._fbAuth üzerinden app.jsx'ten çağrılır. */
+          window._fbAuth = {
+            /* Yeni gerçek hesap oluştur (kayıt sırasında) */
+            signUp: (email, pass) => firebase.auth().createUserWithEmailAndPassword(email, pass)
+              .then((cred) => { window._fbUid = cred.user.uid; return cred.user; }),
+            /* Var olan hesapla giriş yap */
+            signIn: (email, pass) => firebase.auth().signInWithEmailAndPassword(email, pass)
+              .then((cred) => { window._fbUid = cred.user.uid; return cred.user; }),
+            /* Gerçek, Firebase tarafından gönderilen şifre sıfırlama e-postası
+               (sunucu tarafı kod gerektirmez, Firebase kendi güvenli akışını yönetir) */
+            sendReset: (email) => firebase.auth().sendPasswordResetEmail(email),
+            /* Giriş yapmış kullanıcının şifresini değiştir (mevcut şifre ile yeniden
+               kimlik doğrulama gerektirir — reauthenticate) */
+            changePassword: async (email, currentPass, newPass) => {
+              const user = firebase.auth().currentUser;
+              if (!user) throw new Error("Oturum açık değil");
+              const cred = firebase.auth.EmailAuthProvider.credential(email, currentPass);
+              await user.reauthenticateWithCredential(cred);
+              await user.updatePassword(newPass);
+            },
+            currentUser: () => firebase.auth().currentUser
+          };
         } catch(authErr) {
           console.warn("[Auth] Auth hatası (devam ediliyor):", authErr.message);
         }
@@ -866,7 +893,7 @@
   <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%,rgba(245,200,66,0.06) 0%,transparent 65%);pointer-events:none;"></div>
   <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:1.5rem;">
     <div style="font-family:'Syne',sans-serif;font-size:clamp(1.6rem,5vw,2.5rem);letter-spacing:0.35rem;display:flex;align-items:baseline;">
-      <span style="color:#F5C842;font-weight:900;text-shadow:0 0 24px rgba(245,200,66,0.6);">[U</span><span style="color:#fff;font-weight:900;">NDER</span><span style="color:#F5C842;font-weight:900;">]</span>
+      <span style="color:#F5C842;font-weight:800;text-shadow:0 0 24px rgba(245,200,66,0.6);">[U</span><span style="color:#fff;font-weight:800;">NDER</span><span style="color:#F5C842;font-weight:800;">]</span>
     </div>
     <div style="font-size:0.65rem;letter-spacing:0.22em;color:rgba(255,255,255,0.25);text-transform:uppercase;font-weight:600;">Şehir &amp; Devlet Simülasyonu</div>
     <div id="loading-bar-wrap" style="width:200px;height:2px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
