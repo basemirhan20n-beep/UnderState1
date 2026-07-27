@@ -45,14 +45,33 @@
       const GAME_ID       = "understate_main_server";
       /* Firestore izin hatası verdiği için TÜM kritik veriler RTDB üzerinden gidiyor */
       const REALTIME_KEYS = [
-        /* Mesajlar (zaten RTDB'deydi) */
-        "globalChat","cityChats","parliamentMsgs","supportMsgs","liveNews","announcements","activityFeed","klanChat",
-        /* Oyun state (Firestore yerine RTDB) */
-        "users","economy","stockMarket","parties","gangs","holdings",
-        "laws","lawProposals","cabinet","ohal","elections","electionState",
-        "taxSystem","coupSystem","cityMap","gameEvents","prisonList",
-        "auctionItems","courtCases","realEstate","alliances","referendums",
-        "marketDemand","commodities","energyMarket","marketCrisis","cityStats","cityWelfare"
+        /* Tüm oyun-dünyası özellikleri (Firestore yerine RTDB — anlık senkron,
+           tüm oyunculara/cihazlara yansır). Sadece cihaza özel tercihler
+           (theme, lang, qolSettings, favoritePages, notifications_ vb.)
+           bu listenin dışında bırakıldı; onlar yerel kalmaya devam eder. */
+        "activeLoan","activityFeed","activityLog","adminNotifications","alliances","announcements",
+        "armyFunds","assassinations","auctionItems","autoLeagueTeams","bank","cabinet",
+        "campaignDonations","campaignPosters","campaigns","casinoLogs","cityBudgets","cityBuildCooldown",
+        "cityChats","cityMap","cityProjects","cityStats","cityTaxRate","cityWars",
+        "cityWelfare","clubMarketListings","coalitions","collabRequests","commodities","cooldowns",
+        "coupSystem","coupVotes","courtCases","craftingInv","crisisEvent","crisisResponses",
+        "cryptoEvents","cryptoPrice","dailySpin","dailyStreak","dailyTasks","economy",
+        "electionState","elections","energyMarket","examResults","factories","factoryInventory",
+        "factoryOrders","families","farms","footballFormation","footballYouthTimer","friendsList",
+        "gameEvents","gangBattles","gangs","gatherCooldowns","globalChat","hayvanlik",
+        "hiredMercs","historyLog","holdingApps","holdings","horseBets","horseRaces",
+        "hotels","illegalTezgah","importExport","insurances","intlWars","klanChat",
+        "lastAutoTax","lastCrisis","lastMarketCrisis","lastMatchTime","lawNotifs","lawProposals",
+        "laws","leagueFixtures","leagueResults","legalTezgah","liveFeed","liveNews",
+        "loanApps","loanHistory","lotteryState","luxuryAssets","mailbox","marketCrisis",
+        "marketDemand","mediaEmpires","municipalServices","nameChangeRequests","netWorthHistory","newspapers",
+        "npcActivity","npcRelations","ohal","parliamentMsgs","parties","partyAlliances",
+        "partyApplications","partyInternalVotes","partyInvites","partyLoans","partyManifestos","partyMgmtRoles",
+        "partySalaryLog","playerTransferListings","policeOfficers","polls","positionTasks","prisonList",
+        "privateSchools","randomEvents","rawMatCooldowns","realEstate","referandumlar","referendums",
+        "reportedMessages","restaurants","scandals","sessionStats","shortPositions","socialPosts",
+        "spyReports","stateBudget","stockMarket","stockPortfolio","supportMsgs","taxDeclarations",
+        "taxSystem","techTree","users","wmStates","xpLog"
       ];
       /* Sadece mesaj dizileri monotonic transaction kullanır, diğerleri direkt set */
       const MSG_KEYS = ["globalChat","cityChats","parliamentMsgs","supportMsgs","liveNews","announcements","activityFeed","klanChat"];
