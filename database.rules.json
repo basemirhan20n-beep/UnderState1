@@ -46,8 +46,7 @@
 
         "realtime": {
           ".read": "auth != null",
-          ".write": "auth != null",
-          ".validate": "newData.isObject()"
+          ".write": "auth != null"
         },
 
         "heartbeat": {
