@@ -1,4 +1,4 @@
-# UNDERSTATE — Şehir & Devlet Simülasyonu
+# POLİTİKON — Şehir & Devlet Simülasyonu
 
 A Turkish-language city & state simulation game (AAA mobile quality, dark theme).
 
@@ -32,7 +32,7 @@ Runs on port 5000. The workflow `Start application` is already configured.
 
 | Service | Status |
 |---------|--------|
-| Firebase (Auth + RTDB + Firestore) | Config embedded in `index.html` (project: `understate-62919`) |
+| Firebase (Auth + RTDB + Firestore) | Config embedded in `index.html` (project: `politikon-62919`) |
 | Supabase | Expects `/api/config` endpoint → `supabase-server.js` has it; `server.js` does not |
 | Socket.IO | Self-hosted, works out of the box |
 

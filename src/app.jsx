@@ -58,8 +58,8 @@ const S = {
 };
 
 // ==================== PARA FORMATLAMA ====================
-// Miktara göre otomatik kısaltma: ₺1.5B, ₺2.3M, ₺850Mr, ₺1.2T
-const fmtMoney = (v, prefix="₺") => {
+// Miktara göre otomatik kısaltma: ₱1.5B, ₱2.3M, ₱850Mr, ₱1.2T
+const fmtMoney = (v, prefix="₱") => {
   const n = Number(v) || 0;
   const abs = Math.abs(n);
   const sign = n < 0 ? "-" : "";
@@ -157,7 +157,7 @@ const EDU_NOTE   = [
   "Bakanlıklara bağlı makamlar için üniversite gereklidir.",
   "Bakanlık ve valilik için yüksek lisans gereklidir.",
   "Devlet Başkanı için doktora gereklidir.",
-  "🎓 Tebrikler! Profesör olarak mezun oldunuz. +50 UC kazandınız!"
+  "🎓 Tebrikler! Profesör olarak mezun oldunuz. +50 PG kazandınız!"
 ];
 
 const JOBS = [
@@ -647,56 +647,56 @@ function TransMsg({ text, lang }) {
 // ==================== MAIN APP ====================
 // --- OYUN WIKI & YAPAY ZEKA VERİTABANI ---
 const AI_DATA = [
-    { keys: ["devlet başkanı", "başkan"], ans: "🏛️ Devlet Başkanı, oyunun en yetkili ismidir. Haftalık 100.000 TL maaş ve +250 UC alır. Vali atama, Kayyum atama ve OHAL yetkileri vardır. Doktora mezunu olmak gerekir." },
-    { keys: ["içişleri", "polis atama", "hakim atama"], ans: "🛡️ İçişleri Bakanı; Hakim, Savcı, Polis ve Emniyet Müdürü atamalarını yapar. Maaşı 2 haftada bir 80.000 TL'dir (+100 UC). Üniversite mezunu olunmalıdır." },
-    { keys: ["maliye", "hazine", "vergi", "kredi onay"], ans: "💰 Maliye Bakanı vergileri toplar ve kredi başvurularını onaylar. Maaşı 2 haftada bir 80.000 TL'dir (+100 UC). Üniversite mezunu olunmalıdır." },
-    { keys: ["ticaret bakanı", "holding onay"], ans: "📦 Ticaret Bakanı, kurulan holdinglere ruhsat verir ve denetler. Maaşı 2 haftada bir 80.000 TL'dir (+100 UC). Üniversite mezunu olunmalıdır." },
-    { keys: ["sağlık bakanı", "doktor", "ilaç"], ans: "🏥 Sağlık Bakanı salgınları yönetir ve hastaneleri denetler. Maaşı 2 haftada bir 80.000 TL'dir (+100 UC). Üniversite mezunu olunmalıdır." },
-    { keys: ["vali", "valilik"], ans: "🏙️ Vali, atandığı şehrin güvenliğinden sorumludur. Belediye memurlarını yönetir. Maaşı aylık 120.000 TL'dir (+75 UC). Yüksek Lisans mezunu olunmalıdır." },
-    { keys: ["milletvekili", "vekil", "yasa", "meclis"], ans: "🗳️ Milletvekilleri meclise yasa tasarısı sunar. Her ilde 2 vekil bulunur. Haftalık 10.000 TL (+15 UC) alırlar. Lise mezunu olmak yeterlidir." },
-    { keys: ["parti kurma", "parti nasıl", "parti kur"], ans: "⚑ Parti kurmak için 1.000.000.000 TL nakit gereklidir. Kurulduğunda 100.000 TL iade edilir." },
+    { keys: ["devlet başkanı", "başkan"], ans: "🏛️ Devlet Başkanı, oyunun en yetkili ismidir. Haftalık 100.000 PoliCash maaş ve +250 PG alır. Vali atama, Kayyum atama ve OHAL yetkileri vardır. Doktora mezunu olmak gerekir." },
+    { keys: ["içişleri", "polis atama", "hakim atama"], ans: "🛡️ İçişleri Bakanı; Hakim, Savcı, Polis ve Emniyet Müdürü atamalarını yapar. Maaşı 2 haftada bir 80.000 PoliCash'dir (+100 PG). Üniversite mezunu olunmalıdır." },
+    { keys: ["maliye", "hazine", "vergi", "kredi onay"], ans: "💰 Maliye Bakanı vergileri toplar ve kredi başvurularını onaylar. Maaşı 2 haftada bir 80.000 PoliCash'dir (+100 PG). Üniversite mezunu olunmalıdır." },
+    { keys: ["ticaret bakanı", "holding onay"], ans: "📦 Ticaret Bakanı, kurulan holdinglere ruhsat verir ve denetler. Maaşı 2 haftada bir 80.000 PoliCash'dir (+100 PG). Üniversite mezunu olunmalıdır." },
+    { keys: ["sağlık bakanı", "doktor", "ilaç"], ans: "🏥 Sağlık Bakanı salgınları yönetir ve hastaneleri denetler. Maaşı 2 haftada bir 80.000 PoliCash'dir (+100 PG). Üniversite mezunu olunmalıdır." },
+    { keys: ["vali", "valilik"], ans: "🏙️ Vali, atandığı şehrin güvenliğinden sorumludur. Belediye memurlarını yönetir. Maaşı aylık 120.000 PoliCash'dir (+75 PG). Yüksek Lisans mezunu olunmalıdır." },
+    { keys: ["milletvekili", "vekil", "yasa", "meclis"], ans: "🗳️ Milletvekilleri meclise yasa tasarısı sunar. Her ilde 2 vekil bulunur. Haftalık 10.000 PoliCash (+15 PG) alırlar. Lise mezunu olmak yeterlidir." },
+    { keys: ["parti kurma", "parti nasıl", "parti kur"], ans: "⚑ Parti kurmak için 1.000.000.000 PoliCash nakit gereklidir. Kurulduğunda 100.000 PoliCash iade edilir." },
     { keys: ["seçim", "oy kullanma", "oy nasıl"], ans: "✅ İlkokul mezunu olan herkes oy kullanabilir. En çok oyu alan parti veya aday yönetime geçer. Seçimi admin başlatır." },
-    { keys: ["oduncu", "balta"], ans: "🪓 Odunculuk için 'Balta' gereklidir. 2 saatte bir yapılır ve 1.200 TL kazandırır." },
-    { keys: ["madenci", "kazma"], ans: "⛏️ Madencilik için 'Kazma' gereklidir. 2 saatte bir yapılır ve 1.400 TL kazandırır." },
-    { keys: ["fırıncı", "fırın"], ans: "🍞 Fırıncılık 5 dakikada bir yapılır ve 50 TL kazandırır." },
-    { keys: ["çöpçü", "çöp"], ans: "🗑️ Çöpçülük 5 dakikada bir yapılır ve 25 TL kazandırır." },
-    { keys: ["hamal"], ans: "📦 Hamallık 10 dakikada bir yapılır ve 100 TL kazandırır." },
-    { keys: ["terzi"], ans: "🧵 Terzilik saatte bir yapılır ve 1.000 TL kazandırır." },
-    { keys: ["depo", "ehliyet"], ans: "🚚 Depo Görevlisi olmak için 'C Sınıfı Ehliyet' (Ortaokul bitince alınır) gerekir. 30 dakikada bir 500 TL kazandırır." },
-    { keys: ["holding kurma", "holding nasıl", "holding kur"], ans: "🏢 Holding kurmak için Üniversite mezunu olmalı ve 10.000.000 TL sermayeye sahip olmalısınız. Başvuru sonrası Ticaret Bakanı onayı gerekir. 24 saatte bir otomatik kar üretir." },
+    { keys: ["oduncu", "balta"], ans: "🪓 Odunculuk için 'Balta' gereklidir. 2 saatte bir yapılır ve 1.200 PoliCash kazandırır." },
+    { keys: ["madenci", "kazma"], ans: "⛏️ Madencilik için 'Kazma' gereklidir. 2 saatte bir yapılır ve 1.400 PoliCash kazandırır." },
+    { keys: ["fırıncı", "fırın"], ans: "🍞 Fırıncılık 5 dakikada bir yapılır ve 50 PoliCash kazandırır." },
+    { keys: ["çöpçü", "çöp"], ans: "🗑️ Çöpçülük 5 dakikada bir yapılır ve 25 PoliCash kazandırır." },
+    { keys: ["hamal"], ans: "📦 Hamallık 10 dakikada bir yapılır ve 100 PoliCash kazandırır." },
+    { keys: ["terzi"], ans: "🧵 Terzilik saatte bir yapılır ve 1.000 PoliCash kazandırır." },
+    { keys: ["depo", "ehliyet"], ans: "🚚 Depo Görevlisi olmak için 'C Sınıfı Ehliyet' (Ortaokul bitince alınır) gerekir. 30 dakikada bir 500 PoliCash kazandırır." },
+    { keys: ["holding kurma", "holding nasıl", "holding kur"], ans: "🏢 Holding kurmak için Üniversite mezunu olmalı ve 10.000.000 PoliCash sermayeye sahip olmalısınız. Başvuru sonrası Ticaret Bakanı onayı gerekir. 24 saatte bir otomatik kar üretir." },
     { keys: ["eğitim", "okul", "diploma", "nasıl okul"], ans: "📚 Makam sahibi olmak için eğitim şarttır. İlkokuldan Profesörlüğe kadar yükselebilirsiniz. Sırası: İlkokul → Ortaokul → Lise → Üniversite → Yüksek Lisans → Doktora → Profesör." },
-    { keys: ["profesör", "doktora"], ans: "🎓 Profesör olmak için 4000 eğitim puanı gerekir. Bitirince 50 UC ödül kazanırsınız." },
-    { keys: ["çete kurma", "çete nasıl", "çete kur"], ans: "🔫 Çete kurmak için 500.000.000 TL + 500 UC ve en az 2 kişi gereklidir. Kurulunca 50 silah hediye edilir. Güç = Silah × Üye × 65." },
+    { keys: ["profesör", "doktora"], ans: "🎓 Profesör olmak için 4000 eğitim puanı gerekir. Bitirince 50 PG ödül kazanırsınız." },
+    { keys: ["çete kurma", "çete nasıl", "çete kur"], ans: "🔫 Çete kurmak için 500.000.000 PoliCash + 500 PG ve en az 2 kişi gereklidir. Kurulunca 50 silah hediye edilir. Güç = Silah × Üye × 65." },
     { keys: ["soygun", "banka soygunu"], ans: "🏦 Banka soygununu sadece Çete Liderleri yapabilir. Başarılı olursa hazineden para çalar. Başarısız olunursa hapis riski vardır." },
-    { keys: ["suikast"], ans: "☠️ Suikast düzenlemek 500.000 TL'dir. Aile Operasyon Lideri veya Aile Lideri olmanız gerekir. %45 başarı şansı vardır. Başarılı olursa hedef makamını kaybeder." },
-    { keys: ["polis baskını", "illegal pazar", "emniyet"], ans: "🚔 Emniyet Müdürü illegal pazara baskın başlatabilir. Başarılı olursa pazardaki tüm silahlara el konulur ve hazineye 500.000 TL aktarılır." },
-    { keys: ["aile", "aile kurma", "aile kur"], ans: "👪 Aile kurmak için 500.000.000 TL ve 500 UC gereklidir. Aileler casusluk, suikast ve siyasete etki gibi güçlü yeteneklere sahiptir." },
-    { keys: ["casusluk", "casus", "istihbarat"], ans: "🕵️ Casusluk işlemi 50.000 TL'dir. Bir aileye üye olmanız gerekir. Hedefin para miktarı, makamı ve parti bilgilerini öğrenebilirsiniz." },
-    { keys: ["banka", "faiz", "mevduat"], ans: "🏦 Bankaya para yatırdığınızda günde %5 faiz kazanırsınız. 24 saatte bir otomatik işlenir. Kredi başvurusunda max 100.000 TL alınabilir." },
+    { keys: ["suikast"], ans: "☠️ Suikast düzenlemek 500.000 PoliCash'dir. Aile Operasyon Lideri veya Aile Lideri olmanız gerekir. %45 başarı şansı vardır. Başarılı olursa hedef makamını kaybeder." },
+    { keys: ["polis baskını", "illegal pazar", "emniyet"], ans: "🚔 Emniyet Müdürü illegal pazara baskın başlatabilir. Başarılı olursa pazardaki tüm silahlara el konulur ve hazineye 500.000 PoliCash aktarılır." },
+    { keys: ["aile", "aile kurma", "aile kur"], ans: "👪 Aile kurmak için 500.000.000 PoliCash ve 500 PG gereklidir. Aileler casusluk, suikast ve siyasete etki gibi güçlü yeteneklere sahiptir." },
+    { keys: ["casusluk", "casus", "istihbarat"], ans: "🕵️ Casusluk işlemi 50.000 PoliCash'dir. Bir aileye üye olmanız gerekir. Hedefin para miktarı, makamı ve parti bilgilerini öğrenebilirsiniz." },
+    { keys: ["banka", "faiz", "mevduat"], ans: "🏦 Bankaya para yatırdığınızda günde %5 faiz kazanırsınız. 24 saatte bir otomatik işlenir. Kredi başvurusunda max 100.000 PoliCash alınabilir." },
     { keys: ["para kazanma", "nasıl para", "gelir"], ans: "💵 Para kazanmanın yolları: 1) İş yapmak (Fırıncı, Hamal, Oduncu vb.) 2) Holding kar payı (24 saatte bir) 3) Devlet maaşı 4) Bankada faiz 5) Borsa hissesi." },
-    { keys: ["understate coin", "rc", "rc nasıl"], ans: "🪙 UnderCoin (UC) özel para birimidir. Makam alındığında, seçimde kazanınca veya Profesör olunca kazanılır. Profil fotoğrafı değiştirmek 10 UC tutar." },
+    { keys: ["politikon coin", "rc", "rc nasıl"], ans: "🪙 PoliGold (PG) özel para birimidir. Makam alındığında, seçimde kazanınca veya Profesör olunca kazanılır. Profil fotoğrafı değiştirmek 10 PG tutar." },
     { keys: ["borsa", "hisse", "hisse senedi"], ans: "📈 Borsa sayfasında holding hisselerini alıp satabilirsiniz. Holding CEO'ları şirketlerini borsaya listeleyebilir. Hisse değeri piyasaya göre değişir." },
-    { keys: ["kumarhane", "slot", "casino"], ans: "🎰 Kumarhane sayfasında Slot Makinesi ve Yazı-Tura oynayabilirsiniz. Slot: min 1.000 TL bahis, Jackpot 10x. Yazı-Tura: min 500 TL, 2x kazanç." },
-    { keys: ["ordu", "asker", "operasyon"], ans: "⚔️ Ordu sayfasında orduya bütçe aktarabilirsiniz. Her 5.000 TL = 1 asker. Devlet Başkanı askeri operasyon başlatabilir ve şehirlerin güvenlik puanını artırabilir." },
+    { keys: ["kumarhane", "slot", "casino"], ans: "🎰 Kumarhane sayfasında Slot Makinesi ve Yazı-Tura oynayabilirsiniz. Slot: min 1.000 PoliCash bahis, Jackpot 10x. Yazı-Tura: min 500 PoliCash, 2x kazanç." },
+    { keys: ["ordu", "asker", "operasyon"], ans: "⚔️ Ordu sayfasında orduya bütçe aktarabilirsiniz. Her 5.000 PoliCash = 1 asker. Devlet Başkanı askeri operasyon başlatabilir ve şehirlerin güvenlik puanını artırabilir." },
     { keys: ["şehir", "harita", "şehirler"], ans: "🗺️ Şehirler sayfasında 6 şehrin ekonomi, güvenlik ve nüfus bilgilerini görebilirsiniz. Askeri operasyonlar ve belediye çalışmaları şehirleri etkiler." },
     { keys: ["duyuru", "ilan", "pano"], ans: "📣 Duyuru Panosu sayfasından yetkili makamlar (Devlet Başkanı, Bakan, Vali vb.) şehir geneline duyuru yapabilir." },
     { keys: ["etkinlik", "miting", "toplantı"], ans: "🎭 Etkinlikler sayfasından seçim mitingi, holding açılışı veya çete buluşması gibi etkinlikler oluşturabilirsiniz. Diğer oyuncular katılabilir." },
     { keys: ["gazete", "haber", "yayın"], ans: "📰 Gazete sayfasında haber yazabilir ve diğer oyuncuların haberlerini okuyabilirsiniz. Her oyuncu haber yayınlayabilir." },
     { keys: ["ittifak", "anlaşma"], ans: "🤝 İttifaklar sayfasından çete veya aile liderleri resmi ittifak teklif edebilir. Kabul edilen ittifaklar saldırmazlık garantisi sağlar." },
-    { keys: ["mahkeme", "dava", "şikayet"], ans: "⚖️ Mahkeme sayfasından 10.000 TL ödeyerek başka oyuncuları şikayet edebilirsiniz. Hakim karar verir; suçlu bulunan para cezası öder ve makamını kaybedebilir." },
+    { keys: ["mahkeme", "dava", "şikayet"], ans: "⚖️ Mahkeme sayfasından 10.000 PoliCash ödeyerek başka oyuncuları şikayet edebilirsiniz. Hakim karar verir; suçlu bulunan para cezası öder ve makamını kaybedebilir." },
     { keys: ["yasa", "kanun", "teklif"], ans: "📜 Yasalar sayfasından Milletvekilleri yasa teklifi sunabilir. 3 milletvekilinin lehte oyu ile yasa kabul edilir ve oyun kurallarını değiştirebilir." },
     { keys: ["gayrimenkul", "arsa", "mülk", "kira"], ans: "🏘️ Gayrimenkul sayfasından arsa ve dükkan satın alabilirsiniz. Satın alınan mülkler düzenli kira geliri sağlar." },
     { keys: ["enerji", "elektrik", "gaz"], ans: "⚡ Enerji sayfasından Enerji sektöründe holding sahipleri şehre enerji satabilir. Enerji satın alarak karakterin çalışma hızını artırabilirsiniz." },
     { keys: ["özel okul", "özel eğitim", "ders"], ans: "🎓 Özel Okul sayfasından Eğitim sektöründe holding sahipleri özel okul kurabilir. Diğer oyuncular para ödeyerek eğitimlerini hızlandırabilir." },
     { keys: ["rozet", "başarı", "ödül"], ans: "🎖️ Profil sayfanızda otomatik kazanılan rozetleri görebilirsiniz. Örnek rozetler: İlk Milyon, Profesör, Kahraman, Siyasetçi, İşadamı." },
-    { keys: ["can", "hp", "sağlık", "iyileş"], ans: "❤️ Can (HP) sistemi baskınlarda azalır. Profil sayfasından 500 TL'ye +20 Can kazanabilirsiniz. Sağlığınız 0'a düşerse makam kaybı yaşanabilir." },
+    { keys: ["can", "hp", "sağlık", "iyileş"], ans: "❤️ Can (HP) sistemi baskınlarda azalır. Profil sayfasından 500 PoliCash'ye +20 Can kazanabilirsiniz. Sağlığınız 0'a düşerse makam kaybı yaşanabilir." },
     { keys: ["liderboard", "sıralama", "en zengin"], ans: "🏆 Liderboard sayfasından en zengin oyuncular, en güçlü çeteler ve en büyük holdingleri görebilirsiniz." },
     { keys: ["tarih", "arşiv", "kayıt"], ans: "📅 Tarih sayfasında oyundaki önemli olayların kaydını görebilirsiniz — seçimler, suikastlar, yasa kabulü vb." },
-    { keys: ["görev", "günlük", "ödül"], ans: "🎁 Görevler sayfasından günlük görevleri tamamlayarak para ve UC ödülü kazanabilirsiniz. Her gün yenilenir." },
+    { keys: ["görev", "günlük", "ödül"], ans: "🎁 Görevler sayfasından günlük görevleri tamamlayarak para ve PG ödülü kazanabilirsiniz. Her gün yenilenir." },
     { keys: ["bildirim", "mesaj", "haber"], ans: "🔔 Bildirimler sayfasından size yapılan suikastlar, mahkeme kararları, ittifak teklifleri gibi önemli olayları görebilirsiniz." },
     { keys: ["belediye", "şehir yönetimi"], ans: "🏙️ Belediye sayfasından bulunduğunuz şehrin durumunu görüntüleyebilir ve Belediye Başkanı ise şehir hizmetlerine bütçe ayırabilirsiniz." },
-    { keys: ["merhaba", "selam", "kimsin", "neden"], ans: "🤖 Merhaba! Ben UnderState oyun wiki asistanıyım. Oyun kuralları, meslekler, makamlar veya yeni özellikler hakkında soru sorabilirsin. Sormak için bir konu yaz!" },
-    { keys: ["şifre", "profil değiştir"], ans: "🔐 Profil sayfasından şifreni ücretsiz değiştirebilirsin. Profil fotoğrafı değiştirmek 10 UC'dir (ilk değişim ücretsiz)." },
+    { keys: ["merhaba", "selam", "kimsin", "neden"], ans: "🤖 Merhaba! Ben Politikon oyun wiki asistanıyım. Oyun kuralları, meslekler, makamlar veya yeni özellikler hakkında soru sorabilirsin. Sormak için bir konu yaz!" },
+    { keys: ["şifre", "profil değiştir"], ans: "🔐 Profil sayfasından şifreni ücretsiz değiştirebilirsin. Profil fotoğrafı değiştirmek 10 PG'dir (ilk değişim ücretsiz)." },
     { keys: ["admin", "yetkili", "admin ne yapar"], ans: "⚙️ Adminler oyunun yöneticisidir. Kullanıcı yönetimi, makam atama, seçim başlatma/bitirme ve hazine işlemleri yapabilirler." },
 ];
 
@@ -965,7 +965,7 @@ function AdminPanel({allUsers,setAllUsers,notify,cu,user,economy,setEconomy,gang
                         {u.position}</span>}
                     </div>
                     <div style={{fontSize:"0.72rem",color:"#5E7390",marginTop:"0.2rem"}}>
-                      {fmtMoney((u.money||0))} · {u.underCoin||0} UC · {u.city||"—"} · Lv{u.level||1}
+                      {fmtMoney((u.money||0))} · {u.underCoin||0} PG · {u.city||"—"} · Lv{u.level||1}
                       {u.online&&<span style={{color:"#10B981",marginLeft:"0.35rem",fontWeight:700}}>● çevrimiçi</span>}
                     </div>
                     {u.banned&&<div style={{fontSize:"0.7rem",color:"#EF4444",marginTop:"0.15rem"}}>Sebep: {u.banReason||"—"}</div>}
@@ -973,7 +973,7 @@ function AdminPanel({allUsers,setAllUsers,notify,cu,user,economy,setEconomy,gang
                 </div>
                 <div style={{display:"flex",flexWrap:"wrap",gap:"0.4rem"}}>
                   <button style={{padding:"0.38rem 0.7rem",borderRadius:7,border:"1px solid rgba(16,185,129,0.4)",background:"rgba(16,185,129,0.1)",color:"#10B981",cursor:"pointer",fontSize:"0.75rem",fontWeight:700,minHeight:36,WebkitTapHighlightColor:"transparent"}}
-                    onClick={()=>addMoney(u.id)}>+₺ Para</button>
+                    onClick={()=>addMoney(u.id)}>+₱ Para</button>
                   <button style={{padding:"0.38rem 0.7rem",borderRadius:7,border:"1px solid rgba(255,184,0,0.4)",background:"rgba(255,184,0,0.1)",color:"#FFB800",cursor:"pointer",fontSize:"0.75rem",fontWeight:700,minHeight:36,WebkitTapHighlightColor:"transparent"}}
                     onClick={()=>addRC(u.id)}>+UC</button>
                   <button style={{padding:"0.38rem 0.7rem",borderRadius:7,border:"1px solid rgba(59,130,246,0.4)",background:"rgba(59,130,246,0.1)",color:"#60A5FA",cursor:"pointer",fontSize:"0.75rem",fontWeight:700,minHeight:36,WebkitTapHighlightColor:"transparent"}}
@@ -1081,7 +1081,7 @@ function AdminPanel({allUsers,setAllUsers,notify,cu,user,economy,setEconomy,gang
               <div style={{display:"flex",flexDirection:"column",gap:"0.5rem"}}>
                 {[
                   {label:"💰 Hazineye Para Ekle", color:"#FFB800", borderColor:"rgba(255,184,0,0.4)", bg:"rgba(255,184,0,0.1)",
-                    action:async()=>{const r=await gPrompt("Hazineye Para","Eklenecek miktar (₺):","Miktar","number",{min:1,default:"1000000"});const v=parseInt(r);if(!isNaN(v)&&v>0){setEconomy(p=>({...p,treasury:(p.treasury||0)+v}));notify(`✅ ${fmtMoney(v)} eklendi!`);}}},
+                    action:async()=>{const r=await gPrompt("Hazineye Para","Eklenecek miktar (₱):","Miktar","number",{min:1,default:"1000000"});const v=parseInt(r);if(!isNaN(v)&&v>0){setEconomy(p=>({...p,treasury:(p.treasury||0)+v}));notify(`✅ ${fmtMoney(v)} eklendi!`);}}},
                   {label:"📊 Vergi Oranı Ayarla", color:"#F59E0B", borderColor:"rgba(245,158,11,0.4)", bg:"rgba(245,158,11,0.1)",
                     action:async()=>{const r=await gPrompt("Vergi Oranı","Yeni oran (0-50):","Yüzde","number",{min:0,default:"15"});const v=parseFloat(r);if(!isNaN(v)&&v>=0&&v<=50){setEconomy(p=>({...p,taxRate:v}));notify(`✅ Vergi %${v} yapıldı!`);}}},
                   {label:"🏦 Faiz Oranı Ayarla", color:"#10B981", borderColor:"rgba(16,185,129,0.4)", bg:"rgba(16,185,129,0.1)",
@@ -1104,17 +1104,17 @@ function AdminPanel({allUsers,setAllUsers,notify,cu,user,economy,setEconomy,gang
               <div style={{display:"flex",flexDirection:"column",gap:"0.5rem"}}>
                 {[
                   {label:"💸 Herkese Para Dağıt", color:"#10B981", borderColor:"rgba(16,185,129,0.4)", bg:"rgba(16,185,129,0.1)",
-                    action:async()=>{const r=await gPrompt("Herkese Para","Dağıtılacak miktar (₺):","Miktar","number",{min:1,default:"10000"});const v=parseInt(r);if(!isNaN(v)&&v>0){setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.role!=="admin"?{...u,money:(u.money||0)+v}:u));notify(`✅ Herkese ${fmtMoney(v)} dağıtıldı!`);}}},
-                  {label:"🪙 Herkese UC Dağıt", color:"#A78BFA", borderColor:"rgba(139,92,246,0.4)", bg:"rgba(139,92,246,0.1)",
-                    action:async()=>{const r=await gPrompt("Herkese UC","Dağıtılacak UC:","Miktar","number",{min:1,default:"100"});const v=parseInt(r);if(!isNaN(v)&&v>0){setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.role!=="admin"?{...u,underCoin:(u.underCoin||0)+v}:u));notify(`✅ Herkese ${v} UC dağıtıldı!`);}}},
+                    action:async()=>{const r=await gPrompt("Herkese Para","Dağıtılacak miktar (₱):","Miktar","number",{min:1,default:"10000"});const v=parseInt(r);if(!isNaN(v)&&v>0){setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.role!=="admin"?{...u,money:(u.money||0)+v}:u));notify(`✅ Herkese ${fmtMoney(v)} dağıtıldı!`);}}},
+                  {label:"🪙 Herkese PG Dağıt", color:"#A78BFA", borderColor:"rgba(139,92,246,0.4)", bg:"rgba(139,92,246,0.1)",
+                    action:async()=>{const r=await gPrompt("Herkese PG","Dağıtılacak PG:","Miktar","number",{min:1,default:"100"});const v=parseInt(r);if(!isNaN(v)&&v>0){setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.role!=="admin"?{...u,underCoin:(u.underCoin||0)+v}:u));notify(`✅ Herkese ${v} PG dağıtıldı!`);}}},
                   {label:"🎯 Belirli Kişiye Para Ver", color:"#60A5FA", borderColor:"rgba(59,130,246,0.4)", bg:"rgba(59,130,246,0.1)",
-                    action:async()=>{const uname=await gPrompt("Kullanıcı Adı","Kime verilecek:","Kullanıcı adı");if(!uname)return;const r=await gPrompt("Miktar","Verilecek miktar (₺):","Miktar","number",{min:1,default:"10000"});const v=parseInt(r);if(uname&&!isNaN(v)&&v>0){setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.username===uname?{...u,money:(u.money||0)+v}:u));notify(`✅ ${uname} → ${fmtMoney(v)}`);}}},
+                    action:async()=>{const uname=await gPrompt("Kullanıcı Adı","Kime verilecek:","Kullanıcı adı");if(!uname)return;const r=await gPrompt("Miktar","Verilecek miktar (₱):","Miktar","number",{min:1,default:"10000"});const v=parseInt(r);if(uname&&!isNaN(v)&&v>0){setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.username===uname?{...u,money:(u.money||0)+v}:u));notify(`✅ ${uname} → ${fmtMoney(v)}`);}}},
                   {label:"💼 Tüm Maaşları Öde", color:"#FBBF24", borderColor:"rgba(251,191,36,0.4)", bg:"rgba(251,191,36,0.1)",
                     action:()=>{const sal=allUsers.filter(u=>u.position&&(u.salary||0)>0);sal.forEach(u=>setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(uu=>uu.id===u.id?{...uu,money:(uu.money||0)+(u.salary||0)}:uu)));notify(`✅ ${sal.length} kişiye maaş ödendi!`);}},
                   {label:"🔴 Belirli Kişiden Para Kes", color:"#EF4444", borderColor:"rgba(239,68,68,0.4)", bg:"rgba(239,68,68,0.1)",
-                    action:async()=>{const uname=await gPrompt("Para Kes","Kimden kesilecek (kullanıcı adı):","Kullanıcı adı");if(!uname)return;const r=await gPrompt("Miktar","Kesilecek miktar (₺):","Miktar","number",{min:1,default:"10000"});const v=parseInt(r);if(!uname||isNaN(v)||v<=0)return;const target=allUsers.find(u=>u.username===uname);if(!target)return notify("❌ Kullanıcı bulunamadı!");if((target.money||0)<v)return notify(`❌ ${uname} kişisinin parası yetersiz (${fmtMoney((target.money||0))})`);setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.username===uname?{...u,money:(u.money||0)-v}:u));notify(`✅ ${uname} kişisinden ${fmtMoney(v)} kesildi!`);}},
+                    action:async()=>{const uname=await gPrompt("Para Kes","Kimden kesilecek (kullanıcı adı):","Kullanıcı adı");if(!uname)return;const r=await gPrompt("Miktar","Kesilecek miktar (₱):","Miktar","number",{min:1,default:"10000"});const v=parseInt(r);if(!uname||isNaN(v)||v<=0)return;const target=allUsers.find(u=>u.username===uname);if(!target)return notify("❌ Kullanıcı bulunamadı!");if((target.money||0)<v)return notify(`❌ ${uname} kişisinin parası yetersiz (${fmtMoney((target.money||0))})`);setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.username===uname?{...u,money:(u.money||0)-v}:u));notify(`✅ ${uname} kişisinden ${fmtMoney(v)} kesildi!`);}},
                   {label:"🔴 Herkesten Para Kes", color:"#DC2626", borderColor:"rgba(220,38,38,0.4)", bg:"rgba(220,38,38,0.08)",
-                    action:async()=>{const r=await gPrompt("Herkesten Para Kes","Kesilecek miktar (₺):","Miktar","number",{min:1,default:"5000"});const v=parseInt(r);if(!isNaN(v)&&v>0){setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.role!=="admin"?{...u,money:Math.max(0,(u.money||0)-v)}:u));notify(`✅ Herkesten ${fmtMoney(v)} kesildi!`);}}
+                    action:async()=>{const r=await gPrompt("Herkesten Para Kes","Kesilecek miktar (₱):","Miktar","number",{min:1,default:"5000"});const v=parseInt(r);if(!isNaN(v)&&v>0){setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.role!=="admin"?{...u,money:Math.max(0,(u.money||0)-v)}:u));notify(`✅ Herkesten ${fmtMoney(v)} kesildi!`);}}
                   },
                 ].map(item=>(
                   <button key={item.label} onClick={item.action}
@@ -1133,9 +1133,9 @@ function AdminPanel({allUsers,setAllUsers,notify,cu,user,economy,setEconomy,gang
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.5rem"}}>
                 {[
                   {label:"Max Bahis Ayarla", color:"#F59E0B", bg:"rgba(245,158,11,0.1)", border:"rgba(245,158,11,0.4)",
-                    action:async()=>{const r=await gPrompt("Max Bahis","Maks bahis limiti (₺):","Miktar","number",{min:100,default:"10000"});const v=parseInt(r);if(!isNaN(v)&&v>0){S_local.save("casinoMaxBet",v);notify(`✅ Max bahis ₺${v}`);}}},
+                    action:async()=>{const r=await gPrompt("Max Bahis","Maks bahis limiti (₱):","Miktar","number",{min:100,default:"10000"});const v=parseInt(r);if(!isNaN(v)&&v>0){S_local.save("casinoMaxBet",v);notify(`✅ Max bahis ₱${v}`);}}},
                   {label:"Bonus Dağıt", color:"#10B981", bg:"rgba(16,185,129,0.1)", border:"rgba(16,185,129,0.4)",
-                    action:async()=>{const r=await gPrompt("Casino Bonusu","Bonus miktarı (₺):","Miktar","number",{min:1,default:"5000"});const v=parseInt(r);if(!isNaN(v)&&v>0){setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>({...u,money:(u.money||0)+v})));notify(`✅ Bonus dağıtıldı!`);}}},
+                    action:async()=>{const r=await gPrompt("Casino Bonusu","Bonus miktarı (₱):","Miktar","number",{min:1,default:"5000"});const v=parseInt(r);if(!isNaN(v)&&v>0){setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>({...u,money:(u.money||0)+v})));notify(`✅ Bonus dağıtıldı!`);}}},
                   {label:"Casino Logları Temizle", color:"#EF4444", bg:"rgba(239,68,68,0.1)", border:"rgba(239,68,68,0.4)",
                     action:()=>{S_local.save("casinoLogs",[]);notify("🗑️ Casino logları temizlendi!");}},
                   {label:"Piyango Çekiliş", color:"#A78BFA", bg:"rgba(167,139,255,0.1)", border:"rgba(167,139,255,0.4)",
@@ -1379,7 +1379,7 @@ function AdminPanel({allUsers,setAllUsers,notify,cu,user,economy,setEconomy,gang
             <div style={{...cardStyle,borderColor:"rgba(148,163,184,0.25)"}}>
               <div style={{fontFamily:"Syne,sans-serif",color:"#94A3B8",fontWeight:700,fontSize:"0.88rem",marginBottom:"0.75rem"}}>📊 Sunucu İstatistikleri</div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.45rem",marginBottom:"0.5rem"}}>
-                {statBox(`₺${fmtMoney((allUsers.filter(u=>u.role!=="admin").reduce((s,u)=>s+(u.money||0),0)/1000000)*1000000)}`,"Toplam Para","#FFB800")}
+                {statBox(`₱${fmtMoney((allUsers.filter(u=>u.role!=="admin").reduce((s,u)=>s+(u.money||0),0)/1000000)*1000000)}`,"Toplam Para","#FFB800")}
                 {statBox(allUsers.filter(u=>u.banned).length,"Banlı","#EF4444")}
                 {statBox(allUsers.filter(u=>!u.banned&&u.role!=="admin").length,"Aktif","#10B981")}
               </div>
@@ -2182,7 +2182,7 @@ function OrtakliIslerPage({cu, allUsers, setAllUsers, collabRequests, setCollabR
                       <div style={{fontSize:"0.65rem",color:"#aaa"}}>Mevcut: {fmtMoney((economy[item.key]||item.def))}</div>
                     </div>
                     <button className="btn btn-sm" style={{background:"rgba(34,211,238,0.12)",color:"#22D3EE",border:"1px solid rgba(34,211,238,0.3)",fontSize:"0.72rem"}}
-                      onClick={()=>gPrompt(item.label,"Yeni değer (₺):","Miktar","number",{min:0,default:String(item.def)}).then(r=>{const v=parseInt(r);if(!isNaN(v)&&v>0){setEconomy(p=>({...p,[item.key]:v}));notify(`✅ Güncellendi: ${fmtMoney(v)}`);}})}>✏️ Ayarla</button>
+                      onClick={()=>gPrompt(item.label,"Yeni değer (₱):","Miktar","number",{min:0,default:String(item.def)}).then(r=>{const v=parseInt(r);if(!isNaN(v)&&v>0){setEconomy(p=>({...p,[item.key]:v}));notify(`✅ Güncellendi: ${fmtMoney(v)}`);}})}>✏️ Ayarla</button>
                   </div>
                 ))}
               </div>
@@ -2210,7 +2210,7 @@ function OrtakliIslerPage({cu, allUsers, setAllUsers, collabRequests, setCollabR
                 <button className="btn btn-sm" style={{width:"100%",marginBottom:"0.4rem",background:"rgba(239,68,68,0.08)",color:"#EF4444",border:"1px solid rgba(239,68,68,0.25)",textAlign:"left",padding:"0.5rem 0.7rem",fontSize:"0.78rem"}}
                   onClick={()=>gPrompt("Emin misiniz?","Tüm ticaret verileri silinecek. SIFIRLA yazın:","","text").then(r=>{if(r==="SIFIRLA"){setImportExport({imports:[],exports:[],balance:0});S.save("importExport",{imports:[],exports:[],balance:0});notify("✅ Ticaret dengesi sıfırlandı!");}})}>🔄 Ticaret Dengesini Sıfırla</button>
                 <button className="btn btn-sm" style={{width:"100%",background:"rgba(245,158,11,0.08)",color:"#F59E0B",border:"1px solid rgba(245,158,11,0.25)",textAlign:"left",padding:"0.5rem 0.7rem",fontSize:"0.78rem"}}
-                  onClick={()=>gPrompt("Toplu Bonus","Tüm oyunculara verilecek miktar (₺):","Miktar","number",{min:1,default:"50000"}).then(r=>{const v=parseInt(r);if(!isNaN(v)&&v>0){setAllUsers(prev=>prev.map(u=>u.isBot?u:{...u,money:(u.money||0)+v}));notify(`✅ Bonus verildi: ${fmtMoney(v)}`);}})}>💰 Tüm Oyunculara Bonus Ver</button>
+                  onClick={()=>gPrompt("Toplu Bonus","Tüm oyunculara verilecek miktar (₱):","Miktar","number",{min:1,default:"50000"}).then(r=>{const v=parseInt(r);if(!isNaN(v)&&v>0){setAllUsers(prev=>prev.map(u=>u.isBot?u:{...u,money:(u.money||0)+v}));notify(`✅ Bonus verildi: ${fmtMoney(v)}`);}})}>💰 Tüm Oyunculara Bonus Ver</button>
               </div>
             </div>
           )}
@@ -2486,6 +2486,9 @@ function App() {
     window._fbSyncCallbacks["gangs"] = (v) => {
       if (Array.isArray(v)) setGangs(v);
     };
+    window._fbSyncCallbacks["haracRequests"] = (v) => {
+      if (Array.isArray(v)) { setHaracRequests(v); S.save("haracRequests",v); }
+    };
     window._fbSyncCallbacks["allUsers"] = (v) => {
       if (Array.isArray(v)) {
         setAllUsers(prev => {
@@ -2512,8 +2515,8 @@ function App() {
       if (type === "daily_double") {
         const REWARDS = [
           {day:1,amount:500,type:"money"}, {day:2,amount:1000,type:"money"},
-          {day:3,amount:25,type:"uc"},     {day:4,amount:5000,type:"money"},
-          {day:5,amount:50,type:"uc"},     {day:6,amount:15,type:"merit"},
+          {day:3,amount:25,type:"pg"},     {day:4,amount:5000,type:"money"},
+          {day:5,amount:50,type:"pg"},     {day:6,amount:15,type:"merit"},
           {day:7,amount:50000,type:"money"}
         ];
         const todayR = REWARDS[((dailyStreak.streak-1)%7)];
@@ -2521,13 +2524,13 @@ function App() {
           const doubled = {...todayR, amount: todayR.amount * 2};
           const liveUser = getUser();
           if (doubled.type==="money")  updateUser({money:(liveUser?.money||0)+doubled.amount});
-          else if(doubled.type==="uc") updateUser({underCoin:(liveUser?.underCoin||0)+doubled.amount});
+          else if(doubled.type==="pg") updateUser({underCoin:(liveUser?.underCoin||0)+doubled.amount});
           else if(doubled.type==="merit") updateUser({meritPoints:(liveUser?.meritPoints||0)+doubled.amount});
           const updatedStreak = {...dailyStreak, claimedToday:true};
           setDailyStreak(updatedStreak);
           S.save("dailyStreak", updatedStreak);
           setShowDailyReward(false);
-          notify(`🎉 Reklam ödülü: 2x ${doubled.type==="money"?fmtMoney(doubled.amount*2):doubled.amount.toLocaleString()} ${doubled.type==="money"?"":doubled.type==="uc"?"UC":"Liyakat"}`);
+          notify(`🎉 Reklam ödülü: 2x ${doubled.type==="money"?fmtMoney(doubled.amount*2):doubled.amount.toLocaleString()} ${doubled.type==="money"?"":doubled.type==="pg"?"PG":"Liyakat"}`);
         }
       }
     };
@@ -2712,6 +2715,7 @@ function App() {
   const [parties, setParties] = useState(() => { const v=S.load("parties",[]); return (Array.isArray(v)?v:[]).map(normalizeMembers); });
   const [families, setFamilies] = useState(() => { const v=S.load("families",[]); return (Array.isArray(v)?v:[]).map(normalizeMembers); });
   // normalizeGang artık module scope'ta tanımlı (yukarıda) — TDZ sorunu yok
+  const [haracRequests, setHaracRequests] = useState(() => { const v=S.load("haracRequests",[]); return Array.isArray(v)?v:[]; });
   const [gangs, setGangs] = useState(() => { const v=S.load("gangs",[]); return (Array.isArray(v)?v:[]).map(normalizeGang); });
   const safeSetGangs = (updater) => setGangs(prev => { const result = typeof updater==="function" ? updater(prev) : updater; return (Array.isArray(result)?result:[]).map(normalizeGang); });
   const [holdings, setHoldings] = useState(() => { const v=S.load("holdings",[]); return Array.isArray(v)?v:[]; });
@@ -2742,7 +2746,7 @@ function App() {
   const [musicPlaying, setMusicPlaying] = useState(false);
   const audioRef = useRef(null);
   const [viewingProfile, setViewingProfile] = useState(null); // başka oyuncunun profili
-  const [aiMessages, setAiMessages] = useState([{sender:"AI", text:"Merhaba! Ben UnderState wiki asistanıyım 🏛️ Oyun hakkında her şeyi sorabilirsin — eğitim, meslekler, holdinglar, partiler, devlet yapısı, çeteler, borsa, kumarhane ve daha fazlası!", isBot:true}]);
+  const [aiMessages, setAiMessages] = useState([{sender:"AI", text:"Merhaba! Ben Politikon wiki asistanıyım 🏛️ Oyun hakkında her şeyi sorabilirsin — eğitim, meslekler, holdinglar, partiler, devlet yapısı, çeteler, borsa, kumarhane ve daha fazlası!", isBot:true}]);
   const [aiInput, setAiInput] = useState("");
   const aiChatRef = useRef(null);
   const [showFloatingAI, setShowFloatingAI] = useState(false);
@@ -2797,10 +2801,10 @@ function App() {
     window.onPurchaseSuccess = (productId) => {
       setPurchasePending(false);
       const now = Date.now();
-      if(productId === "uc_50")    { updateUser({underCoin:(cu.underCoin||0)+50});  notify("🎉 50 UC hesabınıza eklendi!"); }
-      if(productId === "uc_150")   { updateUser({underCoin:(cu.underCoin||0)+170}); notify("🎉 170 UC hesabınıza eklendi! (+20 bonus)"); }
-      if(productId === "uc_400")   { updateUser({underCoin:(cu.underCoin||0)+475}); notify("🎉 475 UC hesabınıza eklendi! (+75 bonus)"); }
-      if(productId === "uc_1000")  { updateUser({underCoin:(cu.underCoin||0)+1200});notify("🎉 1200 UC hesabınıza eklendi! (+200 bonus)"); }
+      if(productId === "pg_50")    { updateUser({underCoin:(cu.underCoin||0)+50});  notify("🎉 50 PG hesabınıza eklendi!"); }
+      if(productId === "pg_150")   { updateUser({underCoin:(cu.underCoin||0)+170}); notify("🎉 170 PG hesabınıza eklendi! (+20 bonus)"); }
+      if(productId === "pg_400")   { updateUser({underCoin:(cu.underCoin||0)+475}); notify("🎉 475 PG hesabınıza eklendi! (+75 bonus)"); }
+      if(productId === "pg_1000")  { updateUser({underCoin:(cu.underCoin||0)+1200});notify("🎉 1200 PG hesabınıza eklendi! (+200 bonus)"); }
       if(productId === "vip_month"){ updateUser({isPremium:true,isVip:true,premiumUntil:now+30*86400000,vipUntil:now+30*86400000,dailyUCBonus:50}); notify("⭐ VIP aktif! Reklamlar kaldırıldı."); }
       if(productId === "vip_year") { updateUser({isPremium:true,isVip:true,premiumUntil:now+365*86400000,vipUntil:now+365*86400000,dailyUCBonus:50}); notify("👑 Yıllık VIP aktif! Tüm ayrıcalıklar açıldı."); }
     };
@@ -3093,7 +3097,7 @@ function App() {
   }));
   // 14. Başarı Rozet Sistemi (genişletilmiş)
   const [achievementList] = useState([
-    {id:"first_million",icon:"💰",title:"İlk Milyon",desc:"1.000.000 TL kazan",check:u=>(u.money||0)>=1000000},
+    {id:"first_million",icon:"💰",title:"İlk Milyon",desc:"1.000.000 PoliCash kazan",check:u=>(u.money||0)>=1000000},
     {id:"professor",icon:"🎓",title:"Profesör",desc:"Profesör unvanı kazan",check:u=>u.educationLevel==="Profesör"},
     {id:"first_assassination",icon:"☠️",title:"İlk Suikast",desc:"Bir suikast gerçekleştir",check:u=>(u.assassinations||0)>=1},
     {id:"party_leader",icon:"🏛️",title:"İlk Parti Başkanı",desc:"Bir parti kur ve lider ol",check:(u,parties)=>parties.some(p=>p.leader===u.username)},
@@ -4122,7 +4126,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
     S.save("lawNotifs",[notif,...S.load("lawNotifs",[])].slice(0,50));
     if(cu&&(cu.position==="Milletvekili"||cu.position==="Meclis Başkanı")) {
       notify(`📜 Yeni kanun oylama bildirimi: ${lawTitle}`);
-      scheduleNotification("📜 UNDERSTATE - Oylama!",`Kanun oylaması başladı: ${lawTitle}`,500);
+      scheduleNotification("📜 POLİTİKON - Oylama!",`Kanun oylaması başladı: ${lawTitle}`,500);
     }
   };
 
@@ -4135,7 +4139,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
     if(referrer.id===cu.id) return notify("❌ Kendi kodunuzu kullanamazsınız!");
     updateUser({usedReferral:code, underCoin:(cu.underCoin||0)+100});
     setAllUsers(prev=>prev.map(u=>u.id===referrer.id?{...u,underCoin:(u.underCoin||0)+50,referralCount:(u.referralCount||0)+1}:u));
-    notify("✅ Referans kodu uygulandı! +100 UC kazandınız, davet eden +50 UC aldı.");
+    notify("✅ Referans kodu uygulandı! +100 PG kazandınız, davet eden +50 PG aldı.");
     addFeed(`🎁 ${cu.username} referans koduyla katıldı!`,"bonus");
   };
 
@@ -4150,7 +4154,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
       if(unlocked) {
         updateUser({earnedAchievements:[...earned,ach.id]});
         triggerAchievement(ach);
-        scheduleNotification("🏆 UNDERSTATE - Başarım!",`${ach.title}: ${ach.desc}`,300);
+        scheduleNotification("🏆 POLİTİKON - Başarım!",`${ach.title}: ${ach.desc}`,300);
       }
     });
   };
@@ -4186,7 +4190,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
       {text:"📈 Borsa rekor kırdı! Tüm holdinglerin değeri arttı.",type:"economy"},
       {text:"⚡ Ani elektrik kesintisi yaşandı, enerji fiyatları yüzde 20 arttı.",type:"event"},
       {text:"🌧️ Doğal afet uyarısı! Bazı şehirlerde refah puanı düştü.",type:"warning"},
-      {text:"🎉 Milli bayram! Tüm oyuncular +500 UC kazandı.",type:"bonus"},
+      {text:"🎉 Milli bayram! Tüm oyuncular +500 PG kazandı.",type:"bonus"},
       {text:"📰 Hükümet yeni ekonomi paketi açıkladı.",type:"politics"},
       {text:"🔥 Büyük çete çatışması! Polis alarma geçti.",type:"crime"},
       {text:"🏦 Merkez Bankası faiz kararı açıkladı.",type:"economy"},
@@ -4256,6 +4260,67 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
 
 
   // Bildirim ekle (in-game bildirim merkezi)
+
+  // ─── HARAÇ / KORUMA SİSTEMİ ───────────────────────────────────────────────
+  const sendHaracRequest = async () => {
+    if(!userGang) return notify("❌ Haraç göndermek için çete üyesi olmalısın!");
+    if(userGang.leader!==cu.username) return notify("❌ Sadece çete liderleri haraç talep edebilir!");
+    const targetName = await gPrompt("💰 Haraç Talep Et","Haraç isteyeceğin kullanıcı adı:","Kullanıcı adı");
+    if(!targetName) return;
+    const target = allUsers.find(u=>u.username===targetName);
+    if(!target) return notify("❌ Kullanıcı bulunamadı!");
+    if(target.gangId||target.familyId) return notify("❌ Bu oyuncu illegal yapı üyesidir, haraç isteyemezsin!");
+    if(target.id===cu.id) return notify("❌ Kendine haraç isteyemezsin!");
+    const amtStr = await gPrompt("💰 Haraç Miktarı",`${targetName} oyuncusundan isteyeceğin miktar:`, "Miktar", "number", {min:1000, default:"50000"});
+    if(!amtStr) return;
+    const amt = parseInt(amtStr);
+    if(isNaN(amt)||amt<1000) return notify("❌ Geçersiz miktar!");
+    const req = {
+      id: Date.now().toString(),
+      gangId: userGang.id, gangName: userGang.name, gangLeaderId: cu.id, gangLeaderName: cu.username,
+      targetUserId: target.id, targetUsername: target.username,
+      amount: amt, status: "pending",
+      createdAt: Date.now(), expiresAt: Date.now() + 72*60*60*1000
+    };
+    const updated = [...haracRequests.filter(r=>!(r.gangId===req.gangId&&r.targetUserId===req.targetUserId&&r.status==="pending")), req];
+    setHaracRequests(updated);
+    S.save("haracRequests", updated);
+    if(window._fb?.rtdb) window._fb.rtdb.ref(`games/${window._gameId}/realtime/haracRequests`).set(updated).catch(()=>{});
+    addNotification(target.id, `💰 ${userGang.name} çetesi senden ${fmtMoney(amt)} haraç istiyor! 72 saat içinde cevap ver.`, "danger");
+    addHistory(`💰 ${cu.username} → ${target.username}: ${fmtMoney(amt)} haraç talebi gönderildi`);
+    notify(`✅ ${target.username} oyuncusuna ${fmtMoney(amt)} haraç talebi gönderildi!`);
+  };
+
+  const payHarac = (reqId) => {
+    const req = haracRequests.find(r=>r.id===reqId);
+    if(!req) return notify("❌ Talep bulunamadı!");
+    if((cu.money||0)<req.amount) return notify(`❌ Yetersiz bakiye! (${fmtMoney(req.amount)} gerekli)`);
+    updateUser({money:(cu.money||0)-req.amount});
+    safeSetGangs(prev=>prev.map(g=>g.id===req.gangId?{...g,bank:(g.bank||0)+req.amount}:g));
+    const updated = haracRequests.map(r=>r.id===reqId?{...r,status:"paid",paidAt:Date.now()}:r);
+    setHaracRequests(updated);
+    S.save("haracRequests", updated);
+    if(window._fb?.rtdb) window._fb.rtdb.ref(`games/${window._gameId}/realtime/haracRequests`).set(updated).catch(()=>{});
+    addNotification(req.gangLeaderId, `✅ ${cu.username} haraç talebini ödedi! +${fmtMoney(req.amount)} çete kasasına eklendi.`, "economy");
+    addHistory(`💸 ${cu.username} → ${req.gangName}: ${fmtMoney(req.amount)} haraç ödendi`);
+    notify(`💸 ${fmtMoney(req.amount)} haraç ödendi. Korumasın!`);
+  };
+
+  const rejectHarac = (reqId) => {
+    const req = haracRequests.find(r=>r.id===reqId);
+    if(!req) return notify("❌ Talep bulunamadı!");
+    const protectionEnds = Date.now() + 7*24*60*60*1000;
+    updateUser({haracProtection:false, haracExposedUntil:protectionEnds, haracGangId:req.gangId});
+    const updated = haracRequests.map(r=>r.id===reqId?{...r,status:"rejected",rejectedAt:Date.now()}:r);
+    setHaracRequests(updated);
+    S.save("haracRequests", updated);
+    if(window._fb?.rtdb) window._fb.rtdb.ref(`games/${window._gameId}/realtime/haracRequests`).set(updated).catch(()=>{});
+    addNotification(req.gangLeaderId, `🚨 ${cu.username} haraç talebini reddetti! Mekanları 7 gün saldırıya açık.`, "danger");
+    addHistory(`🚨 ${cu.username} → ${req.gangName}: haraç reddedildi — korumasız`);
+    notify(`🚨 Haraç reddedildi! ${req.gangName} çetesi 7 gün boyunca saldırabilir.`);
+  };
+  // ─── HARAÇ / KORUMA SİSTEMİ SON ───────────────────────────────────────────
+
   const addNotification = (userId, text, type="info") => {
     const entry = { id:Date.now(), userId, text, type, read:false, date:new Date().toLocaleTimeString("tr-TR") };
     setNotifications_(prev=>[entry,...prev].slice(0,100));
@@ -4528,7 +4593,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
       if (keys.length) {
         const parts = [];
         if (payload.money !== undefined) parts.push(`${fmtMoney((payload.money||0))}`);
-        if (payload.underCoin !== undefined) parts.push(`${payload.underCoin} UC`);
+        if (payload.underCoin !== undefined) parts.push(`${payload.underCoin} PG`);
         if (parts.length) notify(`💰 Bakiye güncellendi: ${parts.join(", ")}`);
       }
     };
@@ -4680,7 +4745,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
       (e)=> e.interestRate>15 ? `📈 Yüksek Faiz Tartışması: %${e.interestRate} Politika Faizi Büyümeyi Freniyor mu?` : null,
       (e)=> e.interestRate<5 ? `💸 Merkez Bankası Faizi %${e.interestRate}'e İndirdi — Konut Kredilerinde Patlama Bekleniyor` : null,
       // Hazine haberleri
-      (e)=> (e.treasury||0)>50000000000 ? `💰 Devlet Hazinesi Güçlü: ${((e.treasury||0)/1e9).toFixed(1)} Milyar ₺ Rezerv — Bütçe Fazlası Açıklandı` : null,
+      (e)=> (e.treasury||0)>50000000000 ? `💰 Devlet Hazinesi Güçlü: ${((e.treasury||0)/1e9).toFixed(1)} Milyar ₱ Rezerv — Bütçe Fazlası Açıklandı` : null,
       (e)=> (e.treasury||0)<1000000 ? `🚨 Hazine Boş! Devlet Borçlanmaya Gidiyor — IMF ile Görüşmeler Başladı` : null,
       (e)=> (e.treasury||0)<50000000 ? `⚠️ Bütçe Açığı Büyüyor: Hazine Gelirleri Giderleri Karşılamıyor` : null,
       // Vergi haberleri
@@ -4711,7 +4776,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
       const article = {
         id: `eco_${Date.now()}_${Math.random().toString(36).slice(2)}`,
         title: headline,
-        content: `Bu haber UnderState Ekonomi Bülteni tarafından otomatik olarak oluşturulmuştur. Güncel ekonomi verileri ve piyasa göstergeleri analiz edilerek hazırlanmıştır. Daha detaylı bilgi için Maliye Bakanlığı açıklamalarını ve resmi bülteni takip ediniz.\n\n📅 ${now.toLocaleDateString('tr-TR')} · 🕐 ${now.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})}`,
+        content: `Bu haber Politikon Ekonomi Bülteni tarafından otomatik olarak oluşturulmuştur. Güncel ekonomi verileri ve piyasa göstergeleri analiz edilerek hazırlanmıştır. Daha detaylı bilgi için Maliye Bakanlığı açıklamalarını ve resmi bülteni takip ediniz.\n\n📅 ${now.toLocaleDateString('tr-TR')} · 🕐 ${now.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})}`,
         category: cat,
         author: '📊 Ekonomi Bülteni',
         date: now.toLocaleDateString('tr-TR'),
@@ -5051,7 +5116,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
           try{
             if(typeof Notification!=="undefined"&&Notification.permission==="granted"){
               const bt=BROADCAST_TYPES[data.type]||BROADCAST_TYPES.system;
-              new Notification(`${bt.icon} UnderState – ${data.title||bt.label}`,{
+              new Notification(`${bt.icon} Politikon – ${data.title||bt.label}`,{
                 body:data.message, icon:"/icon-192.png", tag:"adminBroadcast",
                 renotify:true, badge:"/icon-72.png"
               });
@@ -5260,7 +5325,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
           score:(cu.score||0)+clickPuan
         };
         updateUser(updates);
-        notify(isLast ? `🎓 Profesör oldunuz! +50 UC ve +${clickPuan.toLocaleString()} Eğitim Puanı kazandınız!` : `✅ ${newLevel} seviyesine geçtiniz! +${clickPuan.toLocaleString()} Eğitim Puanı`);
+        notify(isLast ? `🎓 Profesör oldunuz! +50 PG ve +${clickPuan.toLocaleString()} Eğitim Puanı kazandınız!` : `✅ ${newLevel} seviyesine geçtiniz! +${clickPuan.toLocaleString()} Eğitim Puanı`);
         if (EDU_NOTE[idx+1]) notify(EDU_NOTE[idx+1]);
       }
     } else {
@@ -5293,7 +5358,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
     const inflMult = 1 + ((economy?.inflation||5)/100);
     const ucMult = ucBoostActive ? 2 : 1;
     if (ucBoostActive) {
-      if ((cu.underCoin||0) < 2) { setUcBoostActive(false); return notify("❌ UC Katsayı için 2 UC gereklidir! Boost iptal edildi."); }
+      if ((cu.underCoin||0) < 2) { setUcBoostActive(false); return notify("❌ UC Katsayı için 2 PG gereklidir! Boost iptal edildi."); }
       updateUser({ underCoin: (cu.underCoin||0) - 2 });
     }
     const earned = Math.floor(job.earn * inflMult * ucMult);
@@ -5302,7 +5367,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
     addActivity(`💼 ${job.name} yaptı`, earned, "money");
     const boostMsg = ucBoostActive ? " 🔥 2x UC Katsayı!" : "";
     notify(`✅ +${fmtMoney(earned)} kazandınız!${boostMsg} (Enflasyon: %${(economy?.inflation||5).toFixed(1)})`);
-    scheduleNotification("⏰ UNDERSTATE - Çalışma Hazır!", `${job.name} cooldown'u bitti, tekrar çalışabilirsin!`, job.time*60*1000);
+    scheduleNotification("⏰ POLİTİKON - Çalışma Hazır!", `${job.name} cooldown'u bitti, tekrar çalışabilirsin!`, job.time*60*1000);
   };
 
   const getJobRem = (job) => {
@@ -5339,8 +5404,8 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
   };
 
   const applyLoan = () => {
-    const amt = parseInt(prompt("Kredi miktarı (1,000 - 100,000 TL):"))||0;
-    if (!amt||amt<1000||amt>100000) return notify("❌ Geçersiz miktar! (1,000 - 100,000 TL)");
+    const amt = parseInt(prompt("Kredi miktarı (1,000 - 100,000 PoliCash):"))||0;
+    if (!amt||amt<1000||amt>100000) return notify("❌ Geçersiz miktar! (1,000 - 100,000 PoliCash)");
     const purpose = prompt("Kredi amacı:");
     if (!purpose) return;
     setLoanApps(prev=>[...prev,{id:Date.now(),userId:cu.id,userName:cu.username,amount:amt,purpose,status:"Bekliyor"}]);
@@ -5572,10 +5637,10 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
       return notify(`❌ Bu pozisyon için minimum ${requiredPrestige[position]} Prestij gereklidir! (Senin: ${xpData.prestige})`);
     }
     if(electionState.candidates.some(c=>c.username===cu.username)) return notify("❌ Zaten adaysınız!");
-    const budget = await gPrompt("🗳️ Kampanya Bütçesi",`${position} için kampanya bütçenizi belirleyin (min ₺50,000):`,"Miktar","number",{min:50000});
+    const budget = await gPrompt("🗳️ Kampanya Bütçesi",`${position} için kampanya bütçenizi belirleyin (min ₱50,000):`,"Miktar","number",{min:50000});
     if(!budget) return;
     const budgetNum = parseInt(budget);
-    if(isNaN(budgetNum)||budgetNum<50000) return notify("❌ Minimum ₺50,000 gereklidir!");
+    if(isNaN(budgetNum)||budgetNum<50000) return notify("❌ Minimum ₱50,000 gereklidir!");
     if((cu.money||0)<budgetNum) return notify("❌ Yeterli paranız yok!");
     updateUser({money:(cu.money||0)-budgetNum});
     const myParty = (Array.isArray(parties)?parties:[]).find(p=>(Array.isArray(p.members)?p.members:[]).includes(cu.username));
@@ -5685,7 +5750,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
   // ==================== PARTIES ====================
   const createParty = async () => {
     if(isInIllegal(cu)) return notify(illegalBlockMsg());
-    if((cu.money||0)<1000000) return notify("❌ Parti kurmak için 1.000.000 TL gereklidir!");
+    if((cu.money||0)<1000000) return notify("❌ Parti kurmak için 1.000.000 PoliCash gereklidir!");
 
     const name = await gPrompt("⚑ Parti Kur — Adım 1/3","Parti adını girin:","Parti adı");
     if(!name||!name.trim()) return;
@@ -5713,7 +5778,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
     setParties(prev=>[...prev, p]);
     updateUser({ money:(cu.money||0)-1000000, partyId:p.id, partyRole:"Parti Başkanı" });
     S.save("parties", [...(Array.isArray(parties)?parties:[]), p]);
-    notify(`✅ "${name}" partisi kuruldu! Renk: ${COLOR_NAMES[colorIdx]} · Bütçe: ₺100,000`);
+    notify(`✅ "${name}" partisi kuruldu! Renk: ${COLOR_NAMES[colorIdx]} · Bütçe: ₱100,000`);
     // Tüm oyunculara yeni parti bildir
     try { if(window._socket) window._socket.emit("partyUpdate", {...p, isNew:true}); } catch(e){}
     setPTab("panel");
@@ -5737,8 +5802,8 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
   // ==================== FAMILIES ====================
   const createFamily = () => {
     if(isInLegal(cu)) return notify(legalBlockMsg());
-    if((cu.money||0)<5000000) return notify("❌ 5.000.000 TL gereklidir!");
-    if((cu.underCoin||0)<100) return notify("❌ 100 UC gereklidir!");
+    if((cu.money||0)<5000000) return notify("❌ 5.000.000 PoliCash gereklidir!");
+    if((cu.underCoin||0)<100) return notify("❌ 100 PG gereklidir!");
     const name = prompt("Aile adı:");
     if (!name) return;
     const f = { id:Date.now(), name, leader:cu.username, viceLeader:null, operationLeader:null, ambassador:null, members:[cu.username], memberCount:1, budget:0, power:0, foundationDate:new Date().toLocaleDateString() };
@@ -5750,7 +5815,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
   // ==================== GANGS ====================
   const createGang = () => {
     if(isInLegal(cu)) return notify(legalBlockMsg());
-    if((cu.money||0)<500000) return notify("❌ 500.000 TL gereklidir!");
+    if((cu.money||0)<500000) return notify("❌ 500.000 PoliCash gereklidir!");
     const name = prompt("Çete adı:");
     if (!name) return;
     const mc = parseInt(prompt("Üye sayısı (min 2):"));
@@ -5827,7 +5892,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
       safeSetGangs(prev=>(Array.isArray(prev)?prev:[]).map(g=>{const nw=Math.floor(g.weapons*0.7);return{...g,weapons:nw,power:nw*Math.max(1,Array.isArray(g.members)?g.members.length:(g.memberCount||g.members||1))*65};}));
       setEconomy(prev=>({...prev,treasury:prev.treasury+500000}));
       setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.position==="Polis"||u.position==="Emniyet Müdürü"?{...u,meritPoints:(u.meritPoints||0)+10}:u));
-      notify("✅ Baskın başarılı! İllegal pazar temizlendi! +500,000 TL hazineye aktarıldı.");
+      notify("✅ Baskın başarılı! İllegal pazar temizlendi! +500,000 PoliCash hazineye aktarıldı.");
     } else {
       notify(`❌ Baskın başarısız! Çete gücü (${gangPower}) > Polis gücü (${policePower}). Daha fazla destek alın.`);
     }
@@ -5837,7 +5902,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
   // ==================== HOLDINGS ====================
   const createHolding = () => {
     if(!meetsEduReq(cu.educationLevel,"Üniversite")) return notify("❌ Holding kurmak için üniversite mezunu olmalısınız!");
-    if((cu.money||0)<10000000) return notify("❌ 10.000.000 TL gereklidir!");
+    if((cu.money||0)<10000000) return notify("❌ 10.000.000 PoliCash gereklidir!");
     const name = prompt("Holding adı:");
     if (!name) return;
     const sectorStr = SECTORS.map((s,i)=>`${i+1}-${s}`).join("\n");
@@ -5954,7 +6019,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
       if(winnerUser) {
         setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.id===winnerUser.id?{...u,position:etype.title,underCoin:(u.underCoin||0)+(etype.key==="cumhurbaskani"?250:100),lastSalaryDate:Date.now()}:u));
         addLiveNews("politics",`🗳️ ${winner} yeni ${etype.title} seçildi!`,`${etype.title} seçim sonuçları açıklandı.`,"🗳️");
-        notify(`🏆 ${winner} ${etype.title} seçildi! UC ödülü verildi.`);
+        notify(`🏆 ${winner} ${etype.title} seçildi! PG ödülü verildi.`);
       } else {
         notify(`🏆 Seçim tamamlandı. Kazanan gerçek bir oyuncu değil, makam ataması yapılmadı.`);
       }
@@ -5973,7 +6038,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
       const winnerUser = allUsers.find(u=>u.username===winner);
       if(winnerUser) {
         setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.id===winnerUser.id?{...u,position:"Meclis Başkanı",underCoin:(u.underCoin||0)+20,lastSalaryDate:Date.now()}:u));
-        notify(`🏆 ${winner} Meclis Başkanı seçildi! +20 UC.`);
+        notify(`🏆 ${winner} Meclis Başkanı seçildi! +20 PG.`);
       }
     }
 
@@ -6212,10 +6277,10 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
   const setEnergyProvider = () => {
     const myHolding = (Array.isArray(holdings)?holdings:[]).find(h=>h.ceo===cu.username&&h.sector==="Enerji");
     if(!myHolding&&cu.role!=="admin") return notify("❌ Enerji sektöründe holdinginiz olmalı!");
-    const price = parseInt(prompt("Birim enerji fiyatı (₺/kişi/gün, 100-5000):"))||500;
+    const price = parseInt(prompt("Birim enerji fiyatı (₱/kişi/gün, 100-5000):"))||500;
     if(price<100||price>5000) return notify("❌ Geçersiz fiyat! (100-5000 arası)");
     setEnergyMarket(prev=>({...prev,price,provider:cu.username}));
-    notify(`✅ Enerji fiyatı ₺${price} olarak ayarlandı!`);
+    notify(`✅ Enerji fiyatı ₱${price} olarak ayarlandı!`);
   };
 
   const buyEnergy = () => {
@@ -6224,7 +6289,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
     updateUser({money:(cu.money)-energyMarket.price,energy:100});
     const provider = allUsers.find(u=>u.username===energyMarket.provider);
     if(provider) setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.username===energyMarket.provider?{...u,money:(u.money||0)+energyMarket.price}:u));
-    notify(`✅ Enerji satın alındı! ₺${energyMarket.price} ödendi.`);
+    notify(`✅ Enerji satın alındı! ₱${energyMarket.price} ödendi.`);
   };
 
   // ÖZEL OKUL
@@ -6235,18 +6300,18 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
     if((cu.money||0)<cost) return notify(`❌ ${fmtMoney(cost)} gerekli!`);
     const name = prompt("Okul adı:");
     if(!name) return;
-    const feePerLesson = parseInt(prompt("Ders başı ücret (₺, 100-10000):"))||500;
+    const feePerLesson = parseInt(prompt("Ders başı ücret (₱, 100-10000):"))||500;
     if(feePerLesson<100||feePerLesson>10000) return notify("❌ Geçersiz ücret!");
     const speedBonus = parseInt(prompt("Hız bonusu (1-10x, eğitim süresini azaltır):"))||2;
     updateUser({money:(cu.money)-cost});
     const school = {id:Date.now(),name,owner:cu.username,feePerLesson,speedBonus:Math.min(10,Math.max(1,speedBonus)),students:[],revenue:0,date:new Date().toLocaleDateString("tr-TR")};
     setPrivateSchools(prev=>[...prev,school]);
     addHistory(`🎓 ${cu.username}, "${name}" özel okulunu kurdu.`);
-    notify(`✅ Özel okul kuruldu! Ders ücreti: ₺${feePerLesson}`);
+    notify(`✅ Özel okul kuruldu! Ders ücreti: ₱${feePerLesson}`);
   };
 
   const studyAtPrivateSchool = (school) => {
-    if((cu.money||0)<school.feePerLesson) return notify(`❌ Yeterli para yok! (₺${school.feePerLesson} gerekli)`);
+    if((cu.money||0)<school.feePerLesson) return notify(`❌ Yeterli para yok! (₱${school.feePerLesson} gerekli)`);
     if(cu.educationCompleted) return notify("✅ Zaten tüm eğitimleri tamamladınız!");
     updateUser({money:(cu.money)-school.feePerLesson,educationProgress:(cu.educationProgress||0)+school.speedBonus,lastEduTime:now-300000}); // cooldown'u sıfırla
     setPrivateSchools(prev=>prev.map(s=>s.id===school.id?{...s,revenue:(s.revenue||0)+school.feePerLesson,students:[...(s.students||[]).filter(x=>x!==cu.username),cu.username]}:s));
@@ -6404,7 +6469,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
     const updated = (Array.isArray(allUsers)?allUsers:[]).map(u=>u.id===uid?{...u,underCoin:(u.underCoin||0)+amt}:u);
     setAllUsers(updated);
     _adminEmitUsers(updated);
-    notify(`✅ ${amt} UC eklendi!`);
+    notify(`✅ ${amt} PG eklendi!`);
   };
   const [assignModal, setAssignModal] = useState(null); // {uid}
 
@@ -6499,9 +6564,9 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
     const reader = new FileReader();
     reader.onloadend = () => {
       const changes = cu.photoChanges||0;
-      if(changes>0&&(cu.underCoin||0)<10) return notify("❌ 10 UC gereklidir!");
+      if(changes>0&&(cu.underCoin||0)<10) return notify("❌ 10 PG gereklidir!");
       updateUser({ profilePhoto:reader.result, photoChanges:changes+1, underCoin:changes===0?(cu.underCoin||0):(cu.underCoin||0)-10 });
-      notify(changes===0?"✅ Profil fotoğrafı eklendi!":"✅ Profil fotoğrafı değiştirildi! 10 UC harcandı.");
+      notify(changes===0?"✅ Profil fotoğrafı eklendi!":"✅ Profil fotoğrafı değiştirildi! 10 PG harcandı.");
     };
     reader.readAsDataURL(file);
   };
@@ -6539,7 +6604,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
   // ==================== ORDU SİSTEMİ ====================
   const fundArmy = () => {
     const amt = parseInt(prompt("Orduya aktarılacak TL (min 100,000):"))||0;
-    if(amt<100000) return notify("❌ En az 100,000 TL gerekir!");
+    if(amt<100000) return notify("❌ En az 100,000 PoliCash gerekir!");
     if((cu.money||0)<amt) return notify("❌ Yeterli para yok!");
     if(cu.position!=="Devlet Başkanı"&&cu.role!=="admin") return notify("❌ Sadece Devlet Başkanı orduya bütçe aktarabilir! Genel Kurmay Başkanı talep edebilir.");
     updateUser({money:(cu.money)-amt});
@@ -6669,7 +6734,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
     if(!h) return notify("❌ Bu holdinginiz değil!");
     if((Array.isArray(stockMarket)?stockMarket:[]).find(s=>s.holdingId===holdingId)) return notify("❌ Bu holding zaten borsada!");
     const sharePrice = initPrice || 10000;
-    if(sharePrice < 1000) return notify("❌ En az ₺1,000 hisse fiyatı girin!");
+    if(sharePrice < 1000) return notify("❌ En az ₱1,000 hisse fiyatı girin!");
     const totalShares = 10000;
     const seed = Array.from({length:20},(_,i)=>Math.round(sharePrice*(0.9+Math.random()*0.2)));
     const s = {id:Date.now(),holdingId,holdingName:h.name,sector:h.sector,ceo:h.ceo,
@@ -6731,8 +6796,8 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
 
   // ==================== KUMARhane ====================
   const playSlots = () => {
-    const bet = parseInt(prompt("Bahis miktarı (min 1,000 TL):") || "0");
-    if(!bet||bet<1000) return notify("❌ Minimum 1,000 TL bahis gerekir!");
+    const bet = parseInt(prompt("Bahis miktarı (min 1,000 PoliCash):") || "0");
+    if(!bet||bet<1000) return notify("❌ Minimum 1,000 PoliCash bahis gerekir!");
     if((cu.money||0)<bet) return notify("❌ Yeterli para yok!");
     const symbols = ["🍒","🍋","🔔","⭐","💎"];
     const s1=symbols[Math.floor(Math.random()*symbols.length)];
@@ -6754,7 +6819,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
 
   const playCoinFlip = () => {
     const bet = parseInt(prompt("Bahis miktarı:") || "0");
-    if(!bet||bet<500) return notify("❌ Minimum 500 TL!");
+    if(!bet||bet<500) return notify("❌ Minimum 500 PoliCash!");
     if((cu.money||0)<bet) return notify("❌ Para yetersiz!");
     const choice = prompt("Yazı mı Tura mı? (yazı/tura):") || "";
     if(!["yazı","tura"].includes(choice.toLowerCase())) return notify("❌ 'yazı' veya 'tura' girin!");
@@ -6966,7 +7031,7 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
     const amountStr = await gPrompt("💰 Bağış Yap",`${candidateUsername}'ın kampanyasına ne kadar bağış yapmak istiyorsunuz?`,"Miktar","number",{min:1000});
     if(!amountStr) return;
     const amount = parseInt(amountStr);
-    if(isNaN(amount)||amount<1000) return notify("❌ Minimum ₺1.000 bağış yapılabilir!");
+    if(isNaN(amount)||amount<1000) return notify("❌ Minimum ₱1.000 bağış yapılabilir!");
     if((cu.money||0)<amount) return notify("❌ Yeterli paran yok!");
     updateUser({money:(cu.money||0)-amount});
     // Alıcı adayın kampanya bütçesini artır
@@ -7152,12 +7217,12 @@ ${gangList}`,"Numara","number",{min:1,max:(Array.isArray(gangs)?gangs:[]).length
   // Devlet Başkanı: Özel ödül dağıt (hazineden)
   const presidentialAward = async () => {
     if(cu.position!=="Devlet Başkanı"&&cu.role!=="admin") return notify("❌ Sadece Devlet Başkanı ödül dağıtabilir!");
-    if((taxSystem.treasury||0)<100000) return notify("❌ Hazinede yeterli para yok! (Min. ₺100,000)");
+    if((taxSystem.treasury||0)<100000) return notify("❌ Hazinede yeterli para yok! (Min. ₱100,000)");
     const uname = await gPrompt("🏆 Devlet Ödülü","Ödüllendirilecek oyuncu:","Kullanıcı adı");
     if(!uname) return;
     const target = allUsers.find(u=>u.username===uname);
     if(!target) return notify("❌ Oyuncu bulunamadı!");
-    const amount = await gPrompt("🏆 Ödül Miktarı","Hazineden verilecek miktar (max ₺500,000):","Miktar","number",{min:10000,max:500000});
+    const amount = await gPrompt("🏆 Ödül Miktarı","Hazineden verilecek miktar (max ₱500,000):","Miktar","number",{min:10000,max:500000});
     if(!amount) return;
     const n = Math.min(500000,parseInt(amount)||0);
     if(n<=0) return;
@@ -7264,8 +7329,8 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
     const cityResidents = allUsers.filter(u=>u.city===myCity&&!u.isBot);
     setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.city===myCity&&!u.isBot?{...u,money:(u.money||0)+5000,meritPoints:(u.meritPoints||0)+5}:u));
     setTaxSystem(prev=>{const upd={...prev,lastCollected:{...prev.lastCollected,[cdKey]:Date.now()}};S.save("taxSystem",upd);return upd;});
-    addHistory(`🎉 Belediye Başkanı ${cu.username}: ${myCity}'de "${eventName}" etkinliği düzenlendi! Refah +10, ${cityResidents.length} sakin ₺5,000 bonus aldı.`);
-    notify(`🎉 "${eventName}" etkinliği başladı! Refah +10, şehir sakinleri ₺5,000 aldı!`);
+    addHistory(`🎉 Belediye Başkanı ${cu.username}: ${myCity}'de "${eventName}" etkinliği düzenlendi! Refah +10, ${cityResidents.length} sakin ₱5,000 bonus aldı.`);
+    notify(`🎉 "${eventName}" etkinliği başladı! Refah +10, şehir sakinleri ₱5,000 aldı!`);
     gainXP(60,"misc");
   };
 
@@ -7422,7 +7487,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
     if(party.leader!==cu.username) return notify("❌ Sadece lider maaş ödeyebilir!");
     const members = (party.members||[]);
     const total = salaryPerMember * members.length;
-    if((party.budget||0)<total) return notify(`❌ Parti kasası yetersiz! Gereken: ₺${total.toLocaleString()}`);
+    if((party.budget||0)<total) return notify(`❌ Parti kasası yetersiz! Gereken: ₱${total.toLocaleString()}`);
     if(members.length===0) return notify("❌ Maaş ödenecek üye yok!");
     const today = new Date().toLocaleDateString("tr-TR");
     const lastPaid = partySalaryLog[party.id]?.lastPaid;
@@ -7437,8 +7502,8 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
     const logUpd = {...partySalaryLog,[party.id]:{lastPaid:today,amount:salaryPerMember,total,paidBy:cu.username}};
     setPartySalaryLog(logUpd);
     S.save("partySalaryLog", logUpd);
-    addHistory(`💸 "${party.name}": ${members.length} üyeye ₺${salaryPerMember.toLocaleString()} maaş ödendi.`);
-    notify(`✅ ${members.length} üyeye toplam ₺${total.toLocaleString()} maaş ödendi!`);
+    addHistory(`💸 "${party.name}": ${members.length} üyeye ₱${salaryPerMember.toLocaleString()} maaş ödendi.`);
+    notify(`✅ ${members.length} üyeye toplam ₱${total.toLocaleString()} maaş ödendi!`);
   };
 
   // ── Maliye'den Parti Borcu ───────────────────────────────────────────
@@ -7533,15 +7598,15 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
   // ── Kampanya Reklam Harcaması (seçim oy ağırlığı) ─────────────────────
   const spendCampaignAds = async (party) => {
     if(!party||party.leader!==cu.username) return notify("❌ Sadece lider reklam harcaması yapabilir!");
-    const amtStr = await gPrompt("📊 Kampanya Reklam Harcaması",`Parti kasası: ₺${(party.budget||0).toLocaleString()}\nHarcama seçin:\n1. ₺500.000 — +5% oy ağırlığı\n2. ₺1.000.000 — +12% oy ağırlığı\n3. ₺2.500.000 — +30% oy ağırlığı`,"1-3","number",{min:1,max:3});
+    const amtStr = await gPrompt("📊 Kampanya Reklam Harcaması",`Parti kasası: ₱${(party.budget||0).toLocaleString()}\nHarcama seçin:\n1. ₱500.000 — +5% oy ağırlığı\n2. ₱1.000.000 — +12% oy ağırlığı\n3. ₱2.500.000 — +30% oy ağırlığı`,"1-3","number",{min:1,max:3});
     if(!amtStr) return;
     const tiers = [{cost:500000,bonus:5},{cost:1000000,bonus:12},{cost:2500000,bonus:30}];
     const tier = tiers[(parseInt(amtStr)||1)-1];
-    if((party.budget||0)<tier.cost) return notify(`❌ Parti kasası yetersiz! Gereken: ₺${tier.cost.toLocaleString()}`);
+    if((party.budget||0)<tier.cost) return notify(`❌ Parti kasası yetersiz! Gereken: ₱${tier.cost.toLocaleString()}`);
     const updParties = parties.map(p=>p.id===party.id?{...p,budget:(p.budget||0)-tier.cost,adBonus:(p.adBonus||0)+tier.bonus}:p);
     setParties(updParties);
     S.save("parties", updParties);
-    addHistory(`📊 "${party.name}" ₺${tier.cost.toLocaleString()} reklam harcadı. +${tier.bonus}% oy ağırlığı`);
+    addHistory(`📊 "${party.name}" ₱${tier.cost.toLocaleString()} reklam harcadı. +${tier.bonus}% oy ağırlığı`);
     notify(`✅ Reklam harcandı! Parti üyelerinin oy ağırlığı +${tier.bonus}% arttı!`);
   };
 
@@ -7634,8 +7699,8 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
           <div style={{position:"absolute",top:"clamp(1.5rem,5vh,3rem)",left:0,right:0,textAlign:"center",zIndex:3}}>
             <div style={{fontFamily:"Syne,sans-serif",fontWeight:900,fontSize:"clamp(2rem,7vw,4rem)",letterSpacing:"0.12em",lineHeight:1}}>
               <span style={{color:"#F5C842"}}>[ </span>
-              <span style={{color:"#F5C842"}}>U</span>
-              <span style={{color:"#fff"}}>NDERSTATE</span>
+              <span style={{color:"#F5C842"}}>P</span>
+              <span style={{color:"#fff"}}>OLİTİKON</span>
               <span style={{color:"#F5C842"}}> ]</span>
             </div>
             <div style={{color:"rgba(255,255,255,0.5)",fontSize:"clamp(0.7rem,2vw,1rem)",letterSpacing:"0.25em",marginTop:"0.5rem",textTransform:"uppercase"}}>Şehir & Devlet Simülasyonu</div>
@@ -7681,8 +7746,8 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
             lineHeight:1
           }}>
             <span style={{color:"var(--accent)",fontWeight:900,fontSize:"1.1em",marginRight:"0.05em"}}>[ </span>
-            <span style={{color:"var(--accent)",fontWeight:900}}>U</span>
-            <span style={{color:"#fff",fontWeight:900}}>NDERSTATE</span>
+            <span style={{color:"var(--accent)",fontWeight:900}}>P</span>
+            <span style={{color:"#fff",fontWeight:900}}>OLİTİKON</span>
             <span style={{color:"var(--accent)",fontWeight:900,fontSize:"1.1em",marginLeft:"0.05em"}}> ]</span>
           </div>
           <div style={{color:"#444",fontSize:"0.72rem",letterSpacing:"0.2em",marginTop:"0.4rem",textTransform:"uppercase"}}>Şehir & Devlet Simülasyonu</div>
@@ -8724,7 +8789,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                             {cu.gender==="kadin"?"👩":"👨"}
                           </div>
                       }
-                      <label className="avatar-upload" title={cu.photoChanges===0?"Ücretsiz":"10 UC"}>
+                      <label className="avatar-upload" title={cu.photoChanges===0?"Ücretsiz":"10 PG"}>
                         📸
                         <input type="file" accept="image/*" onChange={uploadPhoto} style={{display:"none"}} />
                       </label>
@@ -8739,7 +8804,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                           {cu.gender==="kadin"?"👩":"👨"}
                         </div>
                     }
-                    <label className="avatar-upload" title={cu.photoChanges===0?"Ücretsiz":"10 UC"}>
+                    <label className="avatar-upload" title={cu.photoChanges===0?"Ücretsiz":"10 PG"}>
                       📸
                       <input type="file" accept="image/*" onChange={uploadPhoto} style={{display:"none"}} />
                     </label>
@@ -8759,7 +8824,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
               {cu.bio&&<div style={{color:"#ccc",fontSize:"0.85rem",marginTop:"0.5rem",fontStyle:"italic",maxWidth:300,margin:"0.5rem auto 0"}}>"{cu.bio}"</div>}
               <div style={{fontSize:"0.72rem",color:"#666",marginTop:"0.4rem"}}>👁 {(profileVisits[cu.id]||0)} profil ziyareti</div>
               <div style={{fontSize:"0.75rem",color:"#999",marginTop:"0.25rem"}}>
-                Fotoğraf değişikliği: {cu.photoChanges||0} kez (ilk ücretsiz, sonrası 10 UC)
+                Fotoğraf değişikliği: {cu.photoChanges||0} kez (ilk ücretsiz, sonrası 10 PG)
               </div>
             </div>
             {/* XP Level Bar */}
@@ -8788,12 +8853,12 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
             <div className="grid-2" style={{marginBottom:"1rem"}}>
               <div className="stat-box"><div className="val stat-green">{fmtMoney((cu.money||0))}</div><div className="lbl">Nakit</div></div>
               <div className="stat-box"><div className="val stat-blue">{fmtMoney((cu.bankMoney||0))}</div><div className="lbl">Banka</div></div>
-              <div className="stat-box"><div className="val stat-gold">{cu.underCoin||0}</div><div className="lbl">UnderCoin</div></div>
+              <div className="stat-box"><div className="val stat-gold">{cu.underCoin||0}</div><div className="lbl">PoliGold</div></div>
               <div className="stat-box"><div className="val stat-teal">{cu.meritPoints||0}</div><div className="lbl">Liyakat Puanı</div></div>
               <div className="stat-box"><div className="val" style={{color:(cu.hp||100)>50?"#10B981":(cu.hp||100)>20?"#F59E0B":"#EF4444"}}>{cu.hp||100}/100</div><div className="lbl">❤️ Can</div></div>
               <div className="stat-box">
                 <button className="btn btn-green btn-sm" style={{width:"auto"}} onClick={()=>{const cost=500;if((cu.money||0)<cost)return notify("❌ Para yetersiz!");updateUser({money:(cu.money)-cost,hp:Math.min(100,(cu.hp||100)+20)});notify("✅ +20 Can kazandınız!");}}>
-                  💊 İyileş (₺500)
+                  💊 İyileş (₱500)
                 </button>
                 <div className="lbl">Sağlık</div>
               </div>
@@ -8872,7 +8937,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 <span style={{fontWeight:700,color:"#60A5FA",fontSize:"0.9rem"}}>{cu.city||"İstanbul"}</span>
               </div>
               <div style={{fontSize:"0.8rem",color:"#F59E0B",background:"rgba(245,158,11,0.07)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:"0.4rem",padding:"0.4rem 0.6rem",marginBottom:"0.75rem"}}>
-                💰 Şehir değiştirmek <strong>50 UnderCoin</strong> maliyetlidir. Mevcut UC: <strong style={{color:(cu.underCoin||0)>=50?"#10B981":"#EF4444"}}>{cu.underCoin||0} UC</strong>
+                💰 Şehir değiştirmek <strong>50 PoliGold</strong> maliyetlidir. Mevcut UC: <strong style={{color:(cu.underCoin||0)>=50?"#10B981":"#EF4444"}}>{cu.underCoin||0} PG</strong>
               </div>
               <select className="form-select" id="citySelectProfile" defaultValue={cu.city||"İstanbul"}>
                 {["İstanbul","Ankara","İzmir","Bursa","Antalya","Adana","Konya","Trabzon","Gaziantep","Kayseri"].map(c=>(
@@ -8883,11 +8948,11 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 const sel = document.getElementById("citySelectProfile")?.value;
                 if(!sel) return;
                 if(sel===cu.city) return notify("❌ Zaten bu şehirdesin!");
-                if((cu.underCoin||0)<50) return notify("❌ 50 UnderCoin gerekli! Yeterli UC yok.");
+                if((cu.underCoin||0)<50) return notify("❌ 50 PoliGold gerekli! Yeterli UC yok.");
                 updateUser({city:sel, underCoin:(cu.underCoin||0)-50});
                 addFeed(`🏙️ ${cu.username} şehir değiştirdi → ${sel}`,"info");
-                notify(`✅ Şehrin ${sel} olarak değiştirildi! -50 UC`);
-              }}>🏙️ Şehri Değiştir (-50 UC)</button>
+                notify(`✅ Şehrin ${sel} olarak değiştirildi! -50 PG`);
+              }}>🏙️ Şehri Değiştir (-50 PG)</button>
             </div>
 
             {/* BİYOGRAFİ */}
@@ -9229,7 +9294,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.5rem"}}>
                           {EDU_PACKAGES.map(pkg=>(
                             <button key={pkg.id} onClick={()=>{
-                              if((cu.money||0)<pkg.price) return notify("❌ Yeterli para yok! ₺"+pkg.price+" gerekli.");
+                              if((cu.money||0)<pkg.price) return notify("❌ Yeterli para yok! ₱"+pkg.price+" gerekli.");
                               const expiry = Date.now() + pkg.days*24*60*60*1000;
                               updateUser({money:(cu.money||0)-pkg.price, eduPackage:true, eduPackageExpiry:expiry});
                               notify("✅ "+pkg.label+" egitim paketi aktif! Cooldown artik 3 saniye.");
@@ -9311,7 +9376,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                       </div>
                       <div style={{textAlign:"right",fontSize:"0.8rem",color:"#bbb"}}>
                         <div>{EDU_TOTAL[i]} basım · {(cu.eduPackage&&cu.eduPackageExpiry>Date.now())?"3sn (Paket)":EDU_TIME[i]+"dk"} cooldown</div>
-                        <div style={{color:"#FFD700"}}>₺{EDU_COST[i]}/basım</div>
+                        <div style={{color:"#FFD700"}}>₱{EDU_COST[i]}/basım</div>
                       </div>
                     </div>
                     {EDU_NOTE[i]&&<div style={{fontSize:"0.75rem",color:"#B8860B",marginTop:"0.2rem"}}>📌 {EDU_NOTE[i]}</div>}
@@ -9321,7 +9386,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                         <div style={{fontSize:"0.75rem",color:"#bbb",margin:"0.25rem 0"}}>{cu.educationProgress||0}/{EDU_TOTAL[i]}</div>
                         {eduRem>0?<div className="timer-text">⏳ {Math.floor(eduRem/60)}:{String(eduRem%60).padStart(2,"0")} bekle</div>:
                         <button className="btn btn-primary btn-sm" onClick={study} style={{marginTop:"0.4rem",width:"auto"}}>
-                          ÇALIŞ · ₺{Math.floor(EDU_COST[i]*(1+(economy.inflation||0)/100))}
+                          ÇALIŞ · ₱{Math.floor(EDU_COST[i]*(1+(economy.inflation||0)/100))}
                         </button>}
                       </div>
                     )}
@@ -9353,10 +9418,10 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
               {cu.educationCompleted&&(
                 <div style={{textAlign:"center",marginTop:"1rem"}}>
                   <button className="btn btn-gold" onClick={()=>{
-                    if((cu.underCoin||0)<250) return notify("❌ 250 UC gerekiyor!");
+                    if((cu.underCoin||0)<250) return notify("❌ 250 PG gerekiyor!");
                     updateUser({underCoin:(cu.underCoin||0)-250, educationLevel:"İlkokul", educationProgress:0, educationCompleted:false, lastEduTime:0});
-                    notify("✅ Eğitime sıfırdan başlandı! 250 UC harcandı. Eğitim puanlarınız ve tamamlama rozetleriniz korundu.");
-                  }}>{t("restartEdu")} (250 UC)</button>
+                    notify("✅ Eğitime sıfırdan başlandı! 250 PG harcandı. Eğitim puanlarınız ve tamamlama rozetleriniz korundu.");
+                  }}>{t("restartEdu")} (250 PG)</button>
                   <div style={{fontSize:"0.75rem",color:"#aaa",marginTop:"0.4rem"}}>Sadece ilerleme sıfırlanır — eğitim puanı ve rozetler korunur.</div>
                 </div>
               )}
@@ -9387,15 +9452,15 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
             <div style={{display:"flex",alignItems:"center",gap:"0.75rem",marginBottom:"1rem",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,padding:"0.75rem 1rem",flexWrap:"wrap"}}>
               <div style={{flex:1,minWidth:180}}>
                 <div style={{fontWeight:700,fontSize:"0.88rem",color:"var(--accent)"}}>🔥 UC Katsayı Modu</div>
-                <div style={{fontSize:"0.72rem",color:"#8899AA",marginTop:"0.2rem"}}>Aktifken her çalışmada 2 UC harcar, kazancın <strong style={{color:"#FFD700"}}>2 katına</strong> çıkar</div>
+                <div style={{fontSize:"0.72rem",color:"#8899AA",marginTop:"0.2rem"}}>Aktifken her çalışmada 2 PG harcar, kazancın <strong style={{color:"#FFD700"}}>2 katına</strong> çıkar</div>
               </div>
               <div style={{display:"flex",alignItems:"center",gap:"0.5rem"}}>
                 <span style={{fontSize:"0.75rem",color:"#8899AA"}}>💰 Mevcut UC: <strong style={{color:"#FFD700"}}>{cu.underCoin||0}</strong></span>
                 <button
                   onClick={()=>{
-                    if(!ucBoostActive&&(cu.underCoin||0)<2){return notify("❌ UC Katsayı için en az 2 UC gereklidir!");}
+                    if(!ucBoostActive&&(cu.underCoin||0)<2){return notify("❌ UC Katsayı için en az 2 PG gereklidir!");}
                     setUcBoostActive(p=>!p);
-                    notify(ucBoostActive?"⚡ UC Katsayı kapatıldı.":"🔥 UC Katsayı aktif! Her çalışmada 2 UC harcanarak 2x kazanç elde edersiniz.");
+                    notify(ucBoostActive?"⚡ UC Katsayı kapatıldı.":"🔥 UC Katsayı aktif! Her çalışmada 2 PG harcanarak 2x kazanç elde edersiniz.");
                   }}
                   style={{
                     padding:"0.4rem 1rem",borderRadius:8,fontWeight:700,fontSize:"0.78rem",cursor:"pointer",
@@ -9482,7 +9547,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                   </div>
                 )}
                   <div className="gov-salary">💰 {fmtMoney(pos.salary)} / {pos.period}</div>
-                  <div style={{color:"#FFD700",fontSize:"0.85rem"}}>🪙 +{pos.rc||pos.uc||0} UC (seçilme ödülü)</div>
+                  <div style={{color:"#FFD700",fontSize:"0.85rem"}}>🪙 +{pos.rc||pos.uc||0} PG (seçilme ödülü)</div>
                   <div className="gov-authority">⚡ {pos.authority}</div>
                   <div className="gov-req">📜 Gerekli eğitim: {pos.reqEdu}</div>
                 </div>
@@ -9748,8 +9813,8 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
               <div className="card">
                 <div className="card-title">💰 Maaşlar</div>
                 <div style={{display:"flex",flexDirection:"column",gap:"0.4rem",fontSize:"0.9rem"}}>
-                  <div><span style={{color:"#bbb"}}>Milletvekili: </span><span style={{color:"#10B981"}}>₺10,000/hafta + 15 UC</span></div>
-                  <div><span style={{color:"#bbb"}}>Meclis Başkanı: </span><span style={{color:"#10B981"}}>₺12,000/hafta + 20 UC</span></div>
+                  <div><span style={{color:"#bbb"}}>Milletvekili: </span><span style={{color:"#10B981"}}>₱10,000/hafta + 15 PG</span></div>
+                  <div><span style={{color:"#bbb"}}>Meclis Başkanı: </span><span style={{color:"#10B981"}}>₱12,000/hafta + 20 PG</span></div>
                 </div>
               </div>
             </div>
@@ -9852,16 +9917,16 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
           };
           const partyPropaganda = async() => {
             if(!isLeader) return notify("❌ Sadece lider propaganda yayımlayabilir!");
-            if((cu.money||0)<50000) return notify("❌ Propaganda için ₺50,000 gereklidir!");
+            if((cu.money||0)<50000) return notify("❌ Propaganda için ₱50,000 gereklidir!");
             const msg = await gPrompt("📣 Parti Propagandası","Propaganda mesajını girin:","Mesaj");
             if(!msg) return;
             updateUser({money:(cu.money||0)-50000});
             addSocialPost({author:cu.username,content:`⚑ [${myP.name}] ${msg}`,type:"propaganda",party:myP.name}); gainXP(XP_GAINS.social_post,"social_post");
-            notify("✅ Propaganda yayımlandı! (-₺50,000)");
+            notify("✅ Propaganda yayımlandı! (-₱50,000)");
           };
           const partyInvestment = async() => {
             if(!isLeader) return notify("❌ Sadece lider parti yatırımı yapabilir!");
-            const amt = await gPrompt("💹 Parti Yatırımı","Yatırım miktarı (₺):","Miktar","number",{min:10000});
+            const amt = await gPrompt("💹 Parti Yatırımı","Yatırım miktarı (₱):","Miktar","number",{min:10000});
             if(!amt) return;
             const n = parseInt(amt);
             if(isNaN(n)||n<=0) return notify("❌ Geçersiz miktar!");
@@ -9873,13 +9938,13 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
           };
           const kongre = async() => {
             if(!isLeader) return notify("❌ Kongre kararı sadece lider alabilir!");
-            if((myP.budget||0)<200000) return notify("❌ Kongre için parti kasasında ₺200,000 gereklidir!");
+            if((myP.budget||0)<200000) return notify("❌ Kongre için parti kasasında ₱200,000 gereklidir!");
             const topic = await gPrompt("🏛️ Kongre Kararı","Kongre konusunu girin:","Konu");
             if(!topic) return;
             const updated = parties.map(p=>p.id===myP.id?{...p,budget:(p.budget||0)-200000,lastKongre:new Date().toLocaleDateString(),kongreDecision:topic}:p);
             setParties(updated); S.save("parties",updated);
             addHistory(`⚑ "${myP.name}" kongresi: ${topic}`);
-            notify("✅ Kongre kararı alındı ve kaydedildi! (-₺200,000)");
+            notify("✅ Kongre kararı alındı ve kaydedildi! (-₱200,000)");
           };
           const disiplin = async() => {
             if(!isLeader) return notify("❌ Disiplin kararı sadece lider alabilir!");
@@ -10052,7 +10117,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                         </div>
                         <div style={{textAlign:"right",flexShrink:0,display:"flex",flexDirection:"column",gap:"0.2rem",alignItems:"flex-end"}}>
                           <div style={{background:"rgba(255,184,0,0.08)",border:"1px solid rgba(255,184,0,0.2)",borderRadius:8,padding:"0.3rem 0.6rem",textAlign:"center"}}>
-                            <div style={{fontSize:"1rem",fontWeight:900,color:"#FFB800",fontFamily:"JetBrains Mono,monospace"}}>₺{((myP.budget||0)/1000).toFixed(0)}K</div>
+                            <div style={{fontSize:"1rem",fontWeight:900,color:"#FFB800",fontFamily:"JetBrains Mono,monospace"}}>₱{((myP.budget||0)/1000).toFixed(0)}K</div>
                             <div style={{fontSize:"0.55rem",color:"#666"}}>KASA</div>
                           </div>
                           <div style={{background:"rgba(167,139,250,0.08)",border:"1px solid rgba(167,139,250,0.25)",borderRadius:8,padding:"0.3rem 0.6rem",textAlign:"center"}}>
@@ -10060,7 +10125,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                             <div style={{fontSize:"0.55rem",color:"#666"}}>KATSAYI</div>
                           </div>
                           {(myP.partyDebt||0)>0&&<div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.25)",borderRadius:8,padding:"0.3rem 0.6rem",textAlign:"center"}}>
-                            <div style={{fontSize:"0.8rem",fontWeight:900,color:"#EF4444",fontFamily:"JetBrains Mono,monospace"}}>-₺{((myP.partyDebt||0)/1000).toFixed(0)}K</div>
+                            <div style={{fontSize:"0.8rem",fontWeight:900,color:"#EF4444",fontFamily:"JetBrains Mono,monospace"}}>-₱{((myP.partyDebt||0)/1000).toFixed(0)}K</div>
                             <div style={{fontSize:"0.55rem",color:"#666"}}>BORÇ</div>
                           </div>}
                         </div>
@@ -10164,7 +10229,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                         <div style={{background:"rgba(15,28,50,0.9)",border:"1px solid rgba(255,184,0,0.18)",borderRadius:14,padding:"0.85rem",marginTop:"0.2rem"}}>
                           <div style={{fontSize:"0.72rem",color:"#FFB800",fontWeight:700,marginBottom:"0.45rem"}}>💰 Kasaya Para Aktar</div>
                           <div style={{display:"flex",gap:"0.5rem"}}>
-                            <input id="partyFundIOS" type="number" className="form-input" placeholder="₺ Miktar" style={{flex:1,fontSize:"0.85rem"}}/>
+                            <input id="partyFundIOS" type="number" className="form-input" placeholder="₱ Miktar" style={{flex:1,fontSize:"0.85rem"}}/>
                             <button className="btn btn-sm" style={{background:"rgba(255,184,0,0.12)",color:"#FFB800",border:"1px solid rgba(255,184,0,0.3)",whiteSpace:"nowrap"}}
                               onClick={()=>{
                                 const amt=parseInt(document.getElementById("partyFundIOS")?.value||0);
@@ -10408,10 +10473,10 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                     const isMyPartyLeader=myP?.id===p.id&&isLeader;
                     const IDEOLOGIES=[
                       {id:"liberal",label:"🏛️ Liberal",desc:"Şirket vergileri -%10, ticaret serbestisi",effect:"Holding gelirleri +%10"},
-                      {id:"sosyalist",label:"✊ Sosyalist",desc:"Işçi maaşları +%20, vergi adaleti",effect:"Tüm üyeler günde +₺5.000 pasif gelir"},
+                      {id:"sosyalist",label:"✊ Sosyalist",desc:"Işçi maaşları +%20, vergi adaleti",effect:"Tüm üyeler günde +₱5.000 pasif gelir"},
                       {id:"milliyetci",label:"🦅 Milliyetçi",desc:"Ordu bütçesi +%30, iç güvenlik",effect:"Çete saldırılarına karşı +%20 savunma"},
                       {id:"yesilci",label:"🌿 Yeşilci",desc:"Çevre politikaları, tarım desteği",effect:"Çiftçi üyeler +%25 hasat"},
-                      {id:"muhafazakar",label:"⚜️ Muhafazakâr",desc:"Gelenek, aile değerleri, istikrar",effect:"Parti kasasına günde +₺10.000 bağış"},
+                      {id:"muhafazakar",label:"⚜️ Muhafazakâr",desc:"Gelenek, aile değerleri, istikrar",effect:"Parti kasasına günde +₱10.000 bağış"},
                     ];
                     return (
                       <div key={p.id} style={{marginBottom:"0.85rem",background:`${pc}08`,border:`1px solid ${pc}22`,borderRadius:14,padding:"1rem"}}>
@@ -10675,7 +10740,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                         <div style={{display:"flex",justifyContent:"space-between",marginBottom:"0.65rem"}}>
                           <div>
                             <div style={{fontSize:"0.72rem",color:"#666",marginBottom:"0.15rem"}}>PARTİ KASASI</div>
-                            <div style={{fontFamily:"JetBrains Mono,monospace",fontWeight:900,fontSize:"1.2rem",color:"#FFB800"}}>₺{(myP.budget||0).toLocaleString()}</div>
+                            <div style={{fontFamily:"JetBrains Mono,monospace",fontWeight:900,fontSize:"1.2rem",color:"#FFB800"}}>₱{(myP.budget||0).toLocaleString()}</div>
                           </div>
                           <div style={{textAlign:"right"}}>
                             <div style={{fontSize:"0.72rem",color:"#666",marginBottom:"0.15rem"}}>MAAŞ ALABİLECEK ÜYE</div>
@@ -10684,7 +10749,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                         </div>
                         {partySalaryLog[myP.id]&&(
                           <div style={{background:"rgba(255,255,255,0.03)",borderRadius:8,padding:"0.5rem 0.65rem",marginBottom:"0.65rem",fontSize:"0.72rem",color:"#888"}}>
-                            Son ödeme: <strong style={{color:"#ddd"}}>{partySalaryLog[myP.id].lastPaid}</strong> · Kişi başı: <strong style={{color:"#10D9A0"}}>₺{(partySalaryLog[myP.id].amount||0).toLocaleString()}</strong> · Toplam: <strong style={{color:"#FFB800"}}>₺{(partySalaryLog[myP.id].total||0).toLocaleString()}</strong>
+                            Son ödeme: <strong style={{color:"#ddd"}}>{partySalaryLog[myP.id].lastPaid}</strong> · Kişi başı: <strong style={{color:"#10D9A0"}}>₱{(partySalaryLog[myP.id].amount||0).toLocaleString()}</strong> · Toplam: <strong style={{color:"#FFB800"}}>₱{(partySalaryLog[myP.id].total||0).toLocaleString()}</strong>
                           </div>
                         )}
                         {isLeader?(
@@ -10696,11 +10761,11 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                                 const total=amt*members.length;
                                 const canPay=(myP.budget||0)>=total;
                                 return(<button key={amt} className="btn btn-sm" style={{flex:1,fontSize:"0.68rem",background:canPay?"rgba(16,217,160,0.08)":"rgba(239,68,68,0.06)",color:canPay?"#10D9A0":"#EF4444",border:`1px solid ${canPay?"rgba(16,217,160,0.2)":"rgba(239,68,68,0.2)"}`,padding:"0.35rem 0.2rem"}}
-                                  onClick={()=>payPartySalary(myP,amt)}>₺{(amt/1000).toFixed(0)}K<br/><span style={{fontSize:"0.55rem",opacity:0.7}}>×{members.length}={fmtMoney(total)}</span></button>);
+                                  onClick={()=>payPartySalary(myP,amt)}>₱{(amt/1000).toFixed(0)}K<br/><span style={{fontSize:"0.55rem",opacity:0.7}}>×{members.length}={fmtMoney(total)}</span></button>);
                               })}
                             </div>
                             <div style={{display:"flex",gap:"0.4rem",marginBottom:"0.5rem"}}>
-                              <input id="customSalaryInput" type="number" className="form-input" placeholder="Özel miktar (₺/kişi)" style={{flex:1,fontSize:"0.82rem"}}/>
+                              <input id="customSalaryInput" type="number" className="form-input" placeholder="Özel miktar (₱/kişi)" style={{flex:1,fontSize:"0.82rem"}}/>
                               <button className="btn btn-sm" style={{background:"rgba(16,217,160,0.12)",color:"#10D9A0",border:"1px solid rgba(16,217,160,0.3)",whiteSpace:"nowrap"}}
                                 onClick={()=>{
                                   const v=parseInt(document.getElementById("customSalaryInput")?.value||0);
@@ -11096,8 +11161,8 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 <div className="card">
                   <div className="card-title" style={{color:"#A78BFA"}}>⚑ Yeni Parti Kur</div>
                   <div style={{fontSize:"0.82rem",color:"#bbb",marginBottom:"1rem",lineHeight:1.6}}>
-                    Parti kurmak için <strong style={{color:"#FFB800"}}>₺1,000,000</strong> gereklidir.<br/>
-                    Kurulumun ardından ₺100,000 parti bütçesine iade edilir.<br/>
+                    Parti kurmak için <strong style={{color:"#FFB800"}}>₱1,000,000</strong> gereklidir.<br/>
+                    Kurulumun ardından ₱100,000 parti bütçesine iade edilir.<br/>
                     Kurulduktan sonra Üye Dağılımı sekmesinden oyunculara davet gönderebilirsiniz.<br/>
                     Yönetim rolleri: Başkan, Başkan Yardımcısı, Sözcü, Genel Sekreter.
                   </div>
@@ -11111,8 +11176,8 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                   </div>
                   <div style={{background:"rgba(255,255,255,0.03)",borderRadius:"0.6rem",padding:"0.75rem",marginBottom:"1rem",border:"1px solid rgba(255,255,255,0.06)"}}>
                     <div style={{fontSize:"0.75rem",color:"#aaa",lineHeight:1.7}}>
-                      💰 Maliyet: <span style={{color:"#EF4444",fontWeight:700}}>₺1,000,000</span><br/>
-                      🏦 Bütçe iadesi: <span style={{color:"#10D9A0",fontWeight:700}}>₺100,000</span><br/>
+                      💰 Maliyet: <span style={{color:"#EF4444",fontWeight:700}}>₱1,000,000</span><br/>
+                      🏦 Bütçe iadesi: <span style={{color:"#10D9A0",fontWeight:700}}>₱100,000</span><br/>
                       👥 Min. kurucu: <span style={{color:"#A78BFA",fontWeight:700}}>Sadece sen (üye sonradan davet edilir)</span>
                     </div>
                   </div>
@@ -11123,7 +11188,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                       <div style={{fontSize:"0.78rem",marginTop:"0.4rem"}}>Yeni parti kurmak için önce mevcut partinizden ayrılmanız gerekir.</div>
                     </div>
                   ):(
-                    <button className="btn btn-primary" style={{width:"100%",background:"linear-gradient(135deg,#8B5CF6,#6D28D9)",color:"#fff",boxShadow:"0 4px 16px rgba(139,92,246,0.35)"}} onClick={createParty}>⚑ PARTİ KUR (₺1.000.000.000)</button>
+                    <button className="btn btn-primary" style={{width:"100%",background:"linear-gradient(135deg,#8B5CF6,#6D28D9)",color:"#fff",boxShadow:"0 4px 16px rgba(139,92,246,0.35)"}} onClick={createParty}>⚑ PARTİ KUR (₱1.000.000.000)</button>
                   )}
                 </div>
               )}
@@ -11140,10 +11205,10 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 <div className="card-title">👪 Aile Kur</div>
                 <div style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"1rem"}}>
                   Aileler seçimlere etki eden güçte olmalıdır. Legal ve illegal yollarla güçlenebilirler.<br/>
-                  <strong>Şartlar:</strong> 500.000.000 TL + 500 UC<br/>
+                  <strong>Şartlar:</strong> 500.000.000 PoliCash + 500 PG<br/>
                   <strong>Makamlar:</strong> Aile Lideri, Lider Yardımcısı, Operasyon Birimi Yöneticisi, Aile Elçisi
                 </div>
-                <button className="btn btn-primary" onClick={createFamily}>+ AİLE KUR (₺500.000.000 + 500 UC)</button>
+                <button className="btn btn-primary" onClick={createFamily}>+ AİLE KUR (₱500.000.000 + 500 PG)</button>
               </div>
             )}
             {families.length===0&&<div className="card" style={{textAlign:"center",color:"#aaa"}}>Henüz kurulmuş aile yok.</div>}
@@ -11264,11 +11329,11 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
               <div className="card" style={{marginBottom:"1rem"}}>
                 <div className="card-title">🔫 Çete Kur</div>
                 <div style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"1rem"}}>
-                  <strong>Şartlar:</strong> Min 2 kişi + 500.000.000 TL + 500 UC<br/>
+                  <strong>Şartlar:</strong> Min 2 kişi + 500.000.000 PoliCash + 500 PG<br/>
                   Başlangıçta 50 silah hediye edilir.<br/>
                   Çete gücü = Silah sayısı × Üye sayısı × 65
                 </div>
-                <button className="btn btn-primary" onClick={createGang}>+ ÇETE KUR (₺500.000.000 + 500 UC)</button>
+                <button className="btn btn-primary" onClick={createGang}>+ ÇETE KUR (₱500.000.000 + 500 PG)</button>
               </div>
             )}
             {userGang&&(
@@ -11331,8 +11396,43 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                     </div>
                   </div>
                 )}
-                {/* Court link - report gang to court */}
-                <div style={{background:"rgba(245,158,11,0.05)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:12,padding:"0.65rem",marginBottom:"0.75rem"}}>
+                {/* ═══ HARAÇ / KORUMA SİSTEMİ ═══ */}
+              {(()=>{
+                const myPendingHarac=haracRequests.filter(r=>r.gangId===userGang.id&&r.status==="pending");
+                const paidHarac=haracRequests.filter(r=>r.gangId===userGang.id&&r.status==="paid");
+                const unprotected=allUsers.filter(u=>(u.haracExposedUntil||0)>Date.now()&&u.haracGangId===userGang.id);
+                return(
+                  <div style={{background:"rgba(239,68,68,0.05)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:12,padding:"0.75rem",marginBottom:"0.75rem"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.5rem"}}>
+                      <div style={{fontFamily:"Syne,sans-serif",fontWeight:700,color:"#EF4444",fontSize:"0.88rem"}}>💰 Haraç / Koruma</div>
+                      <div style={{display:"flex",gap:"0.4rem"}}>
+                        <span style={{background:"rgba(239,68,68,0.12)",border:"1px solid rgba(239,68,68,0.25)",borderRadius:6,padding:"0.15rem 0.45rem",fontSize:"0.6rem",color:"#EF4444",fontWeight:700}}>{myPendingHarac.length} Bekleyen</span>
+                        <span style={{background:"rgba(16,185,129,0.1)",border:"1px solid rgba(16,185,129,0.25)",borderRadius:6,padding:"0.15rem 0.45rem",fontSize:"0.6rem",color:"#10B981",fontWeight:700}}>{paidHarac.length} Ödendi</span>
+                      </div>
+                    </div>
+                    {userGang.leader===cu.username&&(
+                      <button onClick={sendHaracRequest} style={{width:"100%",padding:"0.5rem",background:"linear-gradient(135deg,rgba(239,68,68,0.15),rgba(239,68,68,0.05))",border:"1px solid rgba(239,68,68,0.35)",borderRadius:9,color:"#F87171",fontSize:"0.8rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginBottom:"0.5rem"}}>
+                        💰 Haraç Talep Et
+                      </button>
+                    )}
+                    {unprotected.length>0&&(
+                      <div style={{marginTop:"0.4rem"}}>
+                        <div style={{fontSize:"0.68rem",color:"#888",marginBottom:"0.25rem"}}>🔓 Saldırıya Açık ({unprotected.length})</div>
+                        {unprotected.slice(0,5).map(u=>(
+                          <div key={u.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"0.3rem 0.5rem",background:"rgba(239,68,68,0.06)",borderRadius:7,marginBottom:"0.2rem",fontSize:"0.72rem"}}>
+                            <span style={{color:"#fff",fontWeight:600}}>👤 {u.username}</span>
+                            <span style={{color:"#888"}}>{Math.ceil(((u.haracExposedUntil||0)-Date.now())/3600000)}sa kaldı</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {myPendingHarac.length===0&&unprotected.length===0&&<div style={{fontSize:"0.72rem",color:"#555",textAlign:"center"}}>Aktif haraç talebi yok.</div>}
+                  </div>
+                );
+              })()}
+      {/* Court link - report gang to court */}
+                <div style={{background:"rgba(245,158,11,0.05)"
+,border:"1px solid rgba(245,158,11,0.15)",borderRadius:12,padding:"0.65rem",marginBottom:"0.75rem"}}>
                   <div style={{fontFamily:"Syne,sans-serif",fontWeight:700,color:"#F59E0B",fontSize:"0.82rem",marginBottom:"0.35rem"}}>⚖️ Hukuki İşlemler</div>
                   <div style={{display:"flex",gap:"0.4rem",flexWrap:"wrap"}}>
                     <button onClick={()=>setCurrentPage("court")} style={{padding:"0.4rem 0.75rem",background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:8,color:"#F59E0B",fontSize:"0.75rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>⚖️ Mahkemeye Git</button>
@@ -11343,7 +11443,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 {/* 🔫 Silah Marketi - sadece çete lideri */}
                 {userGang.leader===cu.username&&(
                   <div style={{background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.25)",borderRadius:12,padding:"0.75rem 1rem",marginBottom:"0.75rem"}}>
-                    <div style={{fontFamily:"Syne,sans-serif",fontWeight:700,color:"#EF4444",fontSize:"0.88rem",marginBottom:"0.5rem"}}>🔫 Silah Marketi — ₺150.000/silah (çete kasasından)</div>
+                    <div style={{fontFamily:"Syne,sans-serif",fontWeight:700,color:"#EF4444",fontSize:"0.88rem",marginBottom:"0.5rem"}}>🔫 Silah Marketi — ₱150.000/silah (çete kasasından)</div>
                     <div style={{display:"flex",gap:"0.4rem",flexWrap:"wrap"}}>
                       {[1,5,10,25,50].map(qty=>(
                         <button key={qty} className="btn btn-sm" style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",color:"#FCA5A5",fontSize:"0.75rem"}} onClick={()=>{
@@ -11430,11 +11530,11 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 <div className="card" style={{marginBottom:"1rem"}}>
                   <div className="card-title">🏢 Holding Kur</div>
                   <div style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"1rem"}}>
-                    <strong>Şart:</strong> Üniversite mezunu + 10.000.000 TL<br/>
+                    <strong>Şart:</strong> Üniversite mezunu + 10.000.000 PoliCash<br/>
                     Her sektörün minimum kar marjı vardır. Ticaret Bakanlığı onayı gereklidir.<br/>
                     24 saatte bir otomatik kar üretilir. Seviye atlandıkça verimlilik artar.
                   </div>
-                  <button className="btn btn-green" onClick={createHolding}>+ HOLDİNG KUR (₺10,000,000)</button>
+                  <button className="btn btn-green" onClick={createHolding}>+ HOLDİNG KUR (₱10,000,000)</button>
                 </div>
                 {(cu.position==="Ticaret Bakanı"||cu.role==="admin")&&holdingApps.length>0&&(
                   <div className="card" style={{marginBottom:"1rem",borderColor:"rgba(255,215,0,0.3)"}}>
@@ -11577,7 +11677,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                               setImportExport(prev=>({...prev,imports:[...(prev.imports||[]),shipment]}));
                               addFeed(`📦 ${cu.username} ${good.country}'dan ${good.name} ithal ediyor`,"economy");
                               notify(`✅ İthalat başladı: ${good.name} — ${hours} saat sonra hazır`);
-                            }}>📦 İthal Et (₺{(totalCost/1000).toFixed(0)}K)</button>
+                            }}>📦 İthal Et (₱{(totalCost/1000).toFixed(0)}K)</button>
                           )}
                         </div>
                       );
@@ -11641,7 +11741,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                               setImportExport(prev=>({...prev,exports:[...(prev.exports||[]),shipment]}));
                               addFeed(`🚢 ${cu.username} ${good.market}'a ${good.name} ihraç ediyor`,"economy");
                               notify(`✅ İhracat başladı: ${good.name}`);
-                            }}>🚢 İhraç Et (₺{(good.cost/1000).toFixed(0)}K)</button>
+                            }}>🚢 İhraç Et (₱{(good.cost/1000).toFixed(0)}K)</button>
                           )}
                         </div>
                       );
@@ -11717,7 +11817,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
             </div>
             <div className="card card-green" style={{marginBottom:"1.5rem"}}>
               <div className="card-title" style={{color:"#10B981"}}>✅ Legal Tezgah</div>
-              <p style={{fontSize:"0.8rem",color:"#bbb",marginBottom:"1rem"}}>Savunma Sanayii holdingleri tarafından üretilen silahlar (₺351-700/adet)</p>
+              <p style={{fontSize:"0.8rem",color:"#bbb",marginBottom:"1rem"}}>Savunma Sanayii holdingleri tarafından üretilen silahlar (₱351-700/adet)</p>
               {legalTezgah.length===0&&<div style={{textAlign:"center",color:"#aaa"}}>Şu an stok yok.</div>}
               {legalTezgah.map(item=>(
                 <div key={item.id} className="tezgah-item">
@@ -11739,7 +11839,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
             </div>
             <div className="card" style={{borderColor:"rgba(208,0,0,0.4)"}}>
               <div className="card-title">⛔ İllegal Tezgah</div>
-              <p style={{fontSize:"0.8rem",color:"#bbb",marginBottom:"1rem"}}>Çeteler tarafından satılan silahlar (₺700-1000/adet). Polis baskınında tüm mal kaybolur!</p>
+              <p style={{fontSize:"0.8rem",color:"#bbb",marginBottom:"1rem"}}>Çeteler tarafından satılan silahlar (₱700-1000/adet). Polis baskınında tüm mal kaybolur!</p>
               {illegalTezgah.length===0&&<div style={{textAlign:"center",color:"#aaa"}}>Şu an stok yok.</div>}
               {illegalTezgah.map(item=>(
                 <div key={item.id} className="tezgah-item" style={{borderColor:"rgba(0,201,255,0.15)"}}>
@@ -11876,8 +11976,8 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                         <div key={tier.id} className="loan-tier" style={{opacity:ok?1:0.45,cursor:ok?"pointer":"not-allowed"}} onClick={function(){if(ok)takeLoan(tier);}}>
                           <span style={{fontSize:"1.3rem"}}>{tier.icon}</span>
                           <div style={{flex:1}}>
-                            <div style={{fontWeight:700,fontSize:"0.83rem",color:tier.color}}>{tier.name} — ₺{(tier.amount/1000).toFixed(0)}K</div>
-                            <div style={{fontSize:"0.65rem",color:"#666"}}>%{Math.round(tier.interest*100)} · {tier.weeks}hf · Lv{tier.minLevel} · Geri: ₺{Math.floor(tier.amount*(1+tier.interest)/1000).toFixed(0)}K</div>
+                            <div style={{fontWeight:700,fontSize:"0.83rem",color:tier.color}}>{tier.name} — ₱{(tier.amount/1000).toFixed(0)}K</div>
+                            <div style={{fontSize:"0.65rem",color:"#666"}}>%{Math.round(tier.interest*100)} · {tier.weeks}hf · Lv{tier.minLevel} · Geri: ₱{Math.floor(tier.amount*(1+tier.interest)/1000).toFixed(0)}K</div>
                           </div>
                           {ok&&<span style={{color:tier.color,fontWeight:700,fontSize:"0.8rem"}}>AL →</span>}
                         </div>);
@@ -11911,7 +12011,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                   </datalist>
                 </div>
                 <div style={{marginBottom:"0.5rem"}}>
-                  <label style={{fontSize:"0.7rem",color:"#7A8FA6",fontWeight:700,display:"block",marginBottom:"0.3rem"}}>Tutar (₺)</label>
+                  <label style={{fontSize:"0.7rem",color:"#7A8FA6",fontWeight:700,display:"block",marginBottom:"0.3rem"}}>Tutar (₱)</label>
                   <input type="number" value={transferAmt} onChange={e=>setTransferAmt_(e.target.value)} placeholder="0"
                     style={{width:"100%",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:9,padding:"0.6rem 0.9rem",color:"#E8EDF2",fontSize:"0.85rem",outline:"none",boxSizing:"border-box"}} />
                   <div style={{display:"flex",gap:"0.35rem",marginTop:"0.35rem"}}>
@@ -12036,7 +12136,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
               <div className="grid-2" style={{marginBottom:"1rem"}}>
                 <div className="stat-box"><div className="val stat-teal">{vp.meritPoints||0}</div><div className="lbl">Liyakat</div></div>
                 <div className="stat-box"><div className="val" style={{color:"#A78BFA"}}>{vp.loyaltyPoints||0}</div><div className="lbl">Sadakat</div></div>
-                <div className="stat-box"><div className="val stat-gold">{vp.underCoin||0}</div><div className="lbl">UnderCoin</div></div>
+                <div className="stat-box"><div className="val stat-gold">{vp.underCoin||0}</div><div className="lbl">PoliGold</div></div>
                 <div className="stat-box"><div className="val">{(vp.inventory||[]).length}</div><div className="lbl">Envanter</div></div>
               </div>
 
@@ -12114,13 +12214,13 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
           };
           const seed = (new Date().getDate()+new Date().getMonth()*7+myCity.length)%7;
           const CITY_MISSIONS_ALL = [
-            [{id:"cm1",icon:"🌳",title:"Ağaç Dik",desc:`${myCity}'e 10 ağaç`,reward:"₺15,000 + 8🏅",cost:15000},{id:"cm2",icon:"🛣️",title:"Yol Onar",desc:"Hasarlı yolu onar",reward:"₺20,000 + 12🏅",cost:20000},{id:"cm3",icon:"🏫",title:"Okul Boyat",desc:"Okula boya",reward:"₺10,000 + 5🏅",cost:10000}],
-            [{id:"cm4",icon:"🚒",title:"İtfaiye",desc:"Yeni araç al",reward:"₺25,000 + 10🏅",cost:25000},{id:"cm5",icon:"💡",title:"Aydınlatma",desc:"Sokak lambası",reward:"₺12,000 + 6🏅",cost:12000},{id:"cm6",icon:"🌊",title:"Temizlik",desc:"Şehri temizle",reward:"₺8,000 + 15🏅",cost:8000}],
-            [{id:"cm7",icon:"🏥",title:"Klinik",desc:"Mahalle kliniği",reward:"₺30,000 + 20🏅",cost:30000},{id:"cm8",icon:"🎪",title:"Etkinlik",desc:"Halk etkinliği",reward:"₺5,000 + 25🏅",cost:5000},{id:"cm9",icon:"🚌",title:"Ulaşım",desc:"Yeni otobüs hattı",reward:"₺18,000 + 8🏅",cost:18000}],
-            [{id:"cm10",icon:"🌹",title:"Park",desc:"Mahalle parkı",reward:"₺22,000 + 12🏅",cost:22000},{id:"cm11",icon:"🔧",title:"Altyapı",desc:"Su borusu yenile",reward:"₺35,000 + 15🏅",cost:35000},{id:"cm12",icon:"🎭",title:"Kültür Merkezi",desc:"Merkez aç",reward:"₺40,000 + 18🏅",cost:40000}],
-            [{id:"cm13",icon:"🏋️",title:"Spor Salonu",desc:"Ücretsiz salon",reward:"₺28,000 + 10🏅",cost:28000},{id:"cm14",icon:"🌞",title:"Güneş Paneli",desc:"Enerji tasarrufu",reward:"₺50,000 + 20🏅",cost:50000},{id:"cm15",icon:"📡",title:"Şehir Wifi",desc:"Ücretsiz wifi",reward:"₺15,000 + 30🏅",cost:15000}],
-            [{id:"cm16",icon:"🗑️",title:"Geri Dönüşüm",desc:"Geri dönüşüm noktası",reward:"₺10,000 + 10🏅",cost:10000},{id:"cm17",icon:"🚴",title:"Bisiklet Yolu",desc:"Bisiklet şeridi",reward:"₺20,000 + 14🏅",cost:20000},{id:"cm18",icon:"🌧️",title:"Drenaj",desc:"Sel kanalı",reward:"₺45,000 + 16🏅",cost:45000}],
-            [{id:"cm19",icon:"🐕",title:"Hayvan Barınağı",desc:"Sokak hayvanı",reward:"₺12,000 + 20🏅",cost:12000},{id:"cm20",icon:"🏛️",title:"Tarih Müzesi",desc:"Şehir müzesi",reward:"₺60,000 + 25🏅",cost:60000},{id:"cm21",icon:"🎨",title:"Grafiti Sanatı",desc:"Sanat projesi",reward:"₺8,000 + 18🏅",cost:8000}],
+            [{id:"cm1",icon:"🌳",title:"Ağaç Dik",desc:`${myCity}'e 10 ağaç`,reward:"₱15,000 + 8🏅",cost:15000},{id:"cm2",icon:"🛣️",title:"Yol Onar",desc:"Hasarlı yolu onar",reward:"₱20,000 + 12🏅",cost:20000},{id:"cm3",icon:"🏫",title:"Okul Boyat",desc:"Okula boya",reward:"₱10,000 + 5🏅",cost:10000}],
+            [{id:"cm4",icon:"🚒",title:"İtfaiye",desc:"Yeni araç al",reward:"₱25,000 + 10🏅",cost:25000},{id:"cm5",icon:"💡",title:"Aydınlatma",desc:"Sokak lambası",reward:"₱12,000 + 6🏅",cost:12000},{id:"cm6",icon:"🌊",title:"Temizlik",desc:"Şehri temizle",reward:"₱8,000 + 15🏅",cost:8000}],
+            [{id:"cm7",icon:"🏥",title:"Klinik",desc:"Mahalle kliniği",reward:"₱30,000 + 20🏅",cost:30000},{id:"cm8",icon:"🎪",title:"Etkinlik",desc:"Halk etkinliği",reward:"₱5,000 + 25🏅",cost:5000},{id:"cm9",icon:"🚌",title:"Ulaşım",desc:"Yeni otobüs hattı",reward:"₱18,000 + 8🏅",cost:18000}],
+            [{id:"cm10",icon:"🌹",title:"Park",desc:"Mahalle parkı",reward:"₱22,000 + 12🏅",cost:22000},{id:"cm11",icon:"🔧",title:"Altyapı",desc:"Su borusu yenile",reward:"₱35,000 + 15🏅",cost:35000},{id:"cm12",icon:"🎭",title:"Kültür Merkezi",desc:"Merkez aç",reward:"₱40,000 + 18🏅",cost:40000}],
+            [{id:"cm13",icon:"🏋️",title:"Spor Salonu",desc:"Ücretsiz salon",reward:"₱28,000 + 10🏅",cost:28000},{id:"cm14",icon:"🌞",title:"Güneş Paneli",desc:"Enerji tasarrufu",reward:"₱50,000 + 20🏅",cost:50000},{id:"cm15",icon:"📡",title:"Şehir Wifi",desc:"Ücretsiz wifi",reward:"₱15,000 + 30🏅",cost:15000}],
+            [{id:"cm16",icon:"🗑️",title:"Geri Dönüşüm",desc:"Geri dönüşüm noktası",reward:"₱10,000 + 10🏅",cost:10000},{id:"cm17",icon:"🚴",title:"Bisiklet Yolu",desc:"Bisiklet şeridi",reward:"₱20,000 + 14🏅",cost:20000},{id:"cm18",icon:"🌧️",title:"Drenaj",desc:"Sel kanalı",reward:"₱45,000 + 16🏅",cost:45000}],
+            [{id:"cm19",icon:"🐕",title:"Hayvan Barınağı",desc:"Sokak hayvanı",reward:"₱12,000 + 20🏅",cost:12000},{id:"cm20",icon:"🏛️",title:"Tarih Müzesi",desc:"Şehir müzesi",reward:"₱60,000 + 25🏅",cost:60000},{id:"cm21",icon:"🎨",title:"Grafiti Sanatı",desc:"Sanat projesi",reward:"₱8,000 + 18🏅",cost:8000}],
           ];
           const todayMissions = CITY_MISSIONS_ALL[seed];
 
@@ -12149,7 +12249,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 <div style={{textAlign:"right",flexShrink:0}}>
                   <div style={{fontSize:"1.4rem",fontWeight:900,color:wColor,fontFamily:"JetBrains Mono,monospace"}}>{welfare.welfare}</div>
                   <div style={{fontSize:"0.58rem",color:"#666",textTransform:"uppercase",letterSpacing:"0.06em"}}>REFAH</div>
-                  <div style={{fontSize:"0.75rem",color:"#60A5FA",marginTop:"0.25rem",fontWeight:700}}>₺{((cityBudgets[myCity]!==undefined?cityBudgets[myCity]:getProvinceBudget(myCity))/1000).toFixed(0)}K Bütçe</div>
+                  <div style={{fontSize:"0.75rem",color:"#60A5FA",marginTop:"0.25rem",fontWeight:700}}>₱{((cityBudgets[myCity]!==undefined?cityBudgets[myCity]:getProvinceBudget(myCity))/1000).toFixed(0)}K Bütçe</div>
                 </div>
               </div>
 
@@ -12207,7 +12307,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                         <div style={{display:"flex",flexDirection:"column",gap:"0.3rem",flexShrink:0}}>
                           {canInvest&&(
                             <button onClick={()=>upgradeService(s.id)} style={{padding:"0.28rem 0.6rem",background:`${s.color}12`,border:`1px solid ${s.color}44`,borderRadius:7,color:s.color,cursor:"pointer",fontSize:"0.68rem",fontWeight:700,whiteSpace:"nowrap"}}>
-                              ⬆️ ₺{(s.cost*(s.level+1)/1000).toFixed(0)}K
+                              ⬆️ ₱{(s.cost*(s.level+1)/1000).toFixed(0)}K
                             </button>
                           )}
                           {s.level>0&&(
@@ -12229,7 +12329,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                     <span style={{fontSize:"1rem"}}>💰</span>
                     <span style={{fontFamily:"Syne,sans-serif",fontSize:"0.75rem",fontWeight:800,color:"#10B981",letterSpacing:"0.12em",textTransform:"uppercase"}}>Şehre Yatırım</span>
                   </div>
-                  <div style={{fontSize:"0.78rem",color:"#888",marginBottom:"0.6rem"}}>Her ₺100,000 yatırım refah seviyesini +5 artırır.</div>
+                  <div style={{fontSize:"0.78rem",color:"#888",marginBottom:"0.6rem"}}>Her ₱100,000 yatırım refah seviyesini +5 artırır.</div>
                   <button className="btn btn-green" onClick={()=>investInCity(myCity)}>🏗️ Yatırım Yap</button>
                 </div>
               )}
@@ -12541,7 +12641,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
             </div>
             <div className="card" style={{marginBottom:"1rem"}}>
               <div className="card-title">🏠 Mülk İşlemleri</div>
-              <p style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>Daire (₺500K), Dükkan (₺750K), Arsa (₺1M), Villa (₺2M), Ofis (₺1.5M)</p>
+              <p style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>Daire (₱500K), Dükkan (₱750K), Arsa (₱1M), Villa (₱2M), Ofis (₱1.5M)</p>
               <div className="grid-2">
                 <button className="btn btn-green" onClick={buyRealEstate}>🏠 Mülk Satın Al</button>
                 <button className="btn btn-blue" onClick={collectRent}>💰 Kira Topla</button>
@@ -12786,7 +12886,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                           <div style={{marginTop:"0.65rem",display:"flex",gap:"0.4rem",flexWrap:"wrap",justifyContent:"center"}}>
                             <button className="btn btn-sm btn-gold" onClick={createCampaignRally}
                               style={{fontSize:"0.72rem",padding:"0.35rem 0.7rem"}}>
-                              📣 Miting Düzenle (₺25.000)
+                              📣 Miting Düzenle (₱25.000)
                             </button>
                             {(myC?.rallyCount||0)>0&&(
                               <span style={{fontSize:"0.65rem",color:"#F5C842",alignSelf:"center"}}>
@@ -12799,7 +12899,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                     </div>
                   ):(
                     <div>
-                      <div style={{fontSize:"0.78rem",color:"#888",marginBottom:"0.65rem"}}>Seçmek istediğiniz pozisyon için kampanya başlatın (min ₺50,000):</div>
+                      <div style={{fontSize:"0.78rem",color:"#888",marginBottom:"0.65rem"}}>Seçmek istediğiniz pozisyon için kampanya başlatın (min ₱50,000):</div>
                       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.4rem"}}>
                         {POSITIONS_FOR_ELECTION.map(pos=>{
                           const req = {
@@ -13288,7 +13388,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
               color:"#34D399", icon:"🏥",
               desc:"Halk sağlığının koruyucusu. Ücretsiz tedavi kampanyası başlatabilir.",
               actions:[
-                {label:"🏥 Ücretsiz Tedavi Kampanyası", fn:freeHealthCampaign, desc:"Hazineden ₺500K: tüm oyuncuların HP'si 100 olur (24s CD)"},
+                {label:"🏥 Ücretsiz Tedavi Kampanyası", fn:freeHealthCampaign, desc:"Hazineden ₱500K: tüm oyuncuların HP'si 100 olur (24s CD)"},
               ]
             },
             "Adalet Bakanı": {
@@ -13310,7 +13410,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
               color:"#3B82F6", icon:"🏙️",
               desc:"Şehrin günlük yöneticisi. Etkinlik düzenleyerek şehri mutlu kılar.",
               actions:[
-                {label:"🎉 Etkinlik Düzenle",   fn:mayorEvent,         desc:"₺200K: Refah +10, şehir sakinlerine ₺5K bonus (12s CD)"},
+                {label:"🎉 Etkinlik Düzenle",   fn:mayorEvent,         desc:"₱200K: Refah +10, şehir sakinlerine ₱5K bonus (12s CD)"},
                 {label:"🏙️ Şehre Yatırım",     fn:()=>investInCity(cu.city||"İstanbul"), desc:"Şehrin refah seviyesini artır"},
               ]
             },
@@ -13426,7 +13526,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                             <span style={{fontSize:"0.78rem",fontWeight:700,color:"#ddd",lineHeight:1.3,flex:1}}>{task.name}</span>
                           </div>
                           <div style={{display:"flex",gap:"0.35rem",flexWrap:"wrap"}}>
-                            <span style={{background:"rgba(63,185,80,0.1)",border:"1px solid rgba(63,185,80,0.2)",borderRadius:6,padding:"1px 6px",fontSize:"0.65rem",color:"#3FB950",fontWeight:700}}>+₺{(task.reward/1000).toFixed(0)}K</span>
+                            <span style={{background:"rgba(63,185,80,0.1)",border:"1px solid rgba(63,185,80,0.2)",borderRadius:6,padding:"1px 6px",fontSize:"0.65rem",color:"#3FB950",fontWeight:700}}>+₱{(task.reward/1000).toFixed(0)}K</span>
                             <span style={{background:"rgba(88,166,255,0.1)",border:"1px solid rgba(88,166,255,0.2)",borderRadius:6,padding:"1px 6px",fontSize:"0.65rem",color:"#79C0FF",fontWeight:700}}>+{task.puan} puan</span>
                           </div>
                           <div style={{fontSize:"0.65rem",color:"#666",display:"flex",gap:"0.5rem"}}>
@@ -13436,7 +13536,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                           <button
                             onClick={()=>doTask(tIdx,task)}
                             style={{marginTop:"0.2rem",padding:"0.4rem",borderRadius:8,border:"none",background:ready?`${color}22`:"rgba(255,255,255,0.05)",color:ready?color:"#555",fontWeight:700,fontSize:"0.73rem",cursor:ready?"pointer":"not-allowed",fontFamily:"DM Sans,sans-serif",transition:"all 0.15s",width:"100%"}}>
-                            {ready?"▶ "+("₺"+(task.cost/1000).toFixed(0)+"K ile Başlat"):"⏳ "+fmtTime(remaining)}
+                            {ready?"▶ "+("₱"+(task.cost/1000).toFixed(0)+"K ile Başlat"):"⏳ "+fmtTime(remaining)}
                           </button>
                         </div>
                       );
@@ -13866,7 +13966,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
             <div className="ministry-header">⚖️ Mahkeme & Hapishane</div>
             <div className="card" style={{marginBottom:"1rem"}}>
               <div className="card-title">⚖️ Dava Aç</div>
-              <p style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>Dava açmak ₺10,000 TL gerektirir. Hakim karar verir.</p>
+              <p style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>Dava açmak ₱10,000 PoliCash gerektirir. Hakim karar verir.</p>
               <div style={{display:"flex",flexDirection:"column",gap:"0.5rem",maxHeight:200,overflowY:"auto"}}>
                 {allUsers.filter(u=>u.id!==cu.id&&u.role!=="admin").map(u=>(
                   <div key={u.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"0.5rem",background:"rgba(255,255,255,0.03)",borderRadius:"0.4rem"}}>
@@ -13944,7 +14044,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
               ))}
             </div>
             <div className="info-box" style={{marginBottom:"1rem",borderColor:"rgba(96,165,250,0.2)",background:"rgba(96,165,250,0.04)"}}>
-              🔒 Casusluk: ₺50,000 — Hedefin parasını, partisini ve konumunu öğren. Suikast: ₺500,000 — Hedefin HP'sini düşür ve konumunu öğren. Aile üyesi veya lideri olmanız gerekir.
+              🔒 Casusluk: ₱50,000 — Hedefin parasını, partisini ve konumunu öğren. Suikast: ₱500,000 — Hedefin HP'sini düşür ve konumunu öğren. Aile üyesi veya lideri olmanız gerekir.
             </div>
             <div className="card" style={{marginBottom:"1rem"}}>
               <div className="card-title">🔍 Hedef Seç</div>
@@ -13956,8 +14056,8 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                       {u.position&&<span className="tag tag-gold" style={{marginLeft:"0.5rem"}}>{u.position}</span>}
                     </div>
                     <div style={{display:"flex",gap:"0.5rem"}}>
-                      <button className="btn btn-blue btn-sm" onClick={()=>spyOnUser(u)}>🕵️ Casus Tut (₺50K)</button>
-                      {u.position&&<button className="btn btn-primary btn-sm" onClick={()=>attemptAssassination(u)}>☠️ Suikast (₺500K)</button>}
+                      <button className="btn btn-blue btn-sm" onClick={()=>spyOnUser(u)}>🕵️ Casus Tut (₱50K)</button>
+                      {u.position&&<button className="btn btn-primary btn-sm" onClick={()=>attemptAssassination(u)}>☠️ Suikast (₱500K)</button>}
                     </div>
                   </div>
                 ))}
@@ -14087,7 +14187,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
             {(Array.isArray(holdings)?holdings:[]).find(h=>h.ceo===cu.username&&h.sector==="Eğitim")&&(
               <div className="card" style={{marginBottom:"1rem"}}>
                 <div className="card-title">🎓 Okul Kur</div>
-                <button className="btn btn-green" onClick={createPrivateSchool}>+ ÖZEL OKUL KUR (₺5,000,000)</button>
+                <button className="btn btn-green" onClick={createPrivateSchool}>+ ÖZEL OKUL KUR (₱5,000,000)</button>
               </div>
             )}
             {!(Array.isArray(holdings)?holdings:[]).find(h=>h.ceo===cu.username&&h.sector==="Eğitim")&&(
@@ -14229,6 +14329,33 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
           return(
           <div>
             <div className="ministry-header">🔔 Bildirim Merkezi</div>
+             {(()=>{
+               const pending=haracRequests.filter(r=>r.targetUserId===cu.id&&r.status==="pending"&&r.expiresAt>Date.now());
+               if(!pending.length) return null;
+               return(
+                 <div style={{background:"linear-gradient(135deg,rgba(239,68,68,0.12),rgba(239,68,68,0.04))",border:"1px solid rgba(239,68,68,0.4)",borderRadius:14,padding:"0.85rem",marginBottom:"0.85rem"}}>
+                   <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,color:"#EF4444",fontSize:"0.92rem",marginBottom:"0.5rem"}}>⚠️ Bekleyen Haraç Talebi</div>
+                   {pending.map(req=>(
+                     <div key={req.id} style={{background:"rgba(0,0,0,0.3)",borderRadius:10,padding:"0.65rem",marginBottom:"0.4rem",border:"1px solid rgba(239,68,68,0.2)"}}>
+                       <div style={{fontSize:"0.82rem",color:"#fff",fontWeight:700,marginBottom:"0.2rem"}}>
+                         💀 <span style={{color:"#EF4444"}}>{req.gangName}</span> — {fmtMoney(req.amount)}
+                       </div>
+                       <div style={{fontSize:"0.68rem",color:"#888",marginBottom:"0.5rem"}}>
+                         Reddedersen mekanların 7 gün saldırıya açık olur. {Math.ceil((req.expiresAt-Date.now())/3600000)} saat kaldı.
+                       </div>
+                       <div style={{display:"flex",gap:"0.5rem"}}>
+                         <button onClick={()=>payHarac(req.id)} style={{flex:1,padding:"0.45rem",background:"rgba(16,185,129,0.18)",border:"1px solid rgba(16,185,129,0.4)",borderRadius:8,color:"#10B981",fontSize:"0.78rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                           💸 Öde ({fmtMoney(req.amount)})
+                         </button>
+                         <button onClick={()=>rejectHarac(req.id)} style={{flex:1,padding:"0.45rem",background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:8,color:"#F87171",fontSize:"0.78rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                           🚨 Reddet
+                         </button>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               );
+             })()}
             <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
               {[["📬",myNotifs.length,"Toplam","#60A5FA"],["🔴",unreadCount,"Okunmamış","#EF4444"],["✅",myNotifs.length-unreadCount,"Okunmuş","#10B981"]].map(([icon,val,lbl,clr])=>(
                 <div key={lbl} style={{background:`${clr}0a`,border:`1px solid ${clr}22`,borderRadius:10,padding:"0.45rem",textAlign:"center"}}>
@@ -14245,7 +14372,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                   <div style={{fontWeight:700,fontSize:"0.85rem",color:"#F59E0B",marginBottom:"0.2rem"}}>Anlık Bildirimler Kapat!</div>
                   <div style={{fontSize:"0.72rem",color:"#7A8FA6",lineHeight:1.4}}>DM, saldırı ve ekonomi haberleri için izin ver.</div>
                 </div>
-                <button onClick={()=>{Notification.requestPermission().then(p=>{if(p==="granted")window._pushNotif?.("🎮 UnderState","Bildirimler aktif!","welcome");});}} style={{padding:"0.5rem 0.9rem",borderRadius:9,border:"1px solid rgba(245,158,11,0.5)",background:"rgba(245,158,11,0.18)",color:"#F59E0B",fontWeight:800,cursor:"pointer",fontSize:"0.78rem",whiteSpace:"nowrap"}}>İzin Ver</button>
+                <button onClick={()=>{Notification.requestPermission().then(p=>{if(p==="granted")window._pushNotif?.("🎮 Politikon","Bildirimler aktif!","welcome");});}} style={{padding:"0.5rem 0.9rem",borderRadius:9,border:"1px solid rgba(245,158,11,0.5)",background:"rgba(245,158,11,0.18)",color:"#F59E0B",fontWeight:800,cursor:"pointer",fontSize:"0.78rem",whiteSpace:"nowrap"}}>İzin Ver</button>
               </div>
             )}
             {notifPerm==="granted"&&(
@@ -14414,7 +14541,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
           const filtered = newsTab==="all" ? allNews : allNews.filter(n=>n.type===newsTab);
           return(
             <div>
-              <div className="ministry-header">📰 UnderState Basın & Haberler</div>
+              <div className="ministry-header">📰 Politikon Basın & Haberler</div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
                 {[["📰",allNews.length,"Toplam","#60A5FA"],["🚨",allNews.filter(n=>n.isBreaking).length,"Son Dakika","#EF4444"],["📝",(Array.isArray(scandals)?scandals:[]).length,"Skandal","#F59E0B"],["🏙️",allNews.filter(n=>n.type==="city").length,"Şehir","#10B981"]].map(([icon,val,lbl,clr])=>(
                   <div key={lbl} style={{background:`${clr}0a`,border:`1px solid ${clr}22`,borderRadius:10,padding:"0.45rem",textAlign:"center"}}>
@@ -14425,7 +14552,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
               </div>
               {/* Newspaper-style header */}
               <div style={{textAlign:"center",marginBottom:"1rem",borderBottom:"2px solid rgba(255,255,255,0.1)",paddingBottom:"0.75rem"}}>
-                <div style={{fontFamily:"Syne,sans-serif",fontSize:"1.6rem",fontWeight:900,letterSpacing:"0.08em",color:"#fff",marginBottom:"0.1rem"}}>📰 UNDERSTATE TIMES</div>
+                <div style={{fontFamily:"Syne,sans-serif",fontSize:"1.6rem",fontWeight:900,letterSpacing:"0.08em",color:"#fff",marginBottom:"0.1rem"}}>📰 POLİTİKON TIMES</div>
                 <div style={{fontSize:"0.65rem",color:"#555",letterSpacing:"0.15em",textTransform:"uppercase"}}>Günlük · {new Date().toLocaleDateString("tr-TR",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
                 <div style={{display:"flex",justifyContent:"center",gap:"0.75rem",marginTop:"0.4rem",fontSize:"0.6rem",color:"#555"}}>
                   <span>📍 Türkiye</span>
@@ -14605,9 +14732,9 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
             if(myH.length===0) return notify("❌ Borsaya listelenecek holding yok.");
             const hName = myH.length===1 ? myH[0].name : prompt("Holding adını girin: "+myH.map(h=>h.name).join(", "));
             const h = myH.find(x=>x.name===hName)||myH[0];
-            const priceStr = prompt(`${h.name} — Hisse başlangıç fiyatı (₺):`,"10000");
+            const priceStr = prompt(`${h.name} — Hisse başlangıç fiyatı (₱):`,"10000");
             const price = parseInt(priceStr)||0;
-            if(price<1000) return notify("❌ En az ₺1,000 girin!");
+            if(price<1000) return notify("❌ En az ₱1,000 girin!");
             listHoldingOnStock(h.id, price);
           };
 
@@ -14719,7 +14846,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                             </div>
                           </div>
                         </div>
-                        <div style={{fontSize:"0.65rem",color:"var(--text-muted)",marginTop:"0.4rem"}}>CEO: {s.ceo} · Piyasa Değeri: ₺{Math.round(s.sharePrice*s.totalShares/1000000)}M</div>
+                        <div style={{fontSize:"0.65rem",color:"var(--text-muted)",marginTop:"0.4rem"}}>CEO: {s.ceo} · Piyasa Değeri: ₱{Math.round(s.sharePrice*s.totalShares/1000000)}M</div>
                       </div>
                     );
                   })}
@@ -14798,10 +14925,10 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                             </span>
                           ):(
                             <button onClick={()=>{
-                              const priceStr=prompt(h.name+" - Başlangıç hisse fiyatı (₺):", "10000");
+                              const priceStr=prompt(h.name+" - Başlangıç hisse fiyatı (₱):", "10000");
                               const price=parseInt(priceStr)||0;
                               if(price>=1000) listHoldingOnStock(h.id, price);
-                              else if(priceStr!==null) notify("❌ En az ₺1,000 girin!");
+                              else if(priceStr!==null) notify("❌ En az ₱1,000 girin!");
                             }} style={{padding:"0.35rem 0.8rem",background:"var(--accent)",border:"none",borderRadius:5,color:"#000",fontWeight:700,cursor:"pointer",fontFamily:"inherit",fontSize:"0.78rem"}}>
                               Listele
                             </button>
@@ -14845,12 +14972,12 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
             {/* ── GÜNLÜK ÇARK ── */}
             {horseTab==="spin"&&(()=>{
               const SPIN_PRIZES = [
-                {label:"₺5.000",icon:"💵",type:"money",value:5000,color:"#10B981",weight:25},
-                {label:"₺15.000",icon:"💵",type:"money",value:15000,color:"#10B981",weight:15},
-                {label:"₺50.000",icon:"💰",type:"money",value:50000,color:"#10B981",weight:8},
-                {label:"10 UC",icon:"🪙",type:"uc",value:10,color:"#FFB800",weight:20},
-                {label:"50 UC",icon:"🪙",type:"uc",value:50,color:"#FFB800",weight:10},
-                {label:"200 UC",icon:"💎",type:"uc",value:200,color:"#A78BFA",weight:3},
+                {label:"₱5.000",icon:"💵",type:"money",value:5000,color:"#10B981",weight:25},
+                {label:"₱15.000",icon:"💵",type:"money",value:15000,color:"#10B981",weight:15},
+                {label:"₱50.000",icon:"💰",type:"money",value:50000,color:"#10B981",weight:8},
+                {label:"10 PG",icon:"🪙",type:"pg",value:10,color:"#FFB800",weight:20},
+                {label:"50 PG",icon:"🪙",type:"pg",value:50,color:"#FFB800",weight:10},
+                {label:"200 PG",icon:"💎",type:"pg",value:200,color:"#A78BFA",weight:3},
                 {label:"+5 Liyakat",icon:"🏅",type:"merit",value:5,color:"#F59E0B",weight:12},
                 {label:"+20 HP",icon:"❤️",type:"hp",value:20,color:"#EF4444",weight:15},
                 {label:"✨ JACKPOT",icon:"👑",type:"money",value:500000,color:"#FFD700",weight:1},
@@ -14869,7 +14996,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                   let rand = Math.random()*totalWeight, prize = SPIN_PRIZES[SPIN_PRIZES.length-1];
                   for(const p of SPIN_PRIZES){ rand-=p.weight; if(rand<=0){prize=p;break;} }
                   if(prize.type==="money") updateUser({money:(cu.money||0)+prize.value});
-                  else if(prize.type==="uc") updateUser({underCoin:(cu.underCoin||0)+prize.value});
+                  else if(prize.type==="pg") updateUser({underCoin:(cu.underCoin||0)+prize.value});
                   else if(prize.type==="merit") updateUser({meritPoints:(cu.meritPoints||0)+prize.value});
                   else if(prize.type==="hp") updateUser({hp:Math.min(100,(cu.hp||100)+prize.value)});
                   const newStreak = prize.type==="none"?0:(mySpinData.streak||0)+1;
@@ -14955,13 +15082,13 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                     <div style={{fontSize:"2.5rem",marginBottom:"0.5rem"}}>🎰</div>
                     <div style={{fontFamily:"Syne,sans-serif",color:"#FFD700",marginBottom:"0.5rem"}}>Slot Makinesi</div>
                     <div style={{fontSize:"0.8rem",color:"#bbb",marginBottom:"0.75rem"}}>3 sembol tut! Jackpot: 10x, Üçlü: 3x, İkili: 1.5x</div>
-                    <button className="btn btn-gold" style={{color:"#000"}} onClick={playSlots}>🎰 Çevir! (min ₺1,000)</button>
+                    <button className="btn btn-gold" style={{color:"#000"}} onClick={playSlots}>🎰 Çevir! (min ₱1,000)</button>
                   </div>
                   <div className="card" style={{textAlign:"center"}}>
                     <div style={{fontSize:"2.5rem",marginBottom:"0.5rem"}}>🪙</div>
                     <div style={{fontFamily:"Syne,sans-serif",color:"#FFD700",marginBottom:"0.5rem"}}>Yazı Tura</div>
                     <div style={{fontSize:"0.8rem",color:"#bbb",marginBottom:"0.75rem"}}>Doğru tahmin: 2x kazanç!</div>
-                    <button className="btn btn-gold" style={{color:"#000"}} onClick={playCoinFlip}>🪙 Oyna! (min ₺500)</button>
+                    <button className="btn btn-gold" style={{color:"#000"}} onClick={playCoinFlip}>🪙 Oyna! (min ₱500)</button>
                   </div>
                 </div>
               </div>
@@ -14996,9 +15123,9 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                               <div style={{color:"#FFD700",fontWeight:700}}>x{h.odds}</div>
                               {myBet?<div style={{fontSize:"0.7rem",color:"#10B981"}}>✅ {fmtMoney(myBet.amount)} bahis</div>:
                               <button className="btn btn-sm" style={{marginTop:"0.25rem",background:"rgba(255,215,0,0.12)",border:"1px solid rgba(255,215,0,0.3)",color:"#FFD700",fontSize:"0.72rem"}} onClick={async()=>{
-                                const amtStr=await gPrompt("🏇 Bahis","Kaç TL bahis oynıyorsunuz? (min ₺500)","1000","number",{min:500,max:5000000});
+                                const amtStr=await gPrompt("🏇 Bahis","Kaç TL bahis oynıyorsunuz? (min ₱500)","1000","number",{min:500,max:5000000});
                                 const amt=parseInt(amtStr)||0;
-                                if(amt<500)return notify("❌ Min ₺500!");
+                                if(amt<500)return notify("❌ Min ₱500!");
                                 if((cu.money||0)<amt)return notify("❌ Yeterli para yok!");
                                 updateUser({money:(cu.money||0)-amt});
                                 const bet={id:Date.now(),userId:cu.id,username:cu.username,raceId:activeRace.id,horseId:h.id,horseName:h.name,amount:amt,odds:h.odds,settled:false,date:new Date().toLocaleTimeString("tr-TR")};
@@ -15105,7 +15232,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                                 <button key={opt.pick} style={{flex:1,padding:"0.35rem 0.1rem",background:"rgba(255,215,0,0.07)",border:"1px solid rgba(255,215,0,0.2)",borderRadius:"0.4rem",color:"#FFD700",cursor:"pointer",fontSize:"0.72rem",fontWeight:700}} onClick={async()=>{
                                   const amtStr=await gPrompt("⚽ Bahis",`${ht.name} - ${at.name}\n${opt.label} için bahis miktarı:`,"1000","number",{min:100});
                                   const amt=parseInt(amtStr)||0;
-                                  if(amt<100)return notify("  � Min ₺100!");
+                                  if(amt<100)return notify("  � Min ₱100!");
                                   if((cu.money||0)<amt)return notify("❌ Para yok!");
                                   updateUser({money:(cu.money||0)-amt});
                                   const bet={id:Date.now(),userId:cu.id,username:cu.username,matchId:m.id,matchLabel:`${ht.name}-${at.name}`,pick:opt.pick,amount:amt,odds:parseFloat(opt.odds),settled:false,date:new Date().toLocaleTimeString("tr-TR")};
@@ -15149,16 +15276,16 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                     <div className="card" style={{marginBottom:"1rem",borderColor:"rgba(255,215,0,0.3)",textAlign:"center"}}>
                       <div style={{fontSize:"3rem",marginBottom:"0.5rem"}}>🏰</div>
                       <div style={{fontFamily:"Syne,sans-serif",color:"#FFD700",marginBottom:"0.5rem"}}>Kale Kur</div>
-                      <div style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>Kurulum: ₺3,000,000 — Günlük gelir: ₺50,000/gün — Savaşa katılabilir ve savunma yapabilirsiniz.</div>
+                      <div style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>Kurulum: ₱3,000,000 — Günlük gelir: ₱50,000/gün — Savaşa katılabilir ve savunma yapabilirsiniz.</div>
                       <button className="btn btn-gold" style={{color:"#000"}} onClick={async()=>{
-                        if((cu.money||0)<3000000)return notify("❌ ₺3,000,000 gerekli!");
+                        if((cu.money||0)<3000000)return notify("❌ ₱3,000,000 gerekli!");
                         const name=await gPrompt("🏰 Kale","Kalenizin adını girin:","Karanlık Kule");
                         if(!name?.trim())return;
                         const castle={id:Date.now(),name:name.trim(),owner:cu.username,city:cu.city||"İstanbul",level:1,hp:100,maxHp:100,troops:50,income:50000,lastCollect:Date.now(),wins:0,losses:0,defense:50,attack:40,upgrades:[]};
                         setCastles(prev=>[...prev,castle]);
                         updateUser({money:(cu.money||0)-3000000});
                         addFeed(`🏰 ${cu.username} '${name}' kalesini kurdu!`,"economy",cu.username);
-                        notify(`✅ ${name} kuruldu! -₺3,000,000`);
+                        notify(`✅ ${name} kuruldu! -₱3,000,000`);
                       }}>YAKINDA AKTİF EDİLECEKTİR</button>
                     </div>
                   )}
@@ -15709,7 +15836,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                       <div style={{display:"flex",justifyContent:"space-between",fontSize:"0.7rem",color:"#aaa",marginTop:"0.2rem"}}><span>300 (E)</span><span>850 (AA)</span></div>
                     </div>
                     <div className="grid-2" style={{textAlign:"left",gap:"0.5rem",marginBottom:"1rem"}}>
-                      {[["💳 Maks. Kredi",cs>=750?"₺1,000,000":cs>=700?"₺500,000":cs>=600?"₺200,000":cs>=500?"₺100,000":"₺50,000"],["📈 Kredi Arttırma","Zamanında ödeme +30 puan"],["📉 Kredi Düşme","Gecikme/ödenmeme -50 puan"],["🏦 Güncel Başvuru",loanApps.filter(l=>l.userId===cu.id).length+" adet bekliyor"]].map(([k,v])=>(
+                      {[["💳 Maks. Kredi",cs>=750?"₱1,000,000":cs>=700?"₱500,000":cs>=600?"₱200,000":cs>=500?"₱100,000":"₱50,000"],["📈 Kredi Arttırma","Zamanında ödeme +30 puan"],["📉 Kredi Düşme","Gecikme/ödenmeme -50 puan"],["🏦 Güncel Başvuru",loanApps.filter(l=>l.userId===cu.id).length+" adet bekliyor"]].map(([k,v])=>(
                         <div key={k} style={{padding:"0.5rem",background:"rgba(255,255,255,0.03)",borderRadius:"0.4rem"}}>
                           <div style={{fontSize:"0.75rem",color:"#aaa"}}>{k}</div>
                           <div style={{fontWeight:700,color:grade.color,fontSize:"0.85rem"}}>{v}</div>
@@ -15877,7 +16004,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
           ].filter(x=>x.title.toLowerCase().includes(wSearch.toLowerCase())||x.desc.toLowerCase().includes(wSearch.toLowerCase()));
           return (
             <div style={{maxWidth:720,margin:"0 auto"}}>
-              <div className="ministry-header">📖 UnderState Wiki & Rehber</div>
+              <div className="ministry-header">📖 Politikon Wiki & Rehber</div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"0.4rem",marginBottom:"0.75rem"}}>
                 {[["📖",CATS.length,"Kategori","#60A5FA"],["🏙️",CITIES_IMG.length,"Şehir","#10B981"],["❓",10,"SSS","#A78BFA"],["🔍",filteredContent?SEARCH_MAP.length:0,"Arama Sonucu","#FFD700"]].map(([icon,val,lbl,clr])=>(
                   <div key={lbl} style={{background:`${clr}0a`,border:`1px solid ${clr}22`,borderRadius:10,padding:"0.4rem",textAlign:"center"}}>
@@ -15972,12 +16099,12 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                         <H2>📖 Yeni Oyuncu Rehberi</H2>
                         <Item icon="1️⃣" title="Şehir Seç" desc="Kayıt olurken yaşadığın şehri seç. Şehrin siyasi yapısı, ekonomisi ve nüfusu seni etkiler. İstanbul başlangıç için idealdir."/>
                         <Item icon="2️⃣" title="Meslek Edin" desc="Menüden 'Meslek' sayfasına git. Uygun eğitim seviyene göre bir iş seç ve çalışmaya başla. Her mesleğin farklı maaşı ve cooldown süresi var." onClick={()=>setCurrentPage("job")}/>
-                        <Item icon="3️⃣" title="Para Biriktir" desc="İlk birkaç gün sadece çalış ve para biriktir. ₺50.000+ olunca holding ya da hayvancılığa geç." onClick={()=>setCurrentPage("job")}/>
+                        <Item icon="3️⃣" title="Para Biriktir" desc="İlk birkaç gün sadece çalış ve para biriktir. ₱50.000+ olunca holding ya da hayvancılığa geç." onClick={()=>setCurrentPage("job")}/>
                         <Item icon="4️⃣" title="Partiye Katıl" desc="Siyaset sayfasından bir partiye katıl. Parti üyeliği seçim sürecinde oy hakkı ve pozisyon fırsatı verir." onClick={()=>setCurrentPage("party")}/>
                         <Item icon="5️⃣" title="Seçimleri Takip Et" desc="Her seçim döneminde partini destekle. Kazanan partinin adayları Belediye Başkanı, Vali gibi önemli pozisyonlar alır." onClick={()=>setCurrentPage("election")}/>
                         <H2 c="#F59E0B">⚡ Hızlı Başarı İpuçları</H2>
                         <Item icon="💡" title="EğitimPaketi Al" desc="Admin'den EduPackage satın al — tüm mesleklere erişim kazanırsın. Yüksek maaşlı işler için şart."/>
-                        <Item icon="💡" title="Hayvancılık = Pasif Gelir" desc="Büyükbaş hayvan al, yem otomatik tükenir, süt/et sat. Günde ₺50K+ pasif kazanç mümkün." onClick={()=>setCurrentPage("farm")}/>
+                        <Item icon="💡" title="Hayvancılık = Pasif Gelir" desc="Büyükbaş hayvan al, yem otomatik tükenir, süt/et sat. Günde ₱50K+ pasif kazanç mümkün." onClick={()=>setCurrentPage("farm")}/>
                         <Item icon="💡" title="Holding Çarpanı" desc="Holdingin cirosu arttıkça temettü çarpanı artar. Birden fazla sektöre yatırım yap." onClick={()=>setCurrentPage("holding")}/>
                         <Item icon="💡" title="Borsa'da Al-Düşük-Sat-Yüksek" desc="Fiyat dip yaparken al, zirve yakınında sat. Haberler fiyatları etkiler." onClick={()=>setCurrentPage("borsa")}/>
                         <H2 c="#A78BFA">🌟 Öne Çıkmak İçin</H2>
@@ -16050,9 +16177,9 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                         <H2>🏛️ Siyasi Sistem</H2>
                         <Item icon="🤝" title="Partiler" desc="Oyuncular tarafından kurulan siyasi partiler. Her partinin rengi, simgesi ve ideolojisi var. Davet al veya başvur." onClick={()=>setCurrentPage("party")}/>
                         <Item icon="🗳️" title="Seçimler" desc="Belirli aralıklarla gerçekleşen seçimler. Her şehir için ayrı Belediye Başkanı ve Vali seçilir." onClick={()=>setCurrentPage("election")}/>
-                        <Item icon="🏙️" title="Belediye Başkanı" desc="Şehrin en üst yöneticisi. Bütçe teklifleri onar, şehir projeleri başlatır. Maaş: ₺40.000/ay." onClick={()=>setCurrentPage("belediye")}/>
-                        <Item icon="🏛️" title="Vali" desc="İl yöneticisi. Bakanlık kararlarını uygular, güvenlik politikasını belirler. Maaş: ₺65.000/ay."/>
-                        <Item icon="📜" title="Meclis Başkanı" desc="Yasa tasarılarını yönetir, oylama süreçlerini denetler. Maaş: ₺12.000/hafta."/>
+                        <Item icon="🏙️" title="Belediye Başkanı" desc="Şehrin en üst yöneticisi. Bütçe teklifleri onar, şehir projeleri başlatır. Maaş: ₱40.000/ay." onClick={()=>setCurrentPage("belediye")}/>
+                        <Item icon="🏛️" title="Vali" desc="İl yöneticisi. Bakanlık kararlarını uygular, güvenlik politikasını belirler. Maaş: ₱65.000/ay."/>
+                        <Item icon="📜" title="Meclis Başkanı" desc="Yasa tasarılarını yönetir, oylama süreçlerini denetler. Maaş: ₱12.000/hafta."/>
                         <Item icon="👑" title="Devlet Başkanı" desc="En üst makam. OHAL, kabine, referandum yetkisi. Seçimle veya atama ile gelir." onClick={()=>setCurrentPage("positionpanel")}/>
                         <H2 c="#8B5CF6">🗳️ Seçim Stratejisi</H2>
                         <Item icon="📢" title="Kampanya Başlat" desc="Seçim öncesi kampanya başlat. Her mesajın puan maliyeti var ama oy çekici etki yapar." onClick={()=>setCurrentPage("election")}/>
@@ -16530,7 +16657,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
           <div>
             <div className="ministry-header">🛍️ Premium Mağaza</div>
             <div className="info-box" style={{marginBottom:"1rem",borderColor:"rgba(255,184,0,0.3)"}}>
-              🌟 Bu mağazada <strong>VIP Üyelik</strong>, <strong>UnderCoin (UC)</strong> ve özel içerikler satın alınır. Tüm satın almalar <strong>Google Play</strong> üzerinden güvenle yapılır.
+              🌟 Bu mağazada <strong>VIP Üyelik</strong>, <strong>PoliGold (PG)</strong> ve özel içerikler satın alınır. Tüm satın almalar <strong>Google Play</strong> üzerinden güvenle yapılır.
             </div>
             {isVip && (
               <div style={{marginBottom:"1rem",padding:"0.75rem 1rem",background:"linear-gradient(135deg,rgba(167,139,250,0.1),rgba(124,58,237,0.08))",border:"1px solid rgba(167,139,250,0.3)",borderRadius:"0.75rem",display:"flex",alignItems:"center",gap:"0.75rem"}}>
@@ -16556,7 +16683,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
 
             {/* UC Paketleri */}
             <div className="card" style={{marginBottom:"1rem",borderColor:"rgba(255,184,0,0.3)"}}>
-              <div className="card-title" style={{color:"#FFB800"}}>🪙 UnderCoin (UC) PAKETLERİ</div>
+              <div className="card-title" style={{color:"#FFB800"}}>🪙 PoliGold (PG) PAKETLERİ</div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:"0.75rem"}}>
                 {[
                   {uc:50,price:9.99,label:"Başlangıç",color:"#60A5FA",icon:"🌱"},
@@ -16567,9 +16694,9 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                   <div key={pkg.uc} style={{background:"rgba(255,255,255,0.03)",border:`1px solid ${pkg.color}44`,borderRadius:"0.75rem",padding:"0.75rem",textAlign:"center"}}>
                     <div style={{fontSize:"1.5rem",marginBottom:"0.3rem"}}>{pkg.icon}</div>
                     <div style={{fontWeight:700,color:pkg.color,fontSize:"0.9rem"}}>{pkg.label}</div>
-                    <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:"1.2rem",fontWeight:800,color:"#FFB800",margin:"0.4rem 0"}}>{pkg.uc} UC</div>
+                    <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:"1.2rem",fontWeight:800,color:"#FFB800",margin:"0.4rem 0"}}>{pkg.uc} PG</div>
                     {pkg.bonus&&<div style={{fontSize:"0.65rem",color:"#10B981",marginBottom:"0.3rem"}}>🎁 {pkg.bonus}</div>}
-                    <div style={{fontSize:"0.78rem",color:"#aaa",marginBottom:"0.5rem"}}>₺{pkg.price}</div>
+                    <div style={{fontSize:"0.78rem",color:"#aaa",marginBottom:"0.5rem"}}>₱{pkg.price}</div>
                     {cu.role==="admin"?(
                       <button className="btn btn-sm" style={{background:`rgba(255,184,0,0.15)`,border:`1px solid rgba(255,184,0,0.3)`,color:"#FFB800",width:"100%",fontSize:"0.72rem"}} onClick={async()=>{
                         const target = await gPrompt("UC Ver","Oyuncu adı:","username","text");
@@ -16579,10 +16706,10 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                         const totalUC = pkg.uc + (pkg.uc===150?20:pkg.uc===400?75:pkg.uc===1000?200:0);
                         const newUsers = allUsers.map(x=>x.id===u.id?{...x,underCoin:(x.underCoin||0)+totalUC}:x);
                         setAllUsers(newUsers); S.save("users",newUsers);
-                        notify(`✅ ${u.username} → +${totalUC} UC verildi!`);
+                        notify(`✅ ${u.username} → +${totalUC} PG verildi!`);
                       }}>⚡ Oyuncuya Ver</button>
                     ):(
-                      <button className="btn btn-sm" style={{background:`rgba(255,184,0,0.15)`,border:`1px solid rgba(255,184,0,0.4)`,color:"#FFB800",width:"100%",fontSize:"0.72rem",opacity:purchasePending?0.6:1}} onClick={()=>purchaseProduct(pkg.uc===50?"uc_50":pkg.uc===150?"uc_150":pkg.uc===400?"uc_400":"uc_1000")} disabled={purchasePending}>
+                      <button className="btn btn-sm" style={{background:`rgba(255,184,0,0.15)`,border:`1px solid rgba(255,184,0,0.4)`,color:"#FFB800",width:"100%",fontSize:"0.72rem",opacity:purchasePending?0.6:1}} onClick={()=>purchaseProduct(pkg.uc===50?"pg_50":pkg.uc===150?"pg_150":pkg.uc===400?"pg_400":"pg_1000")} disabled={purchasePending}>
                         {purchasePending?"⏳ İşleniyor...":"🛒 Google Play ile Al"}
                       </button>
                     )}
@@ -16596,8 +16723,8 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
               <div className="card-title" style={{color:"#A78BFA"}}>⭐ PREMİUM ÜYELİK</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>
                 {[
-                  {label:"Aylık VIP",price:"₺99.99",duration:"30 gün",perks:["🚫 Reklam yok","2x eğitim hızı","Özel VIP rozeti","Günlük +50 UC","Öncelikli destek"],color:"#A78BFA"},
-                  {label:"Yıllık VIP",price:"₺749.99",duration:"365 gün",perks:["🚫 Reklam yok","2x eğitim hızı","Özel VIP rozeti","Günlük +50 UC","Öncelikli destek","Özel unvan","Bonus 500 UC"],color:"#FFB800",popular:true},
+                  {label:"Aylık VIP",price:"₱99.99",duration:"30 gün",perks:["🚫 Reklam yok","2x eğitim hızı","Özel VIP rozeti","Günlük +50 PG","Öncelikli destek"],color:"#A78BFA"},
+                  {label:"Yıllık VIP",price:"₱749.99",duration:"365 gün",perks:["🚫 Reklam yok","2x eğitim hızı","Özel VIP rozeti","Günlük +50 PG","Öncelikli destek","Özel unvan","Bonus 500 PG"],color:"#FFB800",popular:true},
                 ].map(plan=>(
                   <div key={plan.label} style={{background:"rgba(255,255,255,0.03)",border:`2px solid ${plan.color}44`,borderRadius:"0.75rem",padding:"0.75rem",position:"relative"}}>
                     {plan.popular&&<div style={{position:"absolute",top:-10,left:"50%",transform:"translateX(-50%)",background:plan.color,color:"#000",fontSize:"0.6rem",fontWeight:700,padding:"2px 8px",borderRadius:10}}>EN POPÜLER</div>}
@@ -16625,14 +16752,14 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 <div style={{display:"flex",gap:"0.5rem",flexWrap:"wrap"}}>
                   {[10,50,100,250,500,1000].map(amt=>(
                     <button key={amt} className="btn btn-sm" style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",color:"#FCA5A5"}} onClick={async()=>{
-                      const target = await gPrompt("UC Ver",`${amt} UC verilecek oyuncu:`, "username","text");
+                      const target = await gPrompt("UC Ver",`${amt} PG verilecek oyuncu:`, "username","text");
                       if(!target) return;
                       const u = allUsers.find(x=>x.username===target);
                       if(!u) return notify("❌ Kullanıcı bulunamadı!");
                       const newUsers = allUsers.map(x=>x.id===u.id?{...x,underCoin:(x.underCoin||0)+amt}:x);
                       setAllUsers(newUsers); S.save("users",newUsers);
-                      notify(`✅ ${u.username} → +${amt} UC`);
-                    }}>+{amt} UC</button>
+                      notify(`✅ ${u.username} → +${amt} PG`);
+                    }}>+{amt} PG</button>
                   ))}
                 </div>
               </div>
@@ -16740,11 +16867,11 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
             {(()=>{
               const weekNum = Math.floor(Date.now()/(7*24*60*60*1000));
               const WEEKLY_DEF = [
-                {id:"w1",title:"💰 En Çok Kazanan",desc:"Bu hafta en çok para kazanan oyuncu büyük ödül alır!",metric:"weeklyEarned",reward:"₺500,000 + 100UC",icon:"💰"},
-                {id:"w2",title:"⚔️ Savaş Şampiyonu",desc:"En çok PvP galibiyeti alan oyuncu efsane ödül kazanır!",metric:"pvpWins",reward:"₺200,000 + 200RC + 100🏅",icon:"⚔️"},
-                {id:"w3",title:"🏅 Liyakat Lideri",desc:"Haftanın en çok liyakat kazanan oyuncusu!",metric:"weeklyMerit",reward:"₺300,000 + 50RC + Özel Rozet",icon:"🏅"},
-                {id:"w4",title:"🏢 Holding Devi",desc:"En yüksek kar eden holding sahibi!",metric:"holdingProfit",reward:"₺1,000,000 + 500UC",icon:"🏢"},
-                {id:"w5",title:"🗺️ Toprak Fatihi",desc:"En çok bölgeye sahip oyuncu!",metric:"territories",reward:"₺250,000 + 150UC",icon:"🗺️"},
+                {id:"w1",title:"💰 En Çok Kazanan",desc:"Bu hafta en çok para kazanan oyuncu büyük ödül alır!",metric:"weeklyEarned",reward:"₱500,000 + 100UC",icon:"💰"},
+                {id:"w2",title:"⚔️ Savaş Şampiyonu",desc:"En çok PvP galibiyeti alan oyuncu efsane ödül kazanır!",metric:"pvpWins",reward:"₱200,000 + 200RC + 100🏅",icon:"⚔️"},
+                {id:"w3",title:"🏅 Liyakat Lideri",desc:"Haftanın en çok liyakat kazanan oyuncusu!",metric:"weeklyMerit",reward:"₱300,000 + 50RC + Özel Rozet",icon:"🏅"},
+                {id:"w4",title:"🏢 Holding Devi",desc:"En yüksek kar eden holding sahibi!",metric:"holdingProfit",reward:"₱1,000,000 + 500UC",icon:"🏢"},
+                {id:"w5",title:"🗺️ Toprak Fatihi",desc:"En çok bölgeye sahip oyuncu!",metric:"territories",reward:"₱250,000 + 150UC",icon:"🗺️"},
               ];
               const activeEvent = WEEKLY_DEF[weekNum % WEEKLY_DEF.length];
               const myProgress = weeklyEventProgress[cu.id+activeEvent.id]||0;
@@ -16797,11 +16924,11 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
             <div className="ministry-header">🎭 Senaryo Görevleri</div>
             {(()=>{
               const SCENARIOS = [
-                {id:"sc1",title:"🔰 Sıfırdan Başlangıç",steps:["Bir meslekde işe başla","İlk 10.000 TL'yi kazan","Banka hesabı aç ve 5.000 TL yatır"],rewards:["₺20,000","₺50,000 + 20UC","₺100,000 + Özel Rozet"],chapter:"Bölüm 1"},
-                {id:"sc2",title:"⚑ Siyasi Yükseliş",steps:["Bir partiye katıl","Milletvekili seçilmeye çalış","Meclis'e ilk konuşmanı yap"],rewards:["₺30,000","₺75,000 + 30UC","₺200,000 + Liyakat Bonusu"],chapter:"Bölüm 2"},
-                {id:"sc3",title:"🏢 İş Dünyası İmparatorluğu",steps:["Holding kur","Holding seviyeni 3'e çıkar","2 farklı sektörde holding kur"],rewards:["₺50,000","₺150,000 + 50UC","₺500,000 + Efsane Rozet"],chapter:"Bölüm 3"},
-                {id:"sc4",title:"🔫 Sokakların Efendisi",steps:["Bir çeteye katıl ya da kur","İlk çete baskını düzenle","3 bölge ele geçir"],rewards:["₺25,000","₺80,000 + 20UC","₺300,000 + Güç Bonusu"],chapter:"Bölüm 4"},
-                {id:"sc5",title:"🕵️ Gölge Operatör",steps:["İstihbarat servisi kur","İlk casusluk operasyonu yap","3 başarılı espiyonaj raporu topla"],rewards:["₺40,000","₺100,000 + 40UC","₺400,000 + Gizlilik Rozeti"],chapter:"Bölüm 5"},
+                {id:"sc1",title:"🔰 Sıfırdan Başlangıç",steps:["Bir meslekde işe başla","İlk 10.000 PoliCash'yi kazan","Banka hesabı aç ve 5.000 PoliCash yatır"],rewards:["₱20,000","₱50,000 + 20UC","₱100,000 + Özel Rozet"],chapter:"Bölüm 1"},
+                {id:"sc2",title:"⚑ Siyasi Yükseliş",steps:["Bir partiye katıl","Milletvekili seçilmeye çalış","Meclis'e ilk konuşmanı yap"],rewards:["₱30,000","₱75,000 + 30UC","₱200,000 + Liyakat Bonusu"],chapter:"Bölüm 2"},
+                {id:"sc3",title:"🏢 İş Dünyası İmparatorluğu",steps:["Holding kur","Holding seviyeni 3'e çıkar","2 farklı sektörde holding kur"],rewards:["₱50,000","₱150,000 + 50UC","₱500,000 + Efsane Rozet"],chapter:"Bölüm 3"},
+                {id:"sc4",title:"🔫 Sokakların Efendisi",steps:["Bir çeteye katıl ya da kur","İlk çete baskını düzenle","3 bölge ele geçir"],rewards:["₱25,000","₱80,000 + 20UC","₱300,000 + Güç Bonusu"],chapter:"Bölüm 4"},
+                {id:"sc5",title:"🕵️ Gölge Operatör",steps:["İstihbarat servisi kur","İlk casusluk operasyonu yap","3 başarılı espiyonaj raporu topla"],rewards:["₱40,000","₱100,000 + 40UC","₱400,000 + Gizlilik Rozeti"],chapter:"Bölüm 5"},
               ];
               return (
                 <div style={{display:"flex",flexDirection:"column",gap:"1rem"}}>
@@ -16852,7 +16979,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                             }
                             if(!ok) return notify("❌ Adımı henüz tamamlamadın! Devam et.");
                             const reward = sc.rewards[step];
-                            const moneyMatch = reward.match(/₺([\d,]+)/);
+                            const moneyMatch = reward.match(/₱([\d,]+)/);
                             const ucMatch = reward.match(/\+(\d+)UC/);
                             const updates = {};
                             if(moneyMatch) updates.money = (cu.money||0)+parseInt(moneyMatch[1].replace(/,/g,""));
@@ -16928,7 +17055,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
             <div className="ministry-header">🕵️ Casusluk Merkezi</div>
             <div className="card" style={{marginBottom:"1rem",borderColor:"rgba(167,139,250,0.3)"}}>
               <div className="card-title" style={{color:"#A78BFA"}}>🎯 Operasyon Başlat</div>
-              <div style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>Bir oyuncuyu izle, bilgilerini çal veya dezenformasyon yay. Her operasyon 50,000 TL maliyetlidir.</div>
+              <div style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>Bir oyuncuyu izle, bilgilerini çal veya dezenformasyon yay. Her operasyon 50,000 PoliCash maliyetlidir.</div>
               <div style={{display:"flex",gap:"0.5rem",flexWrap:"wrap"}}>
                 {[
                   {type:"intel",icon:"👁️",label:"Bilgi Topla",desc:"Hedefin gizli bilgilerini öğren"},
@@ -16944,7 +17071,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                       if(!target) return;
                       const t = allUsers.find(u=>u.username===target);
                       if(!t) return notify("❌ Hedef bulunamadı!");
-                      if((cu.money||0)<50000) return notify("❌ Operasyon maliyeti ₺50,000!");
+                      if((cu.money||0)<50000) return notify("❌ Operasyon maliyeti ₱50,000!");
                       updateUser({money:(cu.money||0)-50000});
                       const success = Math.random()>0.35;
                       let result = "";
@@ -17144,7 +17271,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                             <div style={{height:"100%",width:`${total/maxW*100}%`,background:`linear-gradient(90deg,#FFB800,#FFD700)`,borderRadius:2,transition:"width 0.6s ease"}}/>
                           </div>
                         </div>
-                        <div style={{fontSize:"0.78rem",fontWeight:800,color:"#FFD700",fontFamily:"JetBrains Mono,monospace",flexShrink:0}}>₺{(total/1000000).toFixed(2)}M</div>
+                        <div style={{fontSize:"0.78rem",fontWeight:800,color:"#FFD700",fontFamily:"JetBrains Mono,monospace",flexShrink:0}}>₱{(total/1000000).toFixed(2)}M</div>
                       </div>
                     );
                   })}
@@ -17236,7 +17363,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                     <div style={{fontSize:"1.8rem",textAlign:"center"}}>{proj.icon}</div>
                     <div style={{fontWeight:700,textAlign:"center",fontSize:"0.9rem"}}>{proj.name}</div>
                     <div style={{fontSize:"0.72rem",color:"#bbb",textAlign:"center"}}>{proj.desc}</div>
-                    <div style={{fontSize:"0.7rem",color:"#EF4444",textAlign:"center"}}>💰 Hedef: ₺{(proj.cost/1000000).toFixed(0)}M</div>
+                    <div style={{fontSize:"0.7rem",color:"#EF4444",textAlign:"center"}}>💰 Hedef: ₱{(proj.cost/1000000).toFixed(0)}M</div>
                     <div style={{fontSize:"0.7rem",color:"#10B981",textAlign:"center"}}>📈 {fmtMoney(proj.reward)}/gün (katkı oranında)</div>
                     <div style={{fontSize:"0.68rem",color:"#FFD700",textAlign:"center"}}>{proj.bonuses}</div>
                     <button className="btn btn-green btn-sm" style={{marginTop:"0.4rem"}} onClick={async()=>{
@@ -17353,10 +17480,10 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                   {!myClub&&(
                     <div className="card" style={{marginBottom:"1rem",borderColor:"rgba(16,185,129,0.3)"}}>
                       <div className="card-title" style={{color:"#10B981"}}>⚽ Kulüp Kur</div>
-                      <p style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>Kendi futbol kulübünü kur, oyuncular al, liglerde oyna ve şampiyon ol! Kurulum ücreti: ₺2.000.000.000 + 3 sponsor şirket</p>
+                      <p style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>Kendi futbol kulübünü kur, oyuncular al, liglerde oyna ve şampiyon ol! Kurulum ücreti: ₱2.000.000.000 + 3 sponsor şirket</p>
                       <button className="btn btn-green" onClick={async()=>{
                         if(isInIllegal(cu)) return notify(illegalBlockMsg());
-                        if((cu.money||0)<2000000) return notify("❌ ₺2,000,000 gerekli!");
+                        if((cu.money||0)<2000000) return notify("❌ ₱2,000,000 gerekli!");
                         const name = await gPrompt("⚽ Kulüp Kur","Kulüp adını girin:","Kulüp adı");
                         if(!name) return;
                         const city = cu.city||"İstanbul";
@@ -17377,8 +17504,8 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                         };
                         updateUser({money:(cu.money||0)-2000000});
                         setFootballClubs(prev=>[...prev,club]);
-                        notify(`✅ ${name} kuruldu! ₺500,000 başlangıç bütçesi verildi.`);
-                      }}>⚽ Kulüp Kur (₺2.000.000.000)</button>
+                        notify(`✅ ${name} kuruldu! ₱500,000 başlangıç bütçesi verildi.`);
+                      }}>⚽ Kulüp Kur (₱2.000.000.000)</button>
                     </div>
                   )}
                   {myClub&&(
@@ -17444,13 +17571,13 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                         </div>
                         {/* Oyuncu transfer */}
                         <button className="btn btn-blue btn-sm" style={{marginTop:"0.75rem",width:"auto"}} onClick={()=>{
-                          if((myClub.budget||0)<250000) return notify("❌ Transfer için ₺250,000 bütçe gerekli!");
+                          if((myClub.budget||0)<250000) return notify("❌ Transfer için ₱250,000 bütçe gerekli!");
                           const names=["Kemal Aydın","Burak Doğan","Serkan Polat","Emre Güzel","Tolga Arslan","Cem Yıldız","Ferhat Korkmaz","Soner Aktaş"];
                           const positions=["Kaleci","Defans","Orta Saha","Forvet","Kanat"];
                           const newPlayer={name:names[Math.floor(Math.random()*names.length)],pos:positions[Math.floor(Math.random()*positions.length)],rating:Math.floor(Math.random()*20)+65};
                           setFootballClubs(prev=>prev.map(c=>c.id===myClub.id?{...c,players:[...(c.players||[]),newPlayer],budget:(c.budget||0)-250000,rating:Math.floor((c.rating*((c.players||[]).length)+newPlayer.rating)/((c.players||[]).length+1))}:c));
-                          notify(`✅ ${newPlayer.name} transfer edildi! (${newPlayer.rating} puan) -₺250,000`);
-                        }}>🔄 Oyuncu Transfer Et (₺250,000)</button>
+                          notify(`✅ ${newPlayer.name} transfer edildi! (${newPlayer.rating} puan) -₱250,000`);
+                        }}>🔄 Oyuncu Transfer Et (₱250,000)</button>
                       </div>
                       {/* Maç oyna */}
                       <div className="card">
@@ -17726,7 +17853,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                     <div className="card-title" style={{color:"#A78BFA"}}>🌱 Gençlik Akademisi</div>
                     <div style={{fontSize:"0.82rem",color:"#bbb",marginBottom:"0.75rem"}}>
                       Her ay 3 genç oyuncu adayı akademiden çıkar. Her birinin kadronuza katılma ihtimali <strong style={{color:"#A78BFA"}}>%33</strong>'tür.
-                      Akademi eğitimi ücreti: <strong style={{color:"#F59E0B"}}>₺250,000/ay</strong>
+                      Akademi eğitimi ücreti: <strong style={{color:"#F59E0B"}}>₱250,000/ay</strong>
                     </div>
                     <div style={{display:"flex",gap:"0.75rem",alignItems:"center",flexWrap:"wrap"}}>
                       <div style={{fontSize:"0.82rem",color:canTrain?"#10B981":"#F59E0B"}}>
@@ -17737,7 +17864,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                         style={{background:"rgba(167,139,250,0.15)",border:"1px solid rgba(167,139,250,0.4)",color:"#A78BFA",opacity:canTrain?1:0.5,cursor:canTrain?"pointer":"not-allowed"}}
                         onClick={()=>{
                           if(!canTrain) return notify("⏳ Henüz eğitim zamanı gelmedi!");
-                          if((myClub.budget||0)<250000) return notify("❌ Akademi için ₺250,000 bütçe gerekli!");
+                          if((myClub.budget||0)<250000) return notify("❌ Akademi için ₱250,000 bütçe gerekli!");
                           const candidates=[genccPlayer(),genccPlayer(),genccPlayer()];
                           const joined=candidates.filter(()=>Math.random()<0.33);
                           const newAkademi=[...akademiOyunculari,...candidates].slice(-20);
@@ -17757,7 +17884,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                             notify("🌱 Akademi tamamlandı. Bu ay hiç oyuncu kadroya giremedi. Şansınız yok!");
                           }
                         }}
-                      >🌱 Akademi Eğitimi Başlat (₺250,000)</button>
+                      >🌱 Akademi Eğitimi Başlat (₱250,000)</button>
                     </div>
                   </div>
                   {akademiOyunculari.length>0&&(
@@ -17821,7 +17948,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                                   const amtStr=await gPrompt("🎰 Bahis Miktarı",`Bahis miktarı girin. Oran: ${opt.o}x`,"1000","number");
                                   if(!amtStr) return;
                                   const amt=parseInt(amtStr)||0;
-                                  if(amt<500) return notify("❌ Min bahis: ₺500");
+                                  if(amt<500) return notify("❌ Min bahis: ₱500");
                                   if((cu.money||0)<amt) return notify("❌ Para yetersiz!");
                                   updateUser({money:(cu.money||0)-amt});
                                   const bet={id:Date.now(),userId:cu.id,username:cu.username,matchId:`${a.id}-${b.id}`,homeId:a.id,awayId:b.id,choice:opt.l,choiceCode:opt.c,amount:amt,odds:opt.o,potential:Math.floor(amt*opt.o),status:"pending",date:new Date().toLocaleDateString("tr-TR")};
@@ -17896,7 +18023,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                                       }:c));
                                       notify(`✅ ${holding.name} → ${club.name} ${tier.label} Sponsorluğu! +${tier.fanBoost} taraftar, +${tier.prestige}🏅`);
                                     }}>
-                                    {tier.label} ₺{(tier.amount/1000000).toFixed(1)}M
+                                    {tier.label} ₱{(tier.amount/1000000).toFixed(1)}M
                                   </button>
                                 ))}
                               </div>
@@ -17965,7 +18092,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                                     <div style={{textAlign:"center",fontSize:"1.5rem",marginBottom:"0.25rem"}}>{loan.icon}</div>
                                     <div style={{fontWeight:700,textAlign:"center",fontSize:"0.9rem",marginBottom:"0.2rem"}}>{loan.label}</div>
                                     <div style={{fontSize:"0.72rem",color:"#bbb",textAlign:"center",marginBottom:"0.4rem"}}>{loan.desc}</div>
-                                    <div style={{fontSize:"0.72rem",marginBottom:"0.15rem"}}><span style={{color:"#bbb"}}>Tutar: </span><span style={{color:"#60A5FA",fontWeight:700}}>₺{(loan.amount/1000000).toFixed(0)}M</span></div>
+                                    <div style={{fontSize:"0.72rem",marginBottom:"0.15rem"}}><span style={{color:"#bbb"}}>Tutar: </span><span style={{color:"#60A5FA",fontWeight:700}}>₱{(loan.amount/1000000).toFixed(0)}M</span></div>
                                     <div style={{fontSize:"0.72rem",marginBottom:"0.15rem"}}><span style={{color:"#bbb"}}>Taksit: </span><span style={{color:"#F59E0B",fontWeight:700}}>{fmtMoney(monthly)}/ay ({loan.months} ay)</span></div>
                                     <div style={{fontSize:"0.7rem",marginBottom:"0.5rem",color:"#EF4444"}}>Faiz: {fmtMoney(interest)}</div>
                                     <button className="btn btn-blue btn-sm" style={{width:"100%",fontSize:"0.75rem"}} onClick={()=>{
@@ -18209,7 +18336,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 <div>
                   {/* Süper lig başlık */}
                   <div className="card" style={{marginBottom:"1rem",background:"linear-gradient(135deg,rgba(255,215,0,0.08),rgba(0,0,0,0))",borderColor:"rgba(255,215,0,0.4)",textAlign:"center"}}>
-                    <div style={{fontFamily:"Syne,sans-serif",fontSize:"1.4rem",color:"#FFD700",marginBottom:"0.25rem"}}>⚽ UNDERSTATE SÜPER LİG</div>
+                    <div style={{fontFamily:"Syne,sans-serif",fontSize:"1.4rem",color:"#FFD700",marginBottom:"0.25rem"}}>⚽ POLİTİKON SÜPER LİG</div>
                     <div style={{fontSize:"0.8rem",color:"#bbb",marginBottom:"0.5rem"}}>18 Takım · 306 Maç · Tam Sezon · 6 Saatte Bir Otomatik Maç</div>
                     <div style={{display:"flex",justifyContent:"center",gap:"1.5rem"}}>
                       <div style={{textAlign:"center"}}>
@@ -18558,7 +18685,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                     </div>
                     {canCommand&&(
                       <button className="btn btn-sm" style={{background:"rgba(167,139,250,0.1)",border:"1px solid rgba(167,139,250,0.3)",color:"#A78BFA",marginBottom:"0.75rem"}} onClick={async()=>{
-                        const amtStr=await gPrompt("🔬 Ar-Ge Yatırımı","Araştırmaya aktarılacak bütçe (₺):","1000000","number");
+                        const amtStr=await gPrompt("🔬 Ar-Ge Yatırımı","Araştırmaya aktarılacak bütçe (₱):","1000000","number");
                         if(!amtStr) return;
                         const amt=parseInt(amtStr)||0;
                         if((myArmy.budget||0)<amt) return notify("❌ Ordu bütçesi yetersiz!");
@@ -18575,7 +18702,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                           <div key={t.id} style={{padding:"0.65rem 0.75rem",background:unlocked?"rgba(16,185,129,0.08)":reqMet?"rgba(255,255,255,0.04)":"rgba(255,255,255,0.02)",borderRadius:"0.5rem",border:`1px solid ${unlocked?"rgba(16,185,129,0.3)":reqMet?"rgba(255,255,255,0.1)":"rgba(255,255,255,0.05)"}`}}>
                             <div style={{display:"flex",justifyContent:"space-between",marginBottom:"0.2rem"}}>
                               <div style={{fontWeight:700,fontSize:"0.85rem",color:unlocked?"#10B981":reqMet?"#E8E8E8":"#666"}}>{unlocked?"✅ ":reqMet?"🔬 ":"🔒 "}{t.name}</div>
-                              {!unlocked&&<div style={{fontSize:"0.7rem",color:"#A78BFA"}}>₺{(t.cost/1000000).toFixed(1)}M</div>}
+                              {!unlocked&&<div style={{fontSize:"0.7rem",color:"#A78BFA"}}>₱{(t.cost/1000000).toFixed(1)}M</div>}
                             </div>
                             <div style={{fontSize:"0.72rem",color:"#bbb",marginBottom:"0.3rem"}}>{t.desc}</div>
                             {t.req.length>0&&<div style={{fontSize:"0.68rem",color:"#aaa"}}>Gerekli: {t.req.join(", ")}</div>}
@@ -19102,7 +19229,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                           <span style={{fontSize:"1.2rem"}}>{r.badge}</span>
                           <div>
                             <div style={{fontWeight:700,fontSize:"0.85rem"}}>{r.rank}. Sıra — {r.title}</div>
-                            <div style={{fontSize:"0.72rem",color:"#bbb"}}>{fmtMoney(r.money)} + {r.rc} UC</div>
+                            <div style={{fontSize:"0.72rem",color:"#bbb"}}>{fmtMoney(r.money)} + {r.rc} PG</div>
                           </div>
                         </div>
                         {myRank===r.rank&&<span style={{fontSize:"0.72rem",color:"#10B981",background:"rgba(16,185,129,0.1)",padding:"0.15rem 0.5rem",borderRadius:"1rem"}}>Senin sıran!</span>}
@@ -19763,7 +19890,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                         setTradeRoutes(prev=>[...prev,newRoute]);
                         addFeed(`🚛 ${cu.username} yeni ticaret rotası kurdu: ${route.from}→${route.to}`,"economy");
                         notify(`✅ Rota kuruldu! -${fmtMoney(route.cost)}`);
-                      }}>Rota Kur (₺{(route.cost/1000).toFixed(0)}K)</button>
+                      }}>Rota Kur (₱{(route.cost/1000).toFixed(0)}K)</button>
                     ):(
                       <button className="btn btn-gold btn-sm" style={{color:"#000"}} onClick={()=>{
                         const elapsed=(Date.now()-myRoute.lastCollect)/3600000;
@@ -19794,14 +19921,14 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                       <div className="card-title" style={{color:"#A78BFA"}}>🎭 Gece Kulübü Aç</div>
                       <p style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>Kendi gece kulübünü kur! Barlar, sahne gösterileri, VIP alanlar. Saatlik gelir üretir.</p>
                       <button className="btn btn-sm" style={{background:"rgba(167,139,250,0.12)",border:"1px solid rgba(167,139,250,0.3)",color:"#A78BFA"}} onClick={async()=>{
-                        if((cu.money||0)<1000000) return notify("❌ ₺1,000,000 gerekli!");
+                        if((cu.money||0)<1000000) return notify("❌ ₱1,000,000 gerekli!");
                         const name=await gPrompt("🎭 Gece Kulübü","Kulüp adını girin:","Kulüp adı");
                         if(!name) return;
                         updateUser({money:(cu.money||0)-1000000});
                         const club={id:Date.now(),name,owner:cu.username,city:cu.city||"İstanbul",level:1,income:5000,vip:false,bar:true,stage:false,capacity:100,visitors:0,totalEarned:0,lastCollect:Date.now()};
                         setNightClubs(prev=>[...prev,club]);
-                        notify(`✅ ${name} açıldı! -₺1,000,000`);
-                      }}>🎭 Gece Kulübü Aç (₺1,000,000)</button>
+                        notify(`✅ ${name} açıldı! -₱1,000,000`);
+                      }}>🎭 Gece Kulübü Aç (₱1,000,000)</button>
                     </div>
                   )}
                   {myClub2&&(
@@ -19830,17 +19957,17 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                             notify(`✅ Kulüp Lv.${myClub2.level+1}'e yükseldi!`);
                           }}>⬆️ Seviye At ({fmtMoney((myClub2.level*500000))})</button>
                           {!myClub2.stage&&<button className="btn btn-sm" style={{background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.3)",color:"#F59E0B"}} onClick={()=>{
-                            if((cu.money||0)<300000) return notify("❌ Sahne: ₺300,000");
+                            if((cu.money||0)<300000) return notify("❌ Sahne: ₱300,000");
                             updateUser({money:(cu.money||0)-300000});
                             setNightClubs(prev=>prev.map(c=>c.id===myClub2.id?{...c,stage:true,income:c.income+2000}:c));
-                            notify("✅ Sahne kuruldu! +₺2,000/saat");
-                          }}>🎤 Sahne Kur (₺300K)</button>}
+                            notify("✅ Sahne kuruldu! +₱2,000/saat");
+                          }}>🎤 Sahne Kur (₱300K)</button>}
                           {!myClub2.vip&&<button className="btn btn-sm" style={{background:"rgba(255,215,0,0.08)",border:"1px solid rgba(255,215,0,0.3)",color:"#FFD700"}} onClick={()=>{
-                            if((cu.money||0)<500000) return notify("❌ VIP Alan: ₺500,000");
+                            if((cu.money||0)<500000) return notify("❌ VIP Alan: ₱500,000");
                             updateUser({money:(cu.money||0)-500000});
                             setNightClubs(prev=>prev.map(c=>c.id===myClub2.id?{...c,vip:true,income:c.income+5000}:c));
-                            notify("✅ VIP alan açıldı! +₺5,000/saat");
-                          }}>👑 VIP Alan (₺500K)</button>}
+                            notify("✅ VIP alan açıldı! +₱5,000/saat");
+                          }}>👑 VIP Alan (₱500K)</button>}
                         </div>
                       </div>
                     </div>
@@ -20051,7 +20178,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                         addFeed(`🚨 ${cu.username} kriz kararı aldı: "${resp}"`, "warning", cu.username);
                         const resolved = {...crisisEvent, resolved:true, resolvedBy:cu.username, resolution:resp};
                         setCrisisEvent(resolved); S.save("crisisEvent",resolved);
-                        notify(`✅ Müdahale: "${resp}" — +50 Liyakat, +25 UC`);
+                        notify(`✅ Müdahale: "${resp}" — +50 Liyakat, +25 PG`);
                       }}>
                       {alreadyResponded?"✅ ":""}{resp}
                     </button>
@@ -20178,8 +20305,8 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 </div>
                 <div style={{display:"flex",gap:"0.5rem",flexWrap:"wrap"}}>
                   {!isOwn&&!hasDonated&&<button className="btn btn-gold btn-sm" style={{color:"#000",flex:1}} onClick={async()=>{
-                    const amt = parseInt(await gPrompt("💰 Bağış","Kampanyaya bağış (min ₺1.000):","10000","number")||"0");
-                    if(!amt||amt<1000) return notify("❌ Min ₺1.000");
+                    const amt = parseInt(await gPrompt("💰 Bağış","Kampanyaya bağış (min ₱1.000):","10000","number")||"0");
+                    if(!amt||amt<1000) return notify("❌ Min ₱1.000");
                     if((cu.money||0)<amt) return notify("❌ Yetersiz para!");
                     updateUser({money:(cu.money||0)-amt});
                     setCampaigns(prev=>prev.map(cp=>cp.id===c.id?{...cp,donations:(cp.donations||0)+amt,donorCount:(cp.donorCount||0)+1}:cp));
@@ -20275,7 +20402,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
           <div className="card" style={{marginBottom:"1rem",borderColor:"rgba(16,185,129,0.3)"}}>
             <div className="card-title" style={{color:"#10B981"}}>🏨 Yeni Otel Aç</div>
             <button className="btn btn-green" onClick={async()=>{
-              if((cu.money||0)<3000000) return notify("❌ ₺3.000.000 gerekli!");
+              if((cu.money||0)<3000000) return notify("❌ ₱3.000.000 gerekli!");
               const name = await gPrompt("🏨 Otel","Otel adı:","Lüks Palace Hotel");
               if(!name) return;
               const hotel = {id:Date.now(),name,owner:cu.username,city:cu.city||"İstanbul",stars:Math.floor(Math.random()*3)+3,capacity:100,occupancy:Math.floor(Math.random()*60)+20,lastCollect:Date.now(),totalEarned:0};
@@ -20283,8 +20410,8 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
               setHotels(prev=>[...prev,hotel]);
               S.save("hotels",[...hotels,hotel]);
               addFeed(`🏨 ${cu.username} yeni otel açtı: ${name}`, "economy", cu.username);
-              notify(`✅ ${name} açıldı! -₺3.000.000`);
-            }}>🏨 Otel Aç (₺3.000.000)</button>
+              notify(`✅ ${name} açıldı! -₱3.000.000`);
+            }}>🏨 Otel Aç (₱3.000.000)</button>
           </div>
           {hotels.map(h=>{
             const city = cityMap[h.city]||{economy:65};
@@ -20423,8 +20550,8 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                         updateUser({money:(cu.money||0)-lawyerCost});
                         // Süreyi yarıya indir
                         setPrisonList(prev=>prev.map(p=>p.userId===cu.id?{...p,releaseTime:Date.now()+(myPrison.releaseTime-Date.now())/2}:p));
-                        notify("✅ Avukat tutuldu! Ceza süresi yarıya indi. -₺500.000");
-                      }}>⚖️ Avukat Tut (₺500.000)</button>
+                        notify("✅ Avukat tutuldu! Ceza süresi yarıya indi. -₱500.000");
+                      }}>⚖️ Avukat Tut (₱500.000)</button>
                     </div>
                   </div>
                 ):(
@@ -20459,7 +20586,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                             notify("❌ Firar operasyonu başarısız! Ceza süresi uzatıldı.");
                             setPrisonList(prev=>prev.map(px=>px.id===p.id?{...px,releaseTime:px.releaseTime+3600000}:px));
                           }
-                        }}>🏃 Firar Operasyonu (₺1M)</button>}
+                        }}>🏃 Firar Operasyonu (₱1M)</button>}
                       </div>
                     );
                   })}
@@ -20487,7 +20614,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                       <div style={{fontSize:"0.72rem",color:"#10B981"}}>{inv.bonus}</div>
                     </div>
                     <div style={{display:"flex",gap:"0.5rem",alignItems:"center"}}>
-                      <span style={{fontSize:"0.78rem",color:"#FFD700"}}>+₺{(inv.amount/1000000).toFixed(0)}M</span>
+                      <span style={{fontSize:"0.78rem",color:"#FFD700"}}>+₱{(inv.amount/1000000).toFixed(0)}M</span>
                       {!alreadyInvested?<button className="btn btn-green btn-sm" disabled={cu.position!=="Ticaret Bakanı"&&cu.role!=="admin"} onClick={()=>{
                         if(cu.position!=="Ticaret Bakanı"&&cu.role!=="admin") return notify("❌ Ticaret Bakanı yetkisi gerekli!");
                         setEconomy(prev=>({...prev,treasury:(prev.treasury||0)+inv.amount}));
@@ -20525,7 +20652,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 <div key={f.id} style={{display:"flex",justifyContent:"space-between",padding:"0.5rem 0.75rem",background:"rgba(16,185,129,0.05)",borderRadius:"0.4rem",marginBottom:"0.3rem",border:"1px solid rgba(16,185,129,0.15)"}}>
                   <div><div style={{fontWeight:700}}>{f.country}</div><div style={{fontSize:"0.72rem",color:"#10B981"}}>{f.bonus}</div></div>
                   <div style={{textAlign:"right"}}>
-                    <div style={{color:"#FFD700",fontWeight:700}}>+₺{(f.amount/1000000).toFixed(0)}M</div>
+                    <div style={{color:"#FFD700",fontWeight:700}}>+₱{(f.amount/1000000).toFixed(0)}M</div>
                     <div style={{fontSize:"0.7rem",color:"#bbb"}}>{f.attractedBy} · {f.date}</div>
                   </div>
                 </div>
@@ -20930,12 +21057,12 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
             <div className="card" style={{textAlign:"center"}}>
               <div style={{fontSize:"0.8rem",color:"#aaa",marginBottom:"0.5rem"}}>Davet Edilen Oyuncular</div>
               <div style={{fontSize:"2.5rem",fontWeight:900,color:"#10B981"}}>{cu.referralCount||0}</div>
-              <div style={{fontSize:"0.72rem",color:"#aaa"}}>Toplam {(cu.referralCount||0)*50} UC kazanıldı</div>
+              <div style={{fontSize:"0.72rem",color:"#aaa"}}>Toplam {(cu.referralCount||0)*50} PG kazanıldı</div>
             </div>
           </div>
           <div className="card" style={{marginBottom:"1rem"}}>
             <div className="card-title">🎁 Nasıl Çalışır?</div>
-            {[["1️⃣","Kodunu arkadaşınla paylaş","Yukarıdaki kodu kopyala ve gönder"],["2️⃣","Arkadaşın kayıt olur","Kayıt formunda referans kodu girer"],["3️⃣","İkisi de ödül kazanır","Sen +50 UC, o +100 UC alır"]].map(([i,t,d])=>(
+            {[["1️⃣","Kodunu arkadaşınla paylaş","Yukarıdaki kodu kopyala ve gönder"],["2️⃣","Arkadaşın kayıt olur","Kayıt formunda referans kodu girer"],["3️⃣","İkisi de ödül kazanır","Sen +50 PG, o +100 PG alır"]].map(([i,t,d])=>(
               <div key={i} style={{display:"flex",gap:"0.75rem",padding:"0.6rem 0",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
                 <span style={{fontSize:"1.2rem"}}>{i}</span>
                 <div><div style={{fontSize:"0.85rem",fontWeight:600,color:"#ddd"}}>{t}</div><div style={{fontSize:"0.72rem",color:"#aaa"}}>{d}</div></div>
@@ -20944,7 +21071,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
           </div>
           {!cu.usedReferral&&(
             <div className="card">
-              <div className="card-title">💡 Referans Kodu Kullan (+100 UC)</div>
+              <div className="card-title">💡 Referans Kodu Kullan (+100 PG)</div>
               <div style={{display:"flex",gap:"0.5rem"}}>
                 <input value={referralInputCode} onChange={e=>setReferralInputCode(e.target.value.toUpperCase())} placeholder="KODE1234" style={{flex:1,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:"0.5rem",padding:"0.5rem 0.75rem",color:"#fff",fontSize:"0.88rem",outline:"none"}} />
                 <button className="btn btn-gold" onClick={()=>applyReferralCode(referralInputCode)}>Uygula</button>
@@ -20971,7 +21098,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
         <div className="content">
           <div className="ministry-header">📰 Son Haberler</div>
           <div className="card" style={{marginBottom:"1rem",background:"rgba(0,0,0,0.8)",borderColor:"rgba(208,0,0,0.4)"}}>
-            <div style={{fontFamily:"Syne,sans-serif",fontSize:"0.75rem",color:"var(--accent)",letterSpacing:"0.2em",marginBottom:"0.3rem"}}>UNDERSTATE GAZETESİ</div>
+            <div style={{fontFamily:"Syne,sans-serif",fontSize:"0.75rem",color:"var(--accent)",letterSpacing:"0.2em",marginBottom:"0.3rem"}}>POLİTİKON GAZETESİ</div>
             <div style={{fontSize:"0.7rem",color:"#bbb"}}>{new Date().toLocaleDateString("tr-TR","long")} · Canlı Haberler</div>
           </div>
           {/* Otomatik başlıklar */}
@@ -21186,7 +21313,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                         <span style={{fontWeight:800,color:"#eee",fontSize:"0.9rem"}}>{npc.username}</span>
                         <span style={{fontSize:"0.62rem",color:"#555",background:"rgba(255,255,255,0.05)",padding:"1px 6px",borderRadius:"2rem"}}>{npc.position}</span>
                       </div>
-                      <div style={{fontSize:"0.72rem",color:"#888"}}>{npc.city} • Lv.{npc.level} • ₺{(npc.money/1e6).toFixed(1)}M</div>
+                      <div style={{fontSize:"0.72rem",color:"#888"}}>{npc.city} • Lv.{npc.level} • ₱{(npc.money/1e6).toFixed(1)}M</div>
                       {recent.length>0&&<div style={{fontSize:"0.65rem",color:"#555",marginTop:"0.2rem"}}>▸ {recent[0].action}</div>}
                     </div>
                     <div style={{textAlign:"right"}}>
@@ -21525,7 +21652,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
           <div className="crypto-card" style={{marginBottom:"1rem"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
               <div>
-                <div style={{fontSize:"0.78rem",color:"#888",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"0.3rem"}}>UnderCoin Pro (UCP)</div>
+                <div style={{fontSize:"0.78rem",color:"#888",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"0.3rem"}}>PoliGold Pro (UCP)</div>
                 <div style={{fontSize:"2.4rem",fontWeight:900,color:"#fff",lineHeight:1}}>{fmtMoney(cryptoPrice)}</div>
                 <div style={{fontSize:"0.8rem",color:"#aaa",marginTop:"0.3rem"}}>Son 15 saniye</div>
               </div>
@@ -21658,7 +21785,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 </div>
                 <div className="card" style={{marginBottom:"1rem"}}>
                   <div className="card-title">🏠 Mülk Satın Al</div>
-                  <p style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>Daire (₺500K) · Dükkan (₺750K) · Arsa (₺1M) · Villa (₺2M) · Ofis (₺1.5M)</p>
+                  <p style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>Daire (₱500K) · Dükkan (₱750K) · Arsa (₱1M) · Villa (₱2M) · Ofis (₱1.5M)</p>
                   <div className="grid-2">
                     <button className="btn btn-green" onClick={()=>{
                       const TYPES=[{t:"Daire",p:500000,r:2500},{t:"Dükkan",p:750000,r:4000},{t:"Arsa",p:1000000,r:1500},{t:"Villa",p:2000000,r:8000},{t:"Ofis",p:1500000,r:6000}];
@@ -22204,7 +22331,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
           </div>
           <div className="card" style={{marginBottom:"1rem"}}>
             <div className="card-title">🎫 Bilet Satın Al</div>
-            <p style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>Her bilet 500 TL. Haftalık çekilişte kazananlar otomatik belirlenir!</p>
+            <p style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>Her bilet 500 PoliCash. Haftalık çekilişte kazananlar otomatik belirlenir!</p>
             <div style={{display:"flex",gap:"0.5rem",flexWrap:"wrap",marginBottom:"1rem"}}>
               {[1,3,5,10].map(n=>(
                 <button key={n} className="btn btn-sm" style={{background:"rgba(255,215,0,0.1)",border:"1px solid rgba(255,215,0,0.3)",color:"#FFD700",flex:"1",minWidth:60}} onClick={()=>{
@@ -22234,13 +22361,13 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
           <div className="info-box" style={{marginBottom:"1rem"}}>🕵️ Rakipler hakkında dosya topla, şantajla makamından istifa ettir veya para al! Casusluk sistemiyle bağlantılıdır.</div>
           <div className="card" style={{marginBottom:"1rem"}}>
             <div className="card-title">📁 Yeni Dosya Topla</div>
-            <p style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>Casusluk yaparak bir oyuncu hakkında bilgi topla. Maliyet: ₺100,000</p>
+            <p style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>Casusluk yaparak bir oyuncu hakkında bilgi topla. Maliyet: ₱100,000</p>
             <div style={{maxHeight:250,overflowY:"auto",display:"flex",flexDirection:"column",gap:"0.3rem"}}>
               {allUsers.filter(u=>!u.isBot&&u.id!==cu.id&&u.position).map(u=>(
                 <div key={u.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"0.5rem 0.75rem",background:"rgba(255,255,255,0.02)",borderRadius:"0.4rem",border:"1px solid rgba(255,255,255,0.06)"}}>
                   <div><span style={{fontWeight:700}}>{u.username}</span><span style={{color:"#FFD700",fontSize:"0.78rem",marginLeft:"0.5rem"}}>{u.position}</span></div>
                   <button className="btn btn-primary btn-sm" onClick={()=>{
-                    if((cu.money||0)<100000)return notify("❌ ₺100,000 gerekli!");
+                    if((cu.money||0)<100000)return notify("❌ ₱100,000 gerekli!");
                     const infos=[`${u.username} makamını kötüye kullandı`,`${u.username} gizli bir şirketle bağlantılı`,`${u.username} seçim usulsüzlüğü yaptı`,`${u.username} rüşvet aldı`,`${u.username} kamu fonlarını harcadı`];
                     const info=infos[Math.floor(Math.random()*infos.length)];
                     const scandal={id:Date.now(),collector:cu.username,target:u.username,targetPos:u.position,info,status:"hazır",leaked:false,created:new Date().toLocaleDateString("tr-TR")};
@@ -22583,11 +22710,11 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                                 <button className="btn btn-sm" style={{background:"rgba(255,215,0,0.08)",border:"1px solid rgba(255,215,0,0.25)",color:"#FFD700",fontSize:"0.72rem"}} onClick={()=>{
                                   const upgradeCost=tData.level*500000;
                                   const ucCost=(tData.level||1)*250;
-                                  if((cu.money||0)<upgradeCost&&(cu.underCoin||0)<ucCost)return notify(`❌ Geliştirme için ${fmtMoney(upgradeCost)} veya ${ucCost} UC gerekli`);
+                                  if((cu.money||0)<upgradeCost&&(cu.underCoin||0)<ucCost)return notify(`❌ Geliştirme için ${fmtMoney(upgradeCost)} veya ${ucCost} PG gerekli`);
                                   if((cu.underCoin||0)>=ucCost){updateUser({underCoin:(cu.underCoin||0)-ucCost});}else{updateUser({money:(cu.money||0)-upgradeCost});}
                                   setTerritories(prev=>({...prev,[tName]:{...prev[tName],level:(tData.level||1)+1,income:Math.floor(tData.income*1.35)}}));
                                   notify(`✅ ${tName} Seviye ${(tData.level||1)+1} oldu!`);
-                                }}>⬆️ Güçlendir ({fmtMoney((tData.level*500000))} / {(tData.level||1)*250}UC)</button>
+                                }}>⬆️ Güçlendir ({fmtMoney((tData.level*500000))} / {(tData.level||1)*250}PG)</button>
                               </div>
                             )}
                           </div>
@@ -22984,14 +23111,14 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                     <div style={{fontFamily:"Syne,sans-serif",color:"#FFD700",fontSize:"1.2rem",marginBottom:"0.5rem"}}>Kale Kur</div>
                     <div style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>ÇOK YAKINDA...</div>
                     <button className="btn btn-gold" style={{color:"#000"}} onClick={async()=>{
-                      if((cu.money||0)<3000000)return notify("❌ ₺3,000,000 gerekli!");
+                      if((cu.money||0)<3000000)return notify("❌ ₱3,000,000 gerekli!");
                       const name=await gPrompt("🏰 Kale","Kalenizin adını girin:","Demir Kule");
                       if(!name?.trim())return;
                       const castle={id:Date.now(),name:name.trim(),owner:cu.username,city:cu.city||"İstanbul",level:1,hp:100,maxHp:100,troops:50,income:50000,lastCollect:Date.now(),wins:0,losses:0,defense:50,attack:40,upgrades:[]};
                       setCastles(prev=>[...prev,castle]);
                       updateUser({money:(cu.money||0)-3000000});
                       addFeed(`🏰 ${cu.username} '${name}' kalesini kurdu!`,"economy",cu.username);
-                      notify(`✅ ${name} kuruldu! -₺3,000,000`);
+                      notify(`✅ ${name} kuruldu! -₱3,000,000`);
                     }}>YAKINDA AKTİF EDİLECEKTİR</button>
                   </div>
                 )}
@@ -23337,7 +23464,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                   ].map((r,i)=>(
                     <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"0.4rem 0",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
                       <span style={{fontSize:"0.8rem",color:"#bbb"}}>{r.l}</span>
-                      <span style={{fontSize:"0.8rem",fontWeight:700,color:r.c}}>₺{r.v}</span>
+                      <span style={{fontSize:"0.8rem",fontWeight:700,color:r.c}}>₱{r.v}</span>
                     </div>
                   ))}
                 </div>
@@ -23726,7 +23853,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                                 updateUser({money:(cu.money||0)-ft.cost});
                                 notify(`✅ ${name} kuruldu! -${fmtMoney(ft.cost)}`);
                                 setFactoryTab("overview");
-                              }}>🔨 İnşa Et — ₺{(ft.cost/1000000).toFixed(1)}M</button>
+                              }}>🔨 İnşa Et — ₱{(ft.cost/1000000).toFixed(1)}M</button>
                             </div>
                           );
                         })}
@@ -24260,7 +24387,7 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
               const myWelfare=(cityWelfare[myCity2]&&cityWelfare[myCity2].welfare!==undefined)?cityWelfare[myCity2].welfare:75;
               const BUILDING_CATALOG=[
               {id:"park",name:"Şehir Parkı",icon:"🌳",cost:500000,time:3600000*2,effects:{happiness:+8,pollution:-5,tourism:+4},income:0,category:"sosyal",desc:"Halkın mutluluğunu artırır, kirliliği azaltır"},
-              {id:"hospital",name:"Hastane",icon:"🏥",cost:3000000,time:3600000*8,effects:{health:+15,happiness:+5},income:50000,category:"sağlık",desc:"Günlük ₺50K işletme geliri"},
+              {id:"hospital",name:"Hastane",icon:"🏥",cost:3000000,time:3600000*8,effects:{health:+15,happiness:+5},income:50000,category:"sağlık",desc:"Günlük ₱50K işletme geliri"},
               {id:"university",name:"Üniversite",icon:"🎓",cost:5000000,time:3600000*12,effects:{education:+20,happiness:+8},income:80000,category:"eğitim",desc:"Eğitim seviyesini yükseltir"},
               {id:"metro",name:"Metro Hattı",icon:"🚇",cost:8000000,time:3600000*24,effects:{traffic:-20,happiness:+10},income:100000,category:"ulaşım",desc:"Trafik sıkışıklığını azaltır"},
               {id:"solar",name:"Güneş Enerjisi",icon:"☀️",cost:2000000,time:3600000*6,effects:{pollution:-15},income:30000,category:"enerji",desc:"Çevreci enerji üretimi"},
@@ -24376,7 +24503,7 @@ if(cityDevTab==="build") return(
                             <div style={{fontSize:"0.72rem",color:cc}}>{bld.category}</div>
                           </div>
                           <div style={{textAlign:"right",fontSize:"0.75rem"}}>
-                            <div style={{color:"#FFD700",fontWeight:700}}>₺{(bld.cost/1000000).toFixed(1)}M</div>
+                            <div style={{color:"#FFD700",fontWeight:700}}>₱{(bld.cost/1000000).toFixed(1)}M</div>
                             <div style={{color:"#aaa"}}>⏱ {bld.time/3600000}sa</div>
                             {bld.income>0&&<div style={{color:"#10B981"}}>+{fmtMoney(bld.income)}/gün</div>}
                           </div>
@@ -24429,7 +24556,7 @@ if(cityDevTab==="build") return(
                             S.save("cityWelfare",updWelf);
                             addFeed(`🏗️ ${cu.username} ${bld.name} inşaatı başlattı!`,"economy",cu.username);
                             notify(`✅ İnşaat başladı: ${bld.name}`);
-                          }}>🏗️ İnşa Et (₺{(bld.cost/1000000).toFixed(1)}M)</button>
+                          }}>🏗️ İnşa Et (₱{(bld.cost/1000000).toFixed(1)}M)</button>
                         )}
                       </div>
                     );
@@ -24722,7 +24849,7 @@ if(cityDevTab==="build") return(
           <div className="info-box" style={{marginBottom:"1rem"}}>💰 Özel güvenlik kiralayın. Çeteler ve aileler holdinglerini korumak için ücret öder. Kiraladığınız asker size PvP ve saldırı koruması sağlar!</div>
           <div className="grid-2" style={{marginBottom:"1rem"}}>
             <div className="stat-box"><div className="val" style={{color:"#EF4444"}}>{(Array.isArray(hiredMercs)?hiredMercs:[]).filter(h=>h.employer===cu.username).length}</div><div className="lbl">Kiraladığınız Birlik</div></div>
-            <div className="stat-box"><div className="val stat-red">{(Array.isArray(hiredMercs)?hiredMercs:[]).filter(h=>h.employer===cu.username).reduce((s,h)=>{const m=mercenaries.find(x=>x.id===h.mercId);return s+(m?.dailyRate||0);},0).toLocaleString()} ₺/gün</div><div className="lbl">Günlük Maliyet</div></div>
+            <div className="stat-box"><div className="val stat-red">{(Array.isArray(hiredMercs)?hiredMercs:[]).filter(h=>h.employer===cu.username).reduce((s,h)=>{const m=mercenaries.find(x=>x.id===h.mercId);return s+(m?.dailyRate||0);},0).toLocaleString()} ₱/gün</div><div className="lbl">Günlük Maliyet</div></div>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:"0.75rem",marginBottom:"1.5rem"}}>
             {mercenaries.map(m=>{
@@ -24880,7 +25007,7 @@ if(cityDevTab==="build") return(
                 <div className="card" style={{marginTop:"1rem"}}>
                   <div className="card-title">💡 Mutluluğunu Artır</div>
                   <div style={{fontSize:"0.85rem",color:"#bbb",lineHeight:1.8}}>
-                    • 💰 Daha fazla para kazan (Hedef: ₺10M+)<br/>
+                    • 💰 Daha fazla para kazan (Hedef: ₱10M+)<br/>
                     • 🏛️ Devlet makamına sahip ol<br/>
                     • 👥 Arkadaş ekle (Her arkadaş +3 puan)<br/>
                     • 🏠 Mülk sahibi ol<br/>
@@ -25075,7 +25202,7 @@ if(cityDevTab==="build") return(
       {showFloatingAI&&(
         <div className="chat-panel" style={{left:"90px",bottom:"24px",width:360,zIndex:450}}>
           <div className="chat-header">
-            <span style={{fontWeight:700,color:"var(--accent)"}}>🤖 UnderState AI</span>
+            <span style={{fontWeight:700,color:"var(--accent)"}}>🤖 Politikon AI</span>
             <button onClick={()=>setShowFloatingAI(false)} style={{background:"none",border:"none",color:"#bbb",cursor:"pointer",fontSize:"1rem"}}>✕</button>
           </div>
           <div ref={aiChatRef} className="chat-messages" style={{height:300}}>
@@ -25254,7 +25381,7 @@ if(cityDevTab==="build") return(
           <div style={{background:"#0A0000",border:"2px solid rgba(208,0,0,0.5)",borderRadius:"1.25rem",padding:"1.5rem",width:"100%",maxWidth:500,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 0 60px rgba(0,201,255,0.22)"}}>
             <div style={{textAlign:"center",marginBottom:"1.25rem"}}>
               <div style={{fontFamily:"Syne,sans-serif",fontSize:"1.4rem",color:"var(--accent)",fontWeight:900,letterSpacing:"0.1em"}}>🏛️ HOŞGELDIN!</div>
-              <div style={{color:"#aaa",fontSize:"0.85rem",marginTop:"0.3rem"}}>UnderState'e ilk girişin. İşte başlamak için bilmen gerekenler:</div>
+              <div style={{color:"#aaa",fontSize:"0.85rem",marginTop:"0.3rem"}}>Politikon'e ilk girişin. İşte başlamak için bilmen gerekenler:</div>
             </div>
             {[
               {step:"1",icon:"💼",title:"Önce Para Kazan",desc:"İş sayfasına git → Fırıncı veya Çöpçü seç → 'Çalış' tuşuna bas. Her birkaç dakikada para kazanırsın. Daha iyi işler için ekipman ve eğitim gerekir."},
@@ -25273,7 +25400,7 @@ if(cityDevTab==="build") return(
               </div>
             ))}
             <div style={{background:"rgba(255,215,0,0.06)",border:"1px solid rgba(255,215,0,0.2)",borderRadius:"0.6rem",padding:"0.65rem 0.85rem",marginBottom:"1rem",fontSize:"0.78rem",color:"#B8860B",lineHeight:1.6}}>
-              💡 <strong>Hızlı İpucu:</strong> İlk önce Fırıncılık yap (5 dk × 50 TL), eğitimi ilerlet, 1M TL biriktir ve holding kur. Holdingler 24 saatte bir kar üretir!
+              💡 <strong>Hızlı İpucu:</strong> İlk önce Fırıncılık yap (5 dk × 50 PoliCash), eğitimi ilerlet, 1M TL biriktir ve holding kur. Holdingler 24 saatte bir kar üretir!
             </div>
             <button onClick={()=>setShowTutorial(false)} style={{width:"100%",padding:"0.9rem",background:"#D00000",border:"none",borderRadius:"0.75rem",color:"#fff",fontFamily:"Syne,sans-serif",fontWeight:700,fontSize:"0.95rem",cursor:"pointer",letterSpacing:"0.1em"}}>
               🚀 OYUNA BAŞLA
@@ -25833,7 +25960,7 @@ if(cityDevTab==="build") return(
                 {[
                   {icon:"💵",label:"NAKİT",val:fmtNum(totalCash),color:"#10B981",border:"rgba(16,185,129,0.25)"},
                   {icon:"🪙",label:"ALTIN",val:fmtNum(cu.gold||0),color:"#F5C842",border:"rgba(245,200,66,0.25)"},
-                  {icon:"💎",label:"UC",val:fmtNum(cu.underCoin||0),color:"#A78BFA",border:"rgba(167,139,250,0.25)"},
+                  {icon:"💎",label:"PG",val:fmtNum(cu.underCoin||0),color:"#A78BFA",border:"rgba(167,139,250,0.25)"},
                 ].map(r=>(
                   <div key={r.label} style={{background:"rgba(255,255,255,0.04)",border:`1px solid ${r.border}`,borderRadius:10,padding:"0.3rem 0.5rem",display:"flex",alignItems:"center",gap:6}}>
                     <span style={{fontSize:"1.05rem"}}>{r.icon}</span>
@@ -25882,9 +26009,9 @@ if(cityDevTab==="build") return(
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:"0.28rem"}}>
                   {[
-                    {label:"Borsada işlem yap",done:false,reward:"500₺"},
-                    {label:"Seçime katıl veya kampanya aç",done:false,reward:"1.000₺"},
-                    {label:"Sohbette mesaj gönder",done:true,reward:"200₺"},
+                    {label:"Borsada işlem yap",done:false,reward:"500₱"},
+                    {label:"Seçime katıl veya kampanya aç",done:false,reward:"1.000₱"},
+                    {label:"Sohbette mesaj gönder",done:true,reward:"200₱"},
                   ].map((task,i)=>(
                     <div key={i} style={{display:"flex",alignItems:"center",gap:"0.45rem",padding:"0.28rem 0.4rem",borderRadius:8,background:task.done?"rgba(16,185,129,0.05)":"rgba(255,255,255,0.02)"}}>
                       <span style={{fontSize:"0.85rem",flexShrink:0}}>{task.done?"✅":"⬜"}</span>
@@ -25947,7 +26074,7 @@ if(cityDevTab==="build") return(
                 <div onClick={()=>goPage("bank")} style={{background:"rgba(14,28,50,0.7)",border:"1px solid rgba(16,185,129,0.2)",borderRadius:14,padding:"0.75rem",cursor:"pointer",backdropFilter:"blur(16px)"}}>
                   <div style={{fontSize:"0.52rem",color:"rgba(16,185,129,0.65)",fontWeight:800,letterSpacing:"0.07em",marginBottom:"0.22rem"}}>💰 GÜNLÜK GELİR</div>
                   <div style={{fontSize:"1.05rem",fontWeight:900,color:"#10B981",fontFamily:"JetBrains Mono,monospace"}}>{fmtNum(cu.dailyIncome||0)}</div>
-                  <div style={{fontSize:"0.55rem",color:"rgba(255,255,255,0.25)",marginTop:"0.08rem"}}>₺/gün</div>
+                  <div style={{fontSize:"0.55rem",color:"rgba(255,255,255,0.25)",marginTop:"0.08rem"}}>₱/gün</div>
                 </div>
                 <div onClick={()=>goPage("bank")} style={{background:"rgba(14,28,50,0.7)",border:"1px solid rgba(245,200,66,0.2)",borderRadius:14,padding:"0.75rem",cursor:"pointer",backdropFilter:"blur(16px)"}}>
                   <div style={{fontSize:"0.52rem",color:"rgba(245,200,66,0.65)",fontWeight:800,letterSpacing:"0.07em",marginBottom:"0.22rem"}}>📊 NET DEĞER</div>
@@ -25998,7 +26125,7 @@ if(cityDevTab==="build") return(
                     {icon:"💎",label:"KRİPTO (UCP)",val:kripto+" UCP",color:"#A78BFA",page:"mining"},
                     {icon:"📊",label:"NET DEĞER",val:fmtMoney(netWorth),color:"#FFD700",page:"mulklerim"},
                     {icon:"🔬",label:"TİCARET PUANI",val:(cu.tradePoints||0)+" TP",color:"#A78BFF",page:"ortakliisler"},
-                    {icon:"🏅",label:"LİYAKAT (UC)",val:(cu.rc||0)+" UC",color:"#F59E0B",page:"profile"},
+                    {icon:"🏅",label:"LİYAKAT (PG)",val:(cu.rc||0)+" PG",color:"#F59E0B",page:"profile"},
                   ].map(s=>(
                     <div key={s.label} className="mp-stat-card" style={{cursor:"pointer"}} onClick={()=>goPage(s.page)}>
                       <div className="mp-stat-icon">{s.icon}</div>
@@ -26084,15 +26211,15 @@ if(cityDevTab==="build") return(
               <div className="mp-section">
                 <div className="mp-section-title"><span>💸</span><span>PARA KAZANMA YOLLARI</span></div>
                 {[
-                  {icon:"💼",name:"Meslekler",sub:"Fırıncı, Oduncu, Hamal vb. günlük işler",earn:"₺500–₺50K/iş",color:"#10B981",page:"jobs"},
-                  {icon:"🤝",name:"Ortaklı İşler",sub:"Başka oyuncularla iş yaparak kazan",earn:"₺50K–₺1M",color:"#A78BFF",page:"ortakliisler"},
+                  {icon:"💼",name:"Meslekler",sub:"Fırıncı, Oduncu, Hamal vb. günlük işler",earn:"₱500–₱50K/iş",color:"#10B981",page:"jobs"},
+                  {icon:"🤝",name:"Ortaklı İşler",sub:"Başka oyuncularla iş yaparak kazan",earn:"₱50K–₱1M",color:"#A78BFF",page:"ortakliisler"},
                   {icon:"🏢",name:"Holding",sub:"Şirket kur, 24 saatte bir kâr al",earn:"Otomatik kâr",color:"#FFB800",page:"holdings"},
                   {icon:"📈",name:"Borsa",sub:"Hisse al-sat, değer artışından kazan",earn:"Değişken %",color:"#60A5FA",page:"stock"},
                   {icon:"🏦",name:"Banka Faizi",sub:"Mevduatından günlük faiz kazanırsın",earn:"%"+((bank?.interestRate||0.05)*100).toFixed(1)+"/gün",color:"#34D399",page:"bank"},
-                  {icon:"🏭",name:"Fabrika",sub:"Sipariş al, üret, sat",earn:"₺100K–₺2M/sipariş",color:"#F59E0B",page:"fabrika"},
+                  {icon:"🏭",name:"Fabrika",sub:"Sipariş al, üret, sat",earn:"₱100K–₱2M/sipariş",color:"#F59E0B",page:"fabrika"},
                   {icon:"🌾",name:"Tarım",sub:"Ekim, hasat ve mevsimsel gelir",earn:"Pasif gelir",color:"#86EFAC",page:"tarim"},
                   {icon:"🛒",name:"Pazar Yeri",sub:"Ürün al-sat",earn:"Serbest fiyat",color:"#F87171",page:"market2"},
-                  {icon:"⛏️",name:"Madencilik",sub:"UCP kripto kazan, TL'ye çevir",earn:"UCP madenciliği",color:"#818CF8",page:"mining"},
+                  {icon:"⛏️",name:"Madencilik",sub:"UCP kripto kazan, PoliCash'ye çevir",earn:"UCP madenciliği",color:"#818CF8",page:"mining"},
                   {icon:"🎰",name:"Kumarhane",sub:"Slot, rulet ve piyango",earn:"Şansa bağlı",color:"#FB923C",page:"casino"},
                 ].map((item,i)=>(
                   <div key={i} className="mp-list-row" onClick={()=>goPage(item.page)} style={{borderLeft:`3px solid ${item.color}55`,cursor:"pointer"}}>
@@ -26778,9 +26905,9 @@ if(cityDevTab==="build") return(
         const REWARDS = [
           {day:1,icon:"🎁",label:"Hoş Geldin",amount:500,type:"money"},
           {day:2,icon:"💰",label:"İyi Başlangıç",amount:1000,type:"money"},
-          {day:3,icon:"🪙",label:"UC Ödülü",amount:25,type:"uc"},
+          {day:3,icon:"🪙",label:"UC Ödülü",amount:25,type:"pg"},
           {day:4,icon:"💎",label:"Servet",amount:5000,type:"money"},
-          {day:5,icon:"⭐",label:"Özel Ödül",amount:50,type:"uc"},
+          {day:5,icon:"⭐",label:"Özel Ödül",amount:50,type:"pg"},
           {day:6,icon:"🏅",label:"Liyakat Bonus",amount:15,type:"merit"},
           {day:7,icon:"👑",label:"JACKPOT!",amount:50000,type:"money"},
         ];
@@ -26788,7 +26915,7 @@ if(cityDevTab==="build") return(
         const claimReward = () => {
           if(!todayReward) return;
           if(todayReward.type==="money") updateUser({money:(cu.money||0)+todayReward.amount});
-          else if(todayReward.type==="uc") updateUser({underCoin:(cu.underCoin||0)+todayReward.amount});
+          else if(todayReward.type==="pg") updateUser({underCoin:(cu.underCoin||0)+todayReward.amount});
           else if(todayReward.type==="merit") updateUser({meritPoints:(cu.meritPoints||0)+todayReward.amount});
           addHistory(`🎁 Günlük giriş ödülü alındı: ${todayReward.icon} ${todayReward.label}`);
           if(dailyStreak.streak===7) triggerAchievement({id:"week7",icon:"👑",title:"Bir Hafta Tam!",desc:"7 gün üst üste giriş yaptın!"});
@@ -26796,7 +26923,7 @@ if(cityDevTab==="build") return(
           setDailyStreak(updatedStreak);
           S.save("dailyStreak", updatedStreak);
           setShowDailyReward(false);
-          notify(`✅ ${todayReward.icon} ${todayReward.amount} ${todayReward.type==="money"?"₺":todayReward.type==="uc"?"UC":"Liyakat"} kazandın!`);
+          notify(`✅ ${todayReward.icon} ${todayReward.amount} ${todayReward.type==="money"?"₱":todayReward.type==="pg"?"PG":"Liyakat"} kazandın!`);
         };
         return (
           <div className="modal-overlay" style={{zIndex:9995}}>
@@ -26814,7 +26941,7 @@ if(cityDevTab==="build") return(
                       <div style={{fontSize:"1.2rem"}}>{isClaimed?"✅":r.icon}</div>
                       <div style={{fontSize:"0.55rem",color:"#aaa",marginTop:"0.15rem"}}>Gün {dayNum}</div>
                       <div style={{fontSize:"0.6rem",fontWeight:700,color:isClaimed?"#10B981":adjustedToday?"#FFD700":"#666"}}>
-                        {r.type==="money"?`${fmtMoney(r.amount)}`:r.type==="uc"?`${r.amount}UC`:`${r.amount}LP`}
+                        {r.type==="money"?`${fmtMoney(r.amount)}`:r.type==="pg"?`${r.amount}UC`:`${r.amount}LP`}
                       </div>
                     </div>
                   );
@@ -26824,7 +26951,7 @@ if(cityDevTab==="build") return(
                 <div style={{fontSize:"2.5rem",marginBottom:"0.25rem"}}>{todayReward?.icon}</div>
                 <div style={{fontFamily:"Syne,sans-serif",fontSize:"1.1rem",fontWeight:700,color:"#FFD700"}}>{todayReward?.label}</div>
                 <div style={{fontSize:"1.3rem",fontWeight:900,color:"#fff",marginTop:"0.25rem"}}>
-                  +{todayReward?.amount?.toLocaleString()} {todayReward?.type==="money"?"₺TL":todayReward?.type==="uc"?"UC":"Liyakat"}
+                  +{todayReward?.amount?.toLocaleString()} {todayReward?.type==="money"?"₱TL":todayReward?.type==="pg"?"PG":"Liyakat"}
                 </div>
               </div>
               <button className="btn btn-gold" style={{width:"100%",fontSize:"1.1rem",padding:"0.85rem"}} onClick={claimReward}>
@@ -26915,7 +27042,7 @@ if(cityDevTab==="build") return(
               </div>
               {!cu.usedReferral&&(
                 <div style={{marginBottom:"0.75rem"}}>
-                  <div style={{fontSize:"0.8rem",color:"#bbb",marginBottom:"0.4rem"}}>Bir referans kodu kullan (+100 UC):</div>
+                  <div style={{fontSize:"0.8rem",color:"#bbb",marginBottom:"0.4rem"}}>Bir referans kodu kullan (+100 PG):</div>
                   <div style={{display:"flex",gap:"0.5rem"}}>
                     <input value={inputCode} onChange={e=>setInputCode(e.target.value.toUpperCase())} placeholder="Referans kodu gir..." style={{flex:1,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:"0.5rem",padding:"0.5rem 0.75rem",color:"#fff",fontSize:"0.85rem",outline:"none"}} />
                     <button className="btn btn-gold btn-sm" onClick={()=>applyReferralCode(inputCode)}>Uygula</button>
@@ -26923,7 +27050,7 @@ if(cityDevTab==="build") return(
                 </div>
               )}
               {cu.usedReferral&&<div style={{fontSize:"0.8rem",color:"#10B981",marginBottom:"0.75rem"}}>✅ Kullandığın kod: <strong>{cu.usedReferral}</strong></div>}
-              <div style={{fontSize:"0.75rem",color:"#555",marginBottom:"1rem"}}>🔗 Davet Linki: <span style={{color:"#60A5FA",cursor:"pointer"}} onClick={()=>{navigator.clipboard?.writeText(`UNDERSTATE'e katıl! Kodun: ${cu.referralCode}`);notify("📋 Davet mesajı kopyalandı!");}}>Kopyala 📋</span></div>
+              <div style={{fontSize:"0.75rem",color:"#555",marginBottom:"1rem"}}>🔗 Davet Linki: <span style={{color:"#60A5FA",cursor:"pointer"}} onClick={()=>{navigator.clipboard?.writeText(`POLİTİKON'e katıl! Kodun: ${cu.referralCode}`);notify("📋 Davet mesajı kopyalandı!");}}>Kopyala 📋</span></div>
               <button className="btn btn-gray" onClick={()=>setShowReferral(false)}>Kapat</button>
             </div>
           </div>
@@ -27473,13 +27600,13 @@ if(cityDevTab==="build") return(
             const m=Math.floor(cdLeft/60000), s=Math.floor((cdLeft%60000)/1000);
             return notify(`⏳ ${MAT_NAMES[mat]} için ${m}:${String(s).padStart(2,"0")} bekleyin!`);
           }
-          if((cu.money||0)<cost) return notify("❌ Hammadde toplamak için ₺5,000 gerekli!");
+          if((cu.money||0)<cost) return notify("❌ Hammadde toplamak için ₱5,000 gerekli!");
           const newInv = {...craftingInv,[mat]:(craftingInv[mat]||0)+1};
           setCraftingInv(newInv); S.save("craftingInv",newInv);
           const newCDs = {...gatherCooldowns,[mat]:Date.now()};
           setGatherCooldowns(newCDs); S.save("gatherCooldowns",newCDs);
           updateUser({money:(cu.money||0)-cost});
-          notify("✅ "+MAT_NAMES[mat]+" toplandı! (-₺5,000) · Sonraki: 30dk");
+          notify("✅ "+MAT_NAMES[mat]+" toplandı! (-₱5,000) · Sonraki: 30dk");
         };
         const totalStock = RECIPES.reduce((s,r)=>s+(craftingInv[r.output]||0),0);
         return (
@@ -27532,7 +27659,7 @@ if(cityDevTab==="build") return(
                         border:`1px solid ${cdLeft>0?"rgba(255,255,255,0.06)":"rgba(var(--accent-rgb),0.25)"}`,
                         borderRadius:8,color:cdLeft>0?"#555":"var(--accent)",
                         fontSize:"0.7rem",cursor:cdLeft>0?"not-allowed":"pointer",fontWeight:700}}>
-                      {cdLeft>0?`⏳ ${cdMin}dk`:`+ Topla (₺5K)`}
+                      {cdLeft>0?`⏳ ${cdMin}dk`:`+ Topla (₱5K)`}
                     </button>
                   );
                 })}
@@ -27682,7 +27809,7 @@ if(cityDevTab==="build") return(
         return (
           <div>
             <div className="ministry-header">🗺️ Şehirler Arası Göç</div>
-            <div className="info-box" style={{marginBottom:"1rem"}}>Göç ücreti: ₺25,000. Eski şehirde vergi avantajları kaybolur, yenisinde yeniden başlarsınız.</div>
+            <div className="info-box" style={{marginBottom:"1rem"}}>Göç ücreti: ₱25,000. Eski şehirde vergi avantajları kaybolur, yenisinde yeniden başlarsınız.</div>
             <div className="card" style={{marginBottom:"1rem",background:"rgba(0,201,255,0.05)",borderColor:"rgba(0,201,255,0.2)"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div>
@@ -27706,7 +27833,7 @@ if(cityDevTab==="build") return(
                       </div>
                       <div style={{fontSize:"0.72rem",color:"#aaa",marginBottom:"0.5rem"}}>👥 {pop} oyuncu</div>
                       {!isHome?(
-                        <button onClick={()=>migrateTo(city)} className="btn btn-sm" style={{width:"100%",fontSize:"0.72rem"}}>🗺️ Göç Et — ₺25K</button>
+                        <button onClick={()=>migrateTo(city)} className="btn btn-sm" style={{width:"100%",fontSize:"0.72rem"}}>🗺️ Göç Et — ₱25K</button>
                       ):(
                         <div style={{fontSize:"0.7rem",color:"var(--accent)",textAlign:"center"}}>📍 Yaşadığınız şehir</div>
                       )}

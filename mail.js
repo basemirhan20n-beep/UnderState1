@@ -1,11 +1,11 @@
 /**
- * UnderState Mail Servisi — Brevo Transactional Email API
+ * Politikon Mail Servisi — Brevo Transactional Email API
  * Brevo REST API v3 kullanır (SMTP yerine — daha güvenilir)
  */
 
 const BREVO_API_KEY = process.env.BREVO_API_KEY || process.env.BREVO_SMTP_KEY;
 const SMTP_USER     = process.env.BREVO_SMTP_USER || 'basemirhan28@gmail.com';
-const SENDER_NAME   = 'UnderState';
+const SENDER_NAME   = 'Politikon';
 const SENDER_EMAIL  = SMTP_USER;
 
 const BREVO_URL = 'https://api.brevo.com/v3/smtp/email';
@@ -89,11 +89,11 @@ ul{color:#94A3B8;padding-left:20px;line-height:2}
 <div class="logo"><span class="u">[U</span><span class="n">NDER</span><span class="u">]</span></div>
 <div class="card">
 <h1>🎮 Hoş geldin, <span class="hi">${username}</span>!</h1>
-<p>UnderState'e katıldın. Türkiye'nin en kapsamlı çevrimiçi şehir ve devlet simülasyonuna hoş geldin.</p>
+<p>Politikon'e katıldın. Türkiye'nin en kapsamlı çevrimiçi şehir ve devlet simülasyonuna hoş geldin.</p>
 <hr>
 <p style="color:#CBD5E1;font-weight:600;margin-bottom:12px">Başlangıç bonusların:</p>
 <div>
-  <div class="stat"><div class="sn">₺10.000</div><div class="sl">Başlangıç Parası</div></div>
+  <div class="stat"><div class="sn">₱10.000</div><div class="sl">Başlangıç Parası</div></div>
   <div class="stat"><div class="sn">50 UC</div><div class="sl">UnderCoin</div></div>
   <div class="stat"><div class="sn">Lv1</div><div class="sl">Seviye</div></div>
 </div>
@@ -106,7 +106,7 @@ ul{color:#94A3B8;padding-left:20px;line-height:2}
   <li>Çete kur, şehirleri ele geçir ⚔️</li>
 </ul>
 </div>
-<div class="footer">© 2026 UnderState — Şehir &amp; Devlet Simülasyonu</div>
+<div class="footer">© 2026 Politikon — Şehir &amp; Devlet Simülasyonu</div>
 </div></body></html>`;
 }
 
@@ -135,7 +135,7 @@ p{color:#94A3B8;line-height:1.7;margin:0 0 16px}
 <div class="code">${code}</div>
 <p class="warn">⚠️ Bu kod 15 dakika geçerlidir. Bu talebi sen yapmadıysan yoksay.</p>
 </div>
-<div class="footer">© 2026 UnderState</div>
+<div class="footer">© 2026 Politikon</div>
 </div></body></html>`;
 }
 
@@ -164,7 +164,7 @@ p{color:#94A3B8;line-height:1.7;margin:0 0 16px}
 <p style="margin-top:16px">Ban süresi: <strong style="color:#FCA5A5">${untilStr}</strong></p>
 <p style="font-size:.82rem;color:#64748B">Haksız olduğunu düşünüyorsan yöneticilere itiraz edebilirsin.</p>
 </div>
-<div class="footer">© 2026 UnderState</div>
+<div class="footer">© 2026 Politikon</div>
 </div></body></html>`;
 }
 
@@ -192,7 +192,7 @@ p{color:#94A3B8;line-height:1.7;margin:0 0 16px}
 <div class="winner">🏆 Kazanan: ${winner} (${votes} oy)</div>
 <p style="font-size:.82rem;color:#64748B">Sonuçların tamamını oyun içinde görebilirsin.</p>
 </div>
-<div class="footer">© 2026 UnderState</div>
+<div class="footer">© 2026 Politikon</div>
 </div></body></html>`;
 }
 
@@ -217,22 +217,22 @@ p{color:#94A3B8;line-height:1.7;margin:0 0 16px}
 <p>Merhaba <strong style="color:#fff">${username}</strong>,</p>
 <p>${message}</p>
 </div>
-<div class="footer">© 2026 UnderState</div>
+<div class="footer">© 2026 Politikon</div>
 </div></body></html>`;
 }
 
 // ── Dışa açık yardımcı fonksiyonlar ─────────────────────────
 
 async function sendWelcome(to, username, playerId) {
-  return sendMail({ to, toName: username, subject: '🎮 UnderState\'e Hoş Geldin!', html: welcomeHtml(username), type: 'welcome', playerId });
+  return sendMail({ to, toName: username, subject: '🎮 Politikon\'e Hoş Geldin!', html: welcomeHtml(username), type: 'welcome', playerId });
 }
 
 async function sendPasswordReset(to, username, code, playerId) {
-  return sendMail({ to, toName: username, subject: '🔐 UnderState Şifre Sıfırlama Kodu', html: passwordResetHtml(username, code), type: 'password_reset', playerId });
+  return sendMail({ to, toName: username, subject: '🔐 Politikon Şifre Sıfırlama Kodu', html: passwordResetHtml(username, code), type: 'password_reset', playerId });
 }
 
 async function sendBanNotification(to, username, reason, until, playerId) {
-  return sendMail({ to, toName: username, subject: '🚫 UnderState Hesap Askıya Alındı', html: banNotificationHtml(username, reason, until), type: 'ban', playerId });
+  return sendMail({ to, toName: username, subject: '🚫 Politikon Hesap Askıya Alındı', html: banNotificationHtml(username, reason, until), type: 'ban', playerId });
 }
 
 async function sendElectionResult(to, username, position, winner, votes, playerId) {
@@ -240,7 +240,7 @@ async function sendElectionResult(to, username, position, winner, votes, playerI
 }
 
 async function sendNotification(to, username, title, message, playerId) {
-  return sendMail({ to, toName: username, subject: `📢 UnderState: ${title}`, html: generalNotifHtml(username, title, message), type: 'notification', playerId });
+  return sendMail({ to, toName: username, subject: `📢 Politikon: ${title}`, html: generalNotifHtml(username, title, message), type: 'notification', playerId });
 }
 
 module.exports = { sendMail, sendWelcome, sendPasswordReset, sendBanNotification, sendElectionResult, sendNotification };
