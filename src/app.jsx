@@ -2489,6 +2489,14 @@ function App() {
     window._fbSyncCallbacks["haracRequests"] = (v) => {
       if (Array.isArray(v)) { setHaracRequests(v); S.save("haracRequests",v); }
     };
+    window._fbSyncCallbacks["contractMarket"] = (v) => { if(Array.isArray(v)){setContractMarket(v);S.save("contractMarket",v);} };
+    window._fbSyncCallbacks["heistPlans"] = (v) => { if(Array.isArray(v)){setHeistPlans(v);S.save("heistPlans",v);} };
+    window._fbSyncCallbacks["bribeOffers"] = (v) => { if(Array.isArray(v)){setBribeOffers(v);S.save("bribeOffers",v);} };
+    window._fbSyncCallbacks["impeachVotes"] = (v) => { if(v&&typeof v==="object"&&!Array.isArray(v)){setImpeachVotes(v);S.save("impeachVotes",v);} };
+    window._fbSyncCallbacks["secretSponsorships"] = (v) => { if(Array.isArray(v)){setSecretSponsorships(v);S.save("secretSponsorships",v);} };
+    window._fbSyncCallbacks["launderingOps"] = (v) => { if(Array.isArray(v)){setLaunderingOps(v);S.save("launderingOps",v);} };
+    window._fbSyncCallbacks["blackMarket"] = (v) => { if(Array.isArray(v)){setBlackMarket(v);S.save("blackMarket",v);} };
+    window._fbSyncCallbacks["corruptInvest"] = (v) => { if(Array.isArray(v)){setCorruptInvest(v);S.save("corruptInvest",v);} };
     window._fbSyncCallbacks["allUsers"] = (v) => {
       if (Array.isArray(v)) {
         setAllUsers(prev => {
@@ -2716,6 +2724,15 @@ function App() {
   const [families, setFamilies] = useState(() => { const v=S.load("families",[]); return (Array.isArray(v)?v:[]).map(normalizeMembers); });
   // normalizeGang artık module scope'ta tanımlı (yukarıda) — TDZ sorunu yok
   const [haracRequests, setHaracRequests] = useState(() => { const v=S.load("haracRequests",[]); return Array.isArray(v)?v:[]; });
+  const [contractMarket, setContractMarket] = useState(() => { const v=S.load("contractMarket",[]); return Array.isArray(v)?v:[]; });
+  const [heistPlans, setHeistPlans] = useState(() => { const v=S.load("heistPlans",[]); return Array.isArray(v)?v:[]; });
+  const [bribeOffers, setBribeOffers] = useState(() => { const v=S.load("bribeOffers",[]); return Array.isArray(v)?v:[]; });
+  const [impeachVotes, setImpeachVotes] = useState(() => { const v=S.load("impeachVotes",{}); return (v&&typeof v==="object"&&!Array.isArray(v))?v:{}; });
+  const [secretSponsorships, setSecretSponsorships] = useState(() => { const v=S.load("secretSponsorships",[]); return Array.isArray(v)?v:[]; });
+  const [launderingOps, setLaunderingOps] = useState(() => { const v=S.load("launderingOps",[]); return Array.isArray(v)?v:[]; });
+  const [smugglingOps, setSmugglingOps] = useState(() => { const v=S.load("smugglingOps",[]); return Array.isArray(v)?v:[]; });
+  const [pressConferences, setPressConferences] = useState(() => { const v=S.load("pressConferences",[]); return Array.isArray(v)?v:[]; });
+  const [corruptInvest, setCorruptInvest] = useState(() => { const v=S.load("corruptInvest",[]); return Array.isArray(v)?v:[]; });
   const [gangs, setGangs] = useState(() => { const v=S.load("gangs",[]); return (Array.isArray(v)?v:[]).map(normalizeGang); });
   const safeSetGangs = (updater) => setGangs(prev => { const result = typeof updater==="function" ? updater(prev) : updater; return (Array.isArray(result)?result:[]).map(normalizeGang); });
   const [holdings, setHoldings] = useState(() => { const v=S.load("holdings",[]); return Array.isArray(v)?v:[]; });
@@ -4260,6 +4277,488 @@ const [cityBudgets, setCityBudgets] = useState(()=>S.load("cityBudgets",{}));
 
 
   // Bildirim ekle (in-game bildirim merkezi)
+
+  // ─── KONTRAT PAZARI ──────────────────────────────────────────────────────────
+  const postContract = async () => {
+    if(!userGang&&!(families.find(f=>f.leader===cu.username||f.members?.some(m=>m.username===cu.username)))) return notify("❌ Çete veya aile üyesi olmalısın!");
+    const targetName = await gPrompt("☠️ Kontrat Koy","Suikast hedefinin kullanıcı adı:","Kullanıcı adı");
+    if(!targetName) return;
+    const target = allUsers.find(u=>u.username===targetName);
+    if(!target) return notify("❌ Kullanıcı bulunamadı!");
+    if(target.id===cu.id) return notify("❌ Kendine kontrat koyamazsın!");
+    const amtStr = await gPrompt("💰 Ödül Miktarı","Suikastçıya ödenecek ödül (min 200.000 ₱):","Miktar","number",{min:200000,default:"500000"});
+    if(!amtStr) return;
+    const amt = parseInt(amtStr);
+    if(isNaN(amt)||amt<200000) return notify("❌ Minimum ödül 200.000 ₱'dir!");
+    if((cu.money||0)<amt) return notify("❌ Yetersiz bakiye!");
+    updateUser({money:(cu.money||0)-amt});
+    const contract = { id:Date.now().toString(), posterId:cu.id, posterName:cu.username, targetId:target.id, targetName:target.username, reward:amt, status:"open", createdAt:Date.now(), expiresAt:Date.now()+48*3600000 };
+    const upd = [...contractMarket.filter(c=>!(c.targetId===target.id&&c.status==="open")), contract];
+    setContractMarket(upd); S.save("contractMarket",upd);
+    if(window._fb?.rtdb) window._fb.rtdb.ref(`games/${window._gameId}/realtime/contractMarket`).set(upd).catch(()=>{});
+    addNotification(target.id, `☠️ Başın üzerinde ${fmtMoney(amt)} ödüllü bir suikast kontratı var! Dikkatli ol.`, "danger");
+    addHistory(`☠️ ${cu.username} → ${target.username}: ${fmtMoney(amt)} ödüllü kontrat açıldı`);
+    notify(`✅ Kontrat açıldı! Ödül kasaya kilitlendi.`);
+  };
+  const acceptContract = async (contractId) => {
+    const c = contractMarket.find(ct=>ct.id===contractId);
+    if(!c||c.status!=="open") return notify("❌ Kontrat bulunamadı!");
+    if(c.targetId===cu.id) return notify("❌ Kendi kontratını kabul edemezsin!");
+    if(c.posterId===cu.id) return notify("❌ Kendi kontratını kabul edemezsin!");
+    const target = allUsers.find(u=>u.id===c.targetId);
+    if(!target) return notify("❌ Hedef bulunamadı!");
+    const successChance = 0.35 + Math.min(0.25, (cu.xp||0)/50000);
+    const success = Math.random() < successChance;
+    const upd = contractMarket.map(ct=>ct.id===contractId?{...ct,status:success?"completed":"failed",executorId:cu.id,executorName:cu.username,resolvedAt:Date.now()}:ct);
+    setContractMarket(upd); S.save("contractMarket",upd);
+    if(window._fb?.rtdb) window._fb.rtdb.ref(`games/${window._gameId}/realtime/contractMarket`).set(upd).catch(()=>{});
+    if(success){
+      updateUser({money:(cu.money||0)+c.reward, assassinations:(cu.assassinations||0)+1});
+      if(target.position) setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.id===target.id?{...u,position:null,lastHit:Date.now()}:u));
+      addNotification(c.posterId, `✅ Kontrat tamamlandı! ${target.username} etkisiz hale getirildi.`, "economy");
+      addNotification(target.id, `☠️ Suikaste uğradın! Görevin/statün tehlikede.`, "danger");
+      addHistory(`☠️ ${cu.username} → ${target.username}: kontrat başarıyla gerçekleştirildi (+${fmtMoney(c.reward)})`);
+      notify(`✅ Suikast başarılı! +${fmtMoney(c.reward)} kazandın.`);
+    } else {
+      addNotification(target.id, `🛡️ Sizi hedef alan bir suikast girişimi engellendi!`, "warning");
+      addHistory(`🛡️ ${cu.username} → ${target.username}: suikast denemesi başarısız`);
+      notify(`❌ Suikast başarısız. Hedef hayatta kaldı.`);
+    }
+  };
+  // ─── ORTAK SOYGUNLAR (HEİST) ─────────────────────────────────────────────
+  const createHeist = async () => {
+    if(!userGang||userGang.leader!==cu.username) return notify("❌ Sadece çete liderleri soygun planlayabilir!");
+    const targets = ["Merkez Bankası","Dev Holding","Altın Deposu","Casino Kasası","Liman Konteyner"];
+    const tidx = Math.floor(Math.random()*targets.length);
+    const targetPlace = targets[tidx];
+    const minCrew = 2;
+    const reward = 500000 + Math.floor(Math.random()*1500000);
+    const heist = { id:Date.now().toString(), gangId:userGang.id, gangName:userGang.name, leaderId:cu.id, leaderName:cu.username, target:targetPlace, reward, minCrew, crew:[{id:cu.id,name:cu.username}], status:"recruiting", createdAt:Date.now(), executeAt:Date.now()+2*3600000 };
+    const upd = [...heistPlans.filter(h=>h.gangId!==userGang.id||h.status!=="recruiting"), heist];
+    setHeistPlans(upd); S.save("heistPlans",upd);
+    if(window._fb?.rtdb) window._fb.rtdb.ref(`games/${window._gameId}/realtime/heistPlans`).set(upd).catch(()=>{});
+    addHistory(`🎭 ${cu.username} çetesi ${targetPlace} soygunu planladı!`);
+    notify(`🎭 Soygun planı oluşturuldu! Hedef: ${targetPlace}, Ödül: ${fmtMoney(reward)}. Ekip katılımı bekleniyor...`);
+  };
+  const joinHeist = (heistId) => {
+    const h = heistPlans.find(h=>h.id===heistId);
+    if(!h||h.status!=="recruiting") return notify("❌ Soygun aktif değil!");
+    const myGang = (Array.isArray(gangs)?gangs:[]).find(g=>g.members?.some(m=>m.username===cu.username));
+    if(!myGang||myGang.id!==h.gangId) return notify("❌ Bu çetenin üyesi değilsin!");
+    if(h.crew.find(c=>c.id===cu.id)) return notify("❌ Zaten ekiptesin!");
+    const upd = heistPlans.map(ht=>ht.id===heistId?{...ht,crew:[...ht.crew,{id:cu.id,name:cu.username}]}:ht);
+    setHeistPlans(upd); S.save("heistPlans",upd);
+    if(window._fb?.rtdb) window._fb.rtdb.ref(`games/${window._gameId}/realtime/heistPlans`).set(upd).catch(()=>{});
+    notify(`✅ Soyguna katıldın! Hedef: ${h.target}`);
+  };
+  const executeHeist = (heistId) => {
+    const h = heistPlans.find(ht=>ht.id===heistId);
+    if(!h||h.status!=="recruiting") return notify("❌ Soygun bulunamadı!");
+    if(h.leaderId!==cu.id) return notify("❌ Sadece lider soygunu başlatabilir!");
+    if(h.crew.length<h.minCrew) return notify(`❌ Minimum ${h.minCrew} kişi gerekli! (Şu an: ${h.crew.length})`);
+    const successChance = Math.min(0.75, 0.35 + h.crew.length*0.08);
+    const success = Math.random() < successChance;
+    const perPerson = success ? Math.floor(h.reward/h.crew.length) : 0;
+    const upd = heistPlans.map(ht=>ht.id===heistId?{...ht,status:success?"completed":"failed",resolvedAt:Date.now()}:ht);
+    setHeistPlans(upd); S.save("heistPlans",upd);
+    if(window._fb?.rtdb) window._fb.rtdb.ref(`games/${window._gameId}/realtime/heistPlans`).set(upd).catch(()=>{});
+    if(success){
+      updateUser({money:(cu.money||0)+perPerson});
+      h.crew.forEach(m=>{ if(m.id!==cu.id) addNotification(m.id, `💰 ${h.target} soygunu başarılı! Payın: ${fmtMoney(perPerson)}`, "economy"); });
+      addHistory(`🎭 ${h.gangName} → ${h.target}: BAŞARILI! Her kişiye ${fmtMoney(perPerson)}`);
+      notify(`🎭 SOYGUN BAŞARILI! Payın: ${fmtMoney(perPerson)}`);
+    } else {
+      h.crew.forEach(m=>{ if(m.id!==cu.id) addNotification(m.id, `🚨 ${h.target} soygunu başarısız! Kaçmayı başardınız ama eli boş döndünüz.`, "danger"); });
+      addHistory(`🎭 ${h.gangName} → ${h.target}: BAŞARISIZ — soygun iptal`);
+      notify(`❌ SOYGUN BAŞARISIZ! Güvenlik güçleri sizi fark etti, kaçtınız.`);
+    }
+  };
+  // ─── RÜŞVET / LOBİCİLİK ──────────────────────────────────────────────────
+  const sendBribe = async () => {
+    const politicians = allUsers.filter(u=>u.position&&["Milletvekili","Meclis Başkanı","İçişleri Bakanı","Vali","Belediye Başkanı","Ticaret Bakanı","Maliye Bakanı","Devlet Başkanı"].includes(u.position));
+    if(!politicians.length) return notify("❌ Rüşvet verebileceğin yetkili yok!");
+    const names = politicians.slice(0,8).map(u=>`${u.username} (${u.position})`).join(", ");
+    const targetName = await gPrompt("💼 Rüşvet Teklif Et",`Yetkili kullanıcı adı:
+${names}`,"Kullanıcı adı");
+    if(!targetName) return;
+    const target = politicians.find(u=>u.username===targetName||u.username===targetName.split(" ")[0]);
+    if(!target) return notify("❌ Kullanıcı yetkili değil veya bulunamadı!");
+    const amtStr = await gPrompt("💰 Rüşvet Miktarı","Teklif edilen rüşvet miktarı (min 100.000 ₱):","Miktar","number",{min:100000,default:"250000"});
+    if(!amtStr) return;
+    const amt = parseInt(amtStr);
+    if(isNaN(amt)||amt<100000) return notify("❌ Minimum rüşvet 100.000 ₱!");
+    if((cu.money||0)<amt) return notify("❌ Yetersiz bakiye!");
+    const requestStr = await gPrompt("📋 Talep","Rüşvet karşılığında ne istiyorsun? (örn: vergi indirimi, yasaya oy, gözaltı iptali)","Talebiniz");
+    if(!requestStr) return;
+    updateUser({money:(cu.money||0)-amt});
+    const offer = { id:Date.now().toString(), briberId:cu.id, briberName:cu.username, targetId:target.id, targetName:target.username, amount:amt, request:requestStr, status:"pending", createdAt:Date.now(), expiresAt:Date.now()+48*3600000 };
+    const upd = [...bribeOffers, offer];
+    setBribeOffers(upd); S.save("bribeOffers",upd);
+    if(window._fb?.rtdb) window._fb.rtdb.ref(`games/${window._gameId}/realtime/bribeOffers`).set(upd).catch(()=>{});
+    addNotification(target.id, `💼 ${cu.username} sana ${fmtMoney(amt)} rüşvet teklif etti! Talep: "${requestStr}"`, "warning");
+    addHistory(`💼 ${cu.username} → ${target.username}: ${fmtMoney(amt)} rüşvet teklifi`);
+    notify(`✅ Rüşvet teklifi gönderildi! Para kasaya kilitlendi.`);
+  };
+  const respondBribe = async (offerId, accept) => {
+    const offer = bribeOffers.find(o=>o.id===offerId);
+    if(!offer||offer.status!=="pending") return notify("❌ Teklif bulunamadı!");
+    if(offer.targetId!==cu.id) return notify("❌ Bu teklif sana yönelik değil!");
+    const upd = bribeOffers.map(o=>o.id===offerId?{...o,status:accept?"accepted":"rejected",resolvedAt:Date.now()}:o);
+    setBribeOffers(upd); S.save("bribeOffers",upd);
+    if(window._fb?.rtdb) window._fb.rtdb.ref(`games/${window._gameId}/realtime/bribeOffers`).set(upd).catch(()=>{});
+    if(accept){
+      updateUser({money:(cu.money||0)+offer.amount,corruption:(cu.corruption||0)+15});
+      addNotification(offer.briberId, `✅ ${cu.username} rüşvet teklifini KABUL ETTİ! Talep: "${offer.request}"`, "economy");
+      addHistory(`💼 ${cu.username} rüşveti kabul etti. Talep: ${offer.request}`);
+      notify(`✅ Rüşvet kabul edildi. +${fmtMoney(offer.amount)} kazandın!`);
+    } else {
+      setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.id===offer.briberId?{...u,money:(u.money||0)+offer.amount}:u));
+      addNotification(offer.briberId, `❌ ${cu.username} rüşvet teklifini reddetti! Paran iade edildi.`, "info");
+      addHistory(`💼 ${cu.username} rüşveti reddetti`);
+      notify(`✅ Rüşvet reddedildi, para iade edildi.`);
+    }
+  };
+  // ─── GÜVENSİZLİK OYLAMASI (İMPEACHMENT) ─────────────────────────────────
+  const startImpeachment = async () => {
+    if(!cu.position||!["Milletvekili","Meclis Başkanı"].includes(cu.position)) return notify("❌ Sadece milletvekilleri güvensizlik oylaması başlatabilir!");
+    const targets = allUsers.filter(u=>u.position&&u.id!==cu.id&&["Devlet Başkanı","Meclis Başkanı","İçişleri Bakanı","Vali","Belediye Başkanı","Ticaret Bakanı","Maliye Bakanı","Genelkurmay Başkanı"].includes(u.position));
+    if(!targets.length) return notify("❌ Hedef alınabilecek yetkili yok!");
+    const names = targets.map(u=>`${u.username} (${u.position})`).join(", ");
+    const targetName = await gPrompt("⚖️ Güvensizlik Oylaması",`Görevden almak istediğin yetkilinin adı:
+${names}`,"Kullanıcı adı");
+    if(!targetName) return;
+    const target = targets.find(u=>u.username===targetName||u.username===targetName.split(" ")[0]);
+    if(!target) return notify("❌ Yetkili bulunamadı!");
+    const gerekce = await gPrompt("📋 Gerekçe",`${target.username} için güvensizlik gerekçesi:`,"Gerekçe");
+    if(!gerekce) return;
+    const key = `imp_${target.id}`;
+    if(impeachVotes[key]?.active) return notify("❌ Bu yetkili için zaten aktif bir oylama var!");
+    const vote = { targetId:target.id, targetName:target.username, targetPos:target.position, initiatorId:cu.id, initiatorName:cu.username, reason:gerekce, votes:{[cu.id]:"evet"}, startedAt:Date.now(), expiresAt:Date.now()+24*3600000, active:true };
+    const upd = {...impeachVotes, [key]:vote};
+    setImpeachVotes(upd); S.save("impeachVotes",upd);
+    if(window._fb?.rtdb) window._fb.rtdb.ref(`games/${window._gameId}/realtime/impeachVotes`).set(upd).catch(()=>{});
+    allUsers.filter(u=>u.position&&["Milletvekili","Meclis Başkanı"].includes(u.position)&&u.id!==cu.id).forEach(u=>{ addNotification(u.id, `⚖️ Güvensizlik Oylaması: ${target.username} (${target.position}) için oylama başladı! Gerekçe: ${gerekce}`, "warning"); });
+    addHistory(`⚖️ ${cu.username}: ${target.username}'a güvensizlik oylaması başlatıldı`);
+    notify(`✅ Güvensizlik oylaması başlatıldı!`);
+  };
+  const castImpeachVote = (key, vote) => {
+    const iv = impeachVotes[key];
+    if(!iv||!iv.active) return notify("❌ Aktif oylama yok!");
+    if(!cu.position||!["Milletvekili","Meclis Başkanı"].includes(cu.position)) return notify("❌ Sadece milletvekilleri oy kullanabilir!");
+    const updVote = {...iv, votes:{...iv.votes,[cu.id]:vote}};
+    const totalVoters = allUsers.filter(u=>["Milletvekili","Meclis Başkanı"].includes(u.position||"")).length;
+    const evetCount = Object.values(updVote.votes).filter(v=>v==="evet").length;
+    const hayirCount = Object.values(updVote.votes).filter(v=>v==="hayır").length;
+    const threshold = Math.ceil(totalVoters/2)+1;
+    if(evetCount>=threshold){
+      updVote.active=false; updVote.result="passed"; updVote.resolvedAt=Date.now();
+      setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.id===iv.targetId?{...u,position:null,impeached:true}:u));
+      addNotification(iv.targetId, `⚖️ Güvensizlik oylaması sonucu: Görevden alındın! (${evetCount}/${totalVoters} oy)`, "danger");
+      addHistory(`⚖️ ${iv.targetName} (${iv.targetPos}) güvensizlik oylamasıyla görevden alındı!`);
+      notify(`⚖️ ${iv.targetName} görevden alındı!`);
+    } else if(hayirCount>=threshold){
+      updVote.active=false; updVote.result="failed"; updVote.resolvedAt=Date.now();
+      addHistory(`⚖️ ${iv.targetName} güvensizlik oylamasını atlattı`);
+      notify(`❌ Güvensizlik oylaması başarısız.`);
+    } else {
+      notify(`✅ Oyun kaydedildi. (Evet: ${evetCount} | Hayır: ${hayirCount} | Gerekli: ${threshold})`);
+    }
+    const upd = {...impeachVotes, [key]:updVote};
+    setImpeachVotes(upd); S.save("impeachVotes",upd);
+    if(window._fb?.rtdb) window._fb.rtdb.ref(`games/${window._gameId}/realtime/impeachVotes`).set(upd).catch(()=>{});
+  };
+  // ─── GİZLİ SPONSORLUK (AİLE ↔ PARTİ) ────────────────────────────────────
+  const proposeSecretSponsorship = async () => {
+    const myFamily = families.find(f=>f.leader===cu.username);
+    if(!myFamily) return notify("❌ Sadece aile liderleri gizli sponsorluk önerebilir!");
+    const activeParties = (Array.isArray(parties)?parties:[]).filter(p=>p.members?.length>=1);
+    if(!activeParties.length) return notify("❌ Aktif parti yok!");
+    const partyName = await gPrompt("🤫 Gizli Sponsorluk",`Sponsor olmak istediğin parti:
+${activeParties.map(p=>p.name).join(", ")}`,"Parti adı");
+    if(!partyName) return;
+    const party = activeParties.find(p=>p.name===partyName);
+    if(!party) return notify("❌ Parti bulunamadı!");
+    const amtStr = await gPrompt("💰 Sponsorluk Miktarı","Aylık katkı miktarı (min 1.000.000 ₱)","Miktar","number",{min:1000000,default:"5000000"});
+    if(!amtStr) return;
+    const amt = parseInt(amtStr);
+    if(isNaN(amt)||amt<1000000) return notify("❌ Minimum 1.000.000 ₱!");
+    if((cu.money||0)<amt) return notify("❌ Yetersiz bakiye!");
+    updateUser({money:(cu.money||0)-amt});
+    const sp = { id:Date.now().toString(), familyId:myFamily.id, familyName:myFamily.name, leaderId:cu.id, leaderName:cu.username, partyId:party.id, partyName:party.name, partyLeaderId:party.leader, amount:amt, status:"pending", createdAt:Date.now() };
+    const upd = [...secretSponsorships.filter(s=>s.familyId!==myFamily.id||s.partyId!==party.id), sp];
+    setSecretSponsorships(upd); S.save("secretSponsorships",upd);
+    if(window._fb?.rtdb) window._fb.rtdb.ref(`games/${window._gameId}/realtime/secretSponsorships`).set(upd).catch(()=>{});
+    const partyLeader = allUsers.find(u=>u.username===party.leader);
+    if(partyLeader) addNotification(partyLeader.id, `🤫 Gizli teklif: ${myFamily.name} ailesi partine ${fmtMoney(amt)} aylık sponsorluk teklif ediyor!`, "economy");
+    addHistory(`🤫 ${myFamily.name} → ${party.name}: gizli sponsorluk teklifi`);
+    notify(`✅ Gizli sponsorluk teklifi gönderildi!`);
+  };
+  const respondSecretSponsorship = (spId, accept) => {
+    const sp = secretSponsorships.find(s=>s.id===spId);
+    if(!sp||sp.status!=="pending") return notify("❌ Teklif bulunamadı!");
+    const myParty = (Array.isArray(parties)?parties:[]).find(p=>p.id===sp.partyId);
+    if(!myParty||myParty.leader!==cu.username) return notify("❌ Parti lideriyseniz karar verebilirsiniz!");
+    const upd = secretSponsorships.map(s=>s.id===spId?{...s,status:accept?"active":"rejected",resolvedAt:Date.now()}:s);
+    setSecretSponsorships(upd); S.save("secretSponsorships",upd);
+    if(window._fb?.rtdb) window._fb.rtdb.ref(`games/${window._gameId}/realtime/secretSponsorships`).set(upd).catch(()=>{});
+    if(accept){
+      setParties(prev=>(Array.isArray(prev)?prev:[]).map(p=>p.id===sp.partyId?{...p,funds:(p.funds||0)+sp.amount,electionBonus:(p.electionBonus||0)+5}:p));
+      addNotification(sp.leaderId, `✅ ${myParty.name} gizli sponsorluk teklifini kabul etti!`, "economy");
+      addHistory(`🤫 ${myParty.name} gizli sponsorluğu kabul etti (${fmtMoney(sp.amount)})`);
+      notify(`✅ Kabul edildi! Parti kasasına ${fmtMoney(sp.amount)} eklendi.`);
+    } else {
+      setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.id===sp.leaderId?{...u,money:(u.money||0)+sp.amount}:u));
+      addNotification(sp.leaderId, `❌ ${myParty.name} gizli sponsorluk teklifini reddetti.`, "info");
+      notify(`Reddedildi. Para iade edildi.`);
+    }
+  };
+  // ─── SEÇİM HİLESİ ────────────────────────────────────────────────────────
+  const attemptElectionFraud = async () => {
+    const isIllegal = userGang||families.some(f=>f.leader===cu.username);
+    if(!isIllegal) return notify("❌ Seçim hilesini sadece çete liderleri veya aile liderleri deneyebilir!");
+    const partyName = await gPrompt("🗳️ Seçim Hilesi","Hangi partinin oylarını arttırmak istiyorsun?","Parti adı");
+    if(!partyName) return;
+    const party = (Array.isArray(parties)?parties:[]).find(p=>p.name===partyName);
+    if(!party) return notify("❌ Parti bulunamadı!");
+    const cost = 2000000;
+    if((cu.money||0)<cost) return notify(`❌ Seçim hilesi için ${fmtMoney(cost)} gerekli!`);
+    updateUser({money:(cu.money||0)-cost});
+    const success = Math.random()<0.55;
+    if(success){
+      setParties(prev=>(Array.isArray(prev)?prev:[]).map(p=>p.id===party.id?{...p,votes:(p.votes||0)+Math.floor(Math.random()*800+200),electionBonus:(p.electionBonus||0)+8}:p));
+      addHistory(`🗳️ ${cu.username}: ${party.name} partisi için seçim hilesi yapıldı! (+%8 bonus)`);
+      notify(`✅ Seçim hilesi başarılı! ${party.name} partisinin oyları arttı.`);
+    } else {
+      const penalty = Math.floor(cost*0.3);
+      setScandals(prev=>[{id:Date.now(),headline:`🚨 Seçim hilesi girişimi: ${cu.username} oy manipülasyonu yaparken yakalandı!`,type:"seçim_hilesi",date:new Date().toLocaleString("tr-TR")},...prev].slice(0,50));
+      addHistory(`🚨 ${cu.username}: seçim hilesi deşifre oldu! Skandal patladı`);
+      notify(`❌ Seçim hilesi deşifre oldu! Skandal patlak verdi.`);
+    }
+  };
+  // ─── KARA PARA AKLAMA ────────────────────────────────────────────────────
+  const startLaundering = async () => {
+    if(!userGang&&!families.some(f=>f.leader===cu.username||f.members?.some(m=>m.username===cu.username))) return notify("❌ Kara para aklamak için illegal yapı üyesi olmalısın!");
+    const amtStr = await gPrompt("🧼 Kara Para Aklama",`Yıkamak istediğin miktar:
+• %25 komisyon kesilir
+• 6 saat sürer
+• Minimum 500.000 ₱`,"Miktar","number",{min:500000,default:"2000000"});
+    if(!amtStr) return;
+    const amt = parseInt(amtStr);
+    if(isNaN(amt)||amt<500000) return notify("❌ Minimum 500.000 ₱!");
+    if((cu.money||0)<amt) return notify("❌ Yetersiz bakiye!");
+    const commission = Math.floor(amt*0.25);
+    const cleanAmt = amt - commission;
+    updateUser({money:(cu.money||0)-amt});
+    const op = { id:Date.now().toString(), userId:cu.id, userName:cu.username, dirtyAmt:amt, cleanAmt, commission, status:"processing", startedAt:Date.now(), completesAt:Date.now()+6*3600000 };
+    const upd = [...launderingOps, op];
+    setLaunderingOps(upd); S.save("launderingOps",upd);
+    addHistory(`🧼 ${cu.username}: ${fmtMoney(amt)} kara para aklama işlemi başladı`);
+    notify(`🧼 Aklama başladı! ${fmtMoney(cleanAmt)} (komisyon: ${fmtMoney(commission)}) 6 saat sonra hesabına geçecek.`);
+  };
+  const claimLaundering = (opId) => {
+    const op = launderingOps.find(o=>o.id===opId);
+    if(!op||op.status!=="processing") return notify("❌ İşlem bulunamadı!");
+    if(op.userId!==cu.id) return notify("❌ Bu senin işlemin değil!");
+    if(Date.now()<op.completesAt) return notify(`❌ Henüz tamamlanmadı! ${Math.ceil((op.completesAt-Date.now())/3600000)} saat kaldı.`);
+    updateUser({money:(cu.money||0)+op.cleanAmt});
+    const upd = launderingOps.map(o=>o.id===opId?{...o,status:"completed",claimedAt:Date.now()}:o);
+    setLaunderingOps(upd); S.save("launderingOps",upd);
+    addHistory(`🧼 ${cu.username}: ${fmtMoney(op.cleanAmt)} temiz para hesaba geçti`);
+    notify(`✅ +${fmtMoney(op.cleanAmt)} temiz para hesabına aktarıldı!`);
+  };
+  // ─── KAÇAKÇILIK ──────────────────────────────────────────────────────────
+  const startSmuggling = async () => {
+    if(!userGang) return notify("❌ Kaçakçılık için çete üyesi olmalısın!");
+    const goods = [
+      {name:"Elektronik",cost:200000,reward:480000,risk:0.2},
+      {name:"Silah",cost:500000,reward:1400000,risk:0.45},
+      {name:"İlaç",cost:300000,reward:900000,risk:0.35},
+      {name:"Lüks Mal",cost:150000,reward:320000,risk:0.15},
+      {name:"Yakıt",cost:100000,reward:210000,risk:0.1},
+    ];
+    const goodsList = goods.map((g,i)=>`${i+1}. ${g.name} (Maliyet: ${fmtMoney(g.cost)}, Kazanç: ${fmtMoney(g.reward)}, Risk: %${Math.round(g.risk*100)})`).join("
+");
+    const choice = await gPrompt("🚢 Kaçakçılık",`Mal seç (1-5):
+${goodsList}`,"1-5","number",{min:1,max:5,default:"1"});
+    if(!choice) return;
+    const g = goods[parseInt(choice)-1];
+    if(!g) return notify("❌ Geçersiz seçim!");
+    if((cu.money||0)<g.cost) return notify(`❌ ${fmtMoney(g.cost)} gerekli!`);
+    const cdKey = "smuggling_cd";
+    if((cooldowns[cdKey]||0)>Date.now()) return notify(`❌ Kaçakçılık için ${Math.ceil(((cooldowns[cdKey]||0)-Date.now())/3600000)} saat beklemelisin!`);
+    updateUser({money:(cu.money||0)-g.cost});
+    setCooldowns(prev=>{const u={...prev,[cdKey]:Date.now()+4*3600000};S.save("cooldowns",u);return u;});
+    const success = Math.random()>g.risk;
+    if(success){
+      const profit = g.reward - g.cost;
+      updateUser({money:(cu.money||0)-g.cost+g.reward});
+      addHistory(`🚢 ${cu.username}: ${g.name} kaçakçılığı başarılı! +${fmtMoney(profit)} kâr`);
+      notify(`✅ Kaçakçılık başarılı! +${fmtMoney(g.reward)} (kâr: ${fmtMoney(profit)})`);
+    } else {
+      const fine = Math.floor(g.cost*0.5);
+      updateUser({money:Math.max(0,(cu.money||0)-g.cost-fine)});
+      setScandals(prev=>[{id:Date.now(),headline:`🚔 ${cu.username} kaçakçılık yaparken gümrükte yakalandı!`,type:"kaçakçılık",date:new Date().toLocaleString("tr-TR")},...prev].slice(0,50));
+      addHistory(`🚢 ${cu.username}: ${g.name} kaçakçılığı yakalandı! -${fmtMoney(fine)} ceza`);
+      notify(`❌ Kaçakçılık yakalandı! -${fmtMoney(fine)} ceza kesildi.`);
+    }
+  };
+  // ─── ÇETE RÜTBE SİSTEMİ ──────────────────────────────────────────────────
+  const promoteGangMember = async () => {
+    if(!userGang||userGang.leader!==cu.username) return notify("❌ Sadece liderler üye terfi ettirebilir!");
+    const ranks = ["Çaylak","Sokak Serserisi","Enforcer","Capodecina","Underboss"];
+    const memberName = await gPrompt("⬆️ Üye Terfi","Terfi ettireceğin üyenin adı:","Kullanıcı adı");
+    if(!memberName) return;
+    const member = userGang.members?.find(m=>m.username===memberName);
+    if(!member) return notify("❌ Bu kişi çetenin üyesi değil!");
+    if(member.username===cu.username) return notify("❌ Kendini terfi ettiremezsin!");
+    const curRankIdx = ranks.indexOf(member.rank||"Çaylak");
+    const newRank = ranks[Math.min(curRankIdx+1, ranks.length-1)];
+    if(newRank===(member.rank||"Çaylak")) return notify("❌ Üye zaten maksimum rütbede!");
+    safeSetGangs(prev=>prev.map(g=>g.id===userGang.id?{...g,members:g.members.map(m=>m.username===memberName?{...m,rank:newRank}:m)}:g));
+    const targetUser = allUsers.find(u=>u.username===memberName);
+    if(targetUser) addNotification(targetUser.id, `⬆️ ${userGang.name} çetesindeki rütben ${newRank} olarak güncellendi!`, "economy");
+    addHistory(`⬆️ ${cu.username}: ${memberName} → ${newRank} (${userGang.name})`);
+    notify(`✅ ${memberName} → ${newRank} olarak terfi ettirildi!`);
+  };
+  // ─── BASIN TOPLANTISI ─────────────────────────────────────────────────────
+  const holdPressConference = async () => {
+    const validRoles = ["Devlet Başkanı","Meclis Başkanı","İçişleri Bakanı","Vali","Belediye Başkanı","Ticaret Bakanı","Maliye Bakanı","Genelkurmay Başkanı"];
+    if(!cu.position||!validRoles.includes(cu.position)) return notify("❌ Basın toplantısı düzenleme yetkin yok!");
+    const cdKey = "presser_cd";
+    if((cooldowns[cdKey]||0)>Date.now()) return notify(`❌ ${Math.ceil(((cooldowns[cdKey]||0)-Date.now())/3600000)} saat sonra tekrar basın toplantısı düzenleyebilirsin!`);
+    const topic = await gPrompt("🎤 Basın Toplantısı","Toplantının konusu:","Konu");
+    if(!topic) return;
+    const statement = await gPrompt("📢 Açıklama Metni","Kamuoyuna açıklamanız:","Açıklama","text");
+    if(!statement) return;
+    setCooldowns(prev=>{const u={...prev,[cdKey]:Date.now()+12*3600000};S.save("cooldowns",u);return u;});
+    const conf = { id:Date.now().toString(), officialId:cu.id, officialName:cu.username, officialPos:cu.position, topic, statement, date:new Date().toLocaleString("tr-TR"), likes:0, createdAt:Date.now() };
+    const upd = [conf,...pressConferences].slice(0,20);
+    setPressConferences(upd); S.save("pressConferences",upd);
+    setScandals(prev=>[{id:Date.now(),headline:`🎤 ${cu.username} (${cu.position}): "${topic}" konulu basın toplantısı düzenledi`,type:"basin_toplantisi",date:new Date().toLocaleString("tr-TR")},...prev].slice(0,50));
+    setEconomy(prev=>({...prev,stability:Math.min(100,(prev.stability||50)+3)}));
+    addHistory(`🎤 ${cu.username} basın toplantısı düzenledi: ${topic}`);
+    notify(`✅ Basın toplantısı düzenlendi! Stabilite +3`);
+  };
+  // ─── YOLSUZLUK SORUŞTURMASI ───────────────────────────────────────────────
+  const startCorruptInvestigation = async () => {
+    const validInvestigators = ["Milletvekili","Meclis Başkanı","İçişleri Bakanı","Savcı"];
+    if(!cu.position||!validInvestigators.includes(cu.position)) return notify("❌ Soruşturma başlatma yetkin yok!");
+    const suspects = allUsers.filter(u=>u.id!==cu.id&&(u.corruption||0)>0);
+    if(!suspects.length) return notify("❌ Soruşturulabilecek yetkili yok!");
+    const targetName = await gPrompt("🔍 Yolsuzluk Soruşturması",`Soruşturulacak kişi (yolsuzluk puanı en yüksekler):
+${suspects.sort((a,b)=>(b.corruption||0)-(a.corruption||0)).slice(0,5).map(u=>`${u.username} (${u.position||"Vatandaş"}) - Yolsuzluk: ${u.corruption||0}`).join("
+")}`,"Kullanıcı adı");
+    if(!targetName) return;
+    const target = suspects.find(u=>u.username===targetName);
+    if(!target) return notify("❌ Kullanıcı bulunamadı!");
+    const existing = corruptInvest.find(i=>i.targetId===target.id&&i.status==="active");
+    if(existing) return notify("❌ Bu kişi zaten soruşturma altında!");
+    const inv = { id:Date.now().toString(), investigatorId:cu.id, investigatorName:cu.username, targetId:target.id, targetName:target.username, targetPos:target.position||"Vatandaş", corruption:target.corruption||0, status:"active", startedAt:Date.now(), completesAt:Date.now()+12*3600000 };
+    const upd = [...corruptInvest, inv];
+    setCorruptInvest(upd); S.save("corruptInvest",upd);
+    if(window._fb?.rtdb) window._fb.rtdb.ref(`games/${window._gameId}/realtime/corruptInvest`).set(upd).catch(()=>{});
+    addNotification(target.id, `🔍 ${cu.username} hakkında yolsuzluk soruşturması başlatıldı! 12 saat içinde sonuçlanacak.`, "danger");
+    addHistory(`🔍 ${cu.username}: ${target.username} hakkında yolsuzluk soruşturması`);
+    notify(`✅ Soruşturma başlatıldı! 12 saat sonra sonuçlanacak.`);
+  };
+  const resolveCorruptInvestigation = (invId) => {
+    const inv = corruptInvest.find(i=>i.id===invId);
+    if(!inv||inv.status!=="active") return notify("❌ Soruşturma bulunamadı!");
+    if(Date.now()<inv.completesAt) return notify(`❌ Soruşturma henüz tamamlanmadı. ${Math.ceil((inv.completesAt-Date.now())/3600000)} saat kaldı.`);
+    const severity = inv.corruption;
+    let result, penalty="";
+    if(severity>=50){ result="mahkumiyet"; penalty="görevden alındı ve para cezasına çarptırıldı";
+      setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.id===inv.targetId?{...u,position:null,money:Math.max(0,(u.money||0)-500000),corruption:0}:u));
+    } else if(severity>=20){ result="uyarı"; penalty="resmi uyarı aldı ve para cezasına çarptırıldı";
+      setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.id===inv.targetId?{...u,money:Math.max(0,(u.money||0)-100000),corruption:Math.max(0,(u.corruption||0)-10)}:u));
+    } else { result="beraat"; penalty="yeterli delil bulunamadı, beraat etti"; }
+    const upd = corruptInvest.map(i=>i.id===invId?{...i,status:"resolved",result,resolvedAt:Date.now()}:i);
+    setCorruptInvest(upd); S.save("corruptInvest",upd);
+    if(window._fb?.rtdb) window._fb.rtdb.ref(`games/${window._gameId}/realtime/corruptInvest`).set(upd).catch(()=>{});
+    addNotification(inv.targetId, `🔍 Hakkınızdaki yolsuzluk soruşturması sonuçlandı: ${penalty}`, result==="mahkumiyet"?"danger":"warning");
+    addHistory(`🔍 ${inv.targetName} yolsuzluk soruşturması: ${result} (${penalty})`);
+    notify(`✅ Soruşturma tamamlandı: ${inv.targetName} — ${result}`);
+  };
+  // ─── KARABORSA ───────────────────────────────────────────────────────────
+  const postBlackMarketListing = async () => {
+    if(!userGang&&!families.some(f=>f.leader===cu.username||f.members?.some(m=>m.username===cu.username))) return notify("❌ Karaborsa için illegal yapı üyesi olmalısın!");
+    const itemName = await gPrompt("🏪 Karaborsa — Ürün Sat","Sattığın ürünün adı:","Ürün adı");
+    if(!itemName) return;
+    const priceStr = await gPrompt("💰 Fiyat","Satış fiyatı (min 10.000 ₱):","Fiyat","number",{min:10000,default:"100000"});
+    if(!priceStr) return;
+    const price = parseInt(priceStr);
+    if(isNaN(price)||price<10000) return notify("❌ Minimum 10.000 ₱!");
+    const listing = { id:Date.now().toString(), sellerId:cu.id, sellerName:cu.username, item:itemName, price, status:"available", createdAt:Date.now(), expiresAt:Date.now()+24*3600000 };
+    const upd = [...blackMarket.filter(b=>b.status==="available"&&b.expiresAt>Date.now()), listing];
+    setBlackMarket(upd); S.save("blackMarket",upd);
+    if(window._fb?.rtdb) window._fb.rtdb.ref(`games/${window._gameId}/realtime/blackMarket`).set(upd).catch(()=>{});
+    addHistory(`🏪 ${cu.username}: ${itemName} karaborsaya çıkarıldı (${fmtMoney(price)})`);
+    notify(`✅ ${itemName} karaborsaya eklendi!`);
+  };
+  const buyBlackMarket = (listingId) => {
+    const listing = blackMarket.find(b=>b.id===listingId);
+    if(!listing||listing.status!=="available") return notify("❌ Ürün mevcut değil!");
+    if(listing.sellerId===cu.id) return notify("❌ Kendi ürününü satın alamazsın!");
+    if((cu.money||0)<listing.price) return notify(`❌ Yetersiz bakiye! (${fmtMoney(listing.price)} gerekli)`);
+    updateUser({money:(cu.money||0)-listing.price});
+    setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.id===listing.sellerId?{...u,money:(u.money||0)+listing.price}:u));
+    const upd = blackMarket.map(b=>b.id===listingId?{...b,status:"sold",buyerId:cu.id,buyerName:cu.username,soldAt:Date.now()}:b);
+    setBlackMarket(upd); S.save("blackMarket",upd);
+    if(window._fb?.rtdb) window._fb.rtdb.ref(`games/${window._gameId}/realtime/blackMarket`).set(upd).catch(()=>{});
+    addNotification(listing.sellerId, `✅ ${cu.username}, "${listing.item}" ürününü ${fmtMoney(listing.price)}'a satın aldı!`, "economy");
+    addHistory(`🏪 ${cu.username}: ${listing.item} karaborsadan satın alındı (${fmtMoney(listing.price)})`);
+    notify(`✅ ${listing.item} satın alındı!`);
+  };
+  // ─── MUHBİR / AJAN SİSTEMİ ──────────────────────────────────────────────────
+  const becomeInformant = async () => {
+    if(!userGang&&!families.some(f=>f.members?.some(m=>m.username===cu.username)||f.leader===cu.username)) return notify("❌ Muhbir olmak için önce bir illegal yapıya üye olmalısın!");
+    if(cu.isInformant) return notify("❌ Zaten muhbirsin!");
+    const confirm = await gPrompt("🕵️ Muhbir Ol","Polise muhbirlik yaparak haftalık 100.000 ₱ kazanırsın.
+Bir çete lideri veya aile lideri tarafından ifşa edilirsen sorgulama yapılır.
+
+Emin misin? EVET yaz:","EVET");
+    if(!confirm||confirm.trim().toUpperCase()!=="EVET") return;
+    updateUser({isInformant:true, informantSince:Date.now(), informantEarnings:0});
+    addHistory(`🕵️ ${cu.username} gizlice muhbir oldu`);
+    notify("🕵️ Muhbir kaydın aktive edildi. Polis koruması altındasın! Kimse bilmesin...");
+  };
+  const collectInformantPay = () => {
+    if(!cu.isInformant) return notify("❌ Muhbir değilsin!");
+    const lastPay = cu.lastInformantPay||0;
+    if(Date.now()-lastPay<7*24*60*60*1000) return notify(`❌ ${Math.ceil((lastPay+7*24*60*60*1000-Date.now())/3600000)} saat sonra maaş alabilirsin!`);
+    const pay = 100000;
+    updateUser({money:(cu.money||0)+pay, informantEarnings:(cu.informantEarnings||0)+pay, lastInformantPay:Date.now()});
+    addHistory(`💰 ${cu.username}: gizli muhbir ödemesi +${fmtMoney(pay)}`);
+    notify(`💰 +${fmtMoney(pay)} muhbir ödemesi alındı!`);
+  };
+  const investigateInformant = async () => {
+    if(!userGang&&!families.some(f=>f.leader===cu.username)) return notify("❌ Muhbir araştırmak için lider olmalısın!");
+    const targetName = await gPrompt("🔍 Muhbir Araştır","Araştırmak istediğin üye:","Kullanıcı adı");
+    if(!targetName) return;
+    const target = allUsers.find(u=>u.username===targetName);
+    if(!target) return notify("❌ Kullanıcı bulunamadı!");
+    const cost = 500000;
+    if((cu.money||0)<cost) return notify(`❌ Araştırma için ${fmtMoney(cost)} gerekli!`);
+    updateUser({money:(cu.money||0)-cost});
+    if(target.isInformant){
+      addNotification(target.id, `🚨 ${userGang?.name||"Bir aile"} seni muhbir olarak ifşa etti! Kimliğin deşifre oldu.`, "danger");
+      setAllUsers(prev=>(Array.isArray(prev)?prev:[]).map(u=>u.id===target.id?{...u,isInformant:false,informantExposed:true}:u));
+      addHistory(`🚨 ${cu.username}: ${target.username} muhbir olarak ifşa edildi!`);
+      notify(`🚨 ${target.username} gerçekten muhbirmiş! İfşa edildi.`);
+    } else {
+      addHistory(`🔍 ${cu.username}: ${target.username} araştırıldı — temiz çıktı`);
+      notify(`✅ ${target.username} muhbir değil. Temiz.`);
+    }
+  };
+  const quitInformant = () => {
+    if(!cu.isInformant) return notify("❌ Zaten muhbir değilsin!");
+    updateUser({isInformant:false, informantSince:null, lastInformantPay:null});
+    addHistory(`🕵️ ${cu.username} muhbirliği bıraktı`);
+    notify("✅ Muhbirlik sona erdi. Polis koruması kalktı.");
+  };
+  // ─── MUHBİR / AJAN SİSTEMİ SON ───────────────────────────────────────────
+
+  // ─── BÜTÜN YENİ ÖZELLİKLER SONU ─────────────────────────────────────────
 
   // ─── HARAÇ / KORUMA SİSTEMİ ───────────────────────────────────────────────
   const sendHaracRequest = async () => {
@@ -9837,6 +10336,82 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                 </div>
               </div>
             )}
+            {/* ===== KOALİSYON HÜKÜMETİ ===== */}
+            {coalitions.filter(c=>c.status==="active").length>0&&(
+              <div style={{background:"rgba(16,185,129,0.04)",border:"1px solid rgba(16,185,129,0.18)",borderRadius:12,padding:"0.75rem",marginBottom:"0.75rem"}}>
+                <div style={{fontFamily:"Syne,sans-serif",fontWeight:700,color:"#10B981",fontSize:"0.88rem",marginBottom:"0.5rem"}}>🤝 Aktif Koalisyonlar</div>
+                {coalitions.filter(c=>c.status==="active").map(c=>(
+                  <div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"0.4rem 0.6rem",background:"rgba(16,185,129,0.05)",border:"1px solid rgba(16,185,129,0.12)",borderRadius:8,marginBottom:"0.3rem"}}>
+                    <div>
+                      <div style={{fontSize:"0.78rem",color:"#fff",fontWeight:700}}>{c.from} 🤝 {c.to}</div>
+                      <div style={{fontSize:"0.62rem",color:"#888"}}>{c.message||"Koalisyon anlaşması"}</div>
+                    </div>
+                    <span style={{background:"rgba(16,185,129,0.15)",border:"1px solid rgba(16,185,129,0.3)",borderRadius:5,padding:"0.1rem 0.4rem",fontSize:"0.6rem",color:"#10B981",fontWeight:700}}>AKTİF</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* ===== GÜVENSİZLİK OYLAMASI + BASIN TOPLANTISI + YOLSUZLUK ===== */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.5rem",marginBottom:"0.75rem"}}>
+              {(cu.position==="Milletvekili"||cu.position==="Meclis Başkanı"||cu.role==="admin")&&(
+                <button onClick={startImpeachment} style={{padding:"0.7rem 0.5rem",background:"rgba(239,68,68,0.07)",border:"1px solid rgba(239,68,68,0.22)",borderRadius:10,color:"#F87171",fontSize:"0.78rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                  ⚖️ Güvensizlik Oylaması<br/><span style={{fontSize:"0.62rem",color:"#666",fontWeight:400}}>Yetkiliyi görevden al</span>
+                </button>
+              )}
+              {cu.position&&["Devlet Başkanı","Meclis Başkanı","İçişleri Bakanı","Vali","Belediye Başkanı","Ticaret Bakanı","Maliye Bakanı","Genelkurmay Başkanı"].includes(cu.position)&&(
+                <button onClick={holdPressConference} style={{padding:"0.7rem 0.5rem",background:"rgba(59,130,246,0.07)",border:"1px solid rgba(59,130,246,0.22)",borderRadius:10,color:"#60A5FA",fontSize:"0.78rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                  🎤 Basın Toplantısı<br/><span style={{fontSize:"0.62rem",color:"#666",fontWeight:400}}>+3 stabilite</span>
+                </button>
+              )}
+              {(cu.position==="Milletvekili"||cu.position==="Meclis Başkanı"||cu.position==="İçişleri Bakanı"||cu.role==="admin")&&(
+                <button onClick={startCorruptInvestigation} style={{padding:"0.7rem 0.5rem",background:"rgba(245,158,11,0.06)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:10,color:"#F59E0B",fontSize:"0.78rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                  🔍 Yolsuzluk Soruşturması<br/><span style={{fontSize:"0.62rem",color:"#666",fontWeight:400}}>Yetkileri araştır</span>
+                </button>
+              )}
+            </div>
+            {/* Aktif güvensizlik oylamaları */}
+            {Object.entries(impeachVotes).filter(([,iv])=>iv.active&&iv.expiresAt>Date.now()).map(([key,iv])=>{
+              const evetCount = Object.values(iv.votes||{}).filter(v=>v==="evet").length;
+              const hayirCount = Object.values(iv.votes||{}).filter(v=>v==="hayır").length;
+              const myVote = iv.votes?.[cu.id];
+              const canVote = (cu.position==="Milletvekili"||cu.position==="Meclis Başkanı"||cu.role==="admin")&&!myVote;
+              return(
+                <div key={key} style={{background:"rgba(239,68,68,0.05)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:12,padding:"0.75rem",marginBottom:"0.5rem"}}>
+                  <div style={{fontFamily:"Syne,sans-serif",fontWeight:700,color:"#EF4444",fontSize:"0.85rem",marginBottom:"0.2rem"}}>⚖️ Güvensizlik: {iv.targetName} ({iv.targetPos})</div>
+                  <div style={{fontSize:"0.7rem",color:"#888",marginBottom:"0.45rem"}}>Gerekçe: {iv.reason} · {Math.ceil((iv.expiresAt-Date.now())/3600000)}sa kaldı</div>
+                  <div style={{display:"flex",gap:"0.4rem",marginBottom:"0.4rem"}}>
+                    <span style={{background:"rgba(16,185,129,0.12)",border:"1px solid rgba(16,185,129,0.25)",borderRadius:6,padding:"0.15rem 0.45rem",fontSize:"0.68rem",color:"#10B981",fontWeight:700}}>✅ Evet: {evetCount}</span>
+                    <span style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.25)",borderRadius:6,padding:"0.15rem 0.45rem",fontSize:"0.68rem",color:"#F87171",fontWeight:700}}>❌ Hayır: {hayirCount}</span>
+                  </div>
+                  {canVote&&(
+                    <div style={{display:"flex",gap:"0.4rem"}}>
+                      <button onClick={()=>castImpeachVote(key,"evet")} style={{flex:1,padding:"0.35rem",background:"rgba(16,185,129,0.15)",border:"1px solid rgba(16,185,129,0.35)",borderRadius:7,color:"#10B981",fontSize:"0.72rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>✅ Evet</button>
+                      <button onClick={()=>castImpeachVote(key,"hayır")} style={{flex:1,padding:"0.35rem",background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:7,color:"#F87171",fontSize:"0.72rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>❌ Hayır</button>
+                    </div>
+                  )}
+                  {myVote&&<div style={{fontSize:"0.68rem",color:"#888"}}>Oyunuz: <strong style={{color:myVote==="evet"?"#10B981":"#EF4444"}}>{myVote}</strong></div>}
+                </div>
+              );
+            })}
+            {/* Son basın toplantıları */}
+            {pressConferences.slice(0,3).map(c=>(
+              <div key={c.id} style={{background:"rgba(59,130,246,0.04)",border:"1px solid rgba(59,130,246,0.15)",borderRadius:10,padding:"0.6rem",marginBottom:"0.4rem"}}>
+                <div style={{fontFamily:"Syne,sans-serif",fontWeight:700,color:"#60A5FA",fontSize:"0.8rem",marginBottom:"0.15rem"}}>🎤 {c.officialName} ({c.officialPos})</div>
+                <div style={{fontSize:"0.7rem",color:"#bbb",fontStyle:"italic",marginBottom:"0.15rem"}}>"{c.statement}"</div>
+                <div style={{fontSize:"0.62rem",color:"#555"}}>{c.topic} · {c.date}</div>
+              </div>
+            ))}
+            {/* Yolsuzluk soruşturmaları */}
+            {corruptInvest.filter(i=>i.status==="active").map(i=>(
+              <div key={i.id} style={{background:"rgba(245,158,11,0.04)",border:"1px solid rgba(245,158,11,0.18)",borderRadius:10,padding:"0.6rem",marginBottom:"0.4rem"}}>
+                <div style={{fontFamily:"Syne,sans-serif",fontWeight:700,color:"#F59E0B",fontSize:"0.8rem",marginBottom:"0.15rem"}}>🔍 {i.targetName} soruşturuluyor</div>
+                <div style={{fontSize:"0.68rem",color:"#888",marginBottom:"0.3rem"}}>Soruşturmacı: {i.investigatorName} · Yolsuzluk: {i.corruption}</div>
+                {Date.now()>=i.completesAt&&(i.investigatorId===cu.id||cu.role==="admin")&&(
+                  <button onClick={()=>resolveCorruptInvestigation(i.id)} style={{padding:"0.3rem 0.6rem",background:"rgba(245,158,11,0.15)",border:"1px solid rgba(245,158,11,0.35)",borderRadius:7,color:"#F59E0B",fontSize:"0.68rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Sonuçlandır</button>
+                )}
+                {Date.now()<i.completesAt&&<div style={{fontSize:"0.65rem",color:"#555"}}>⏳ {Math.ceil((i.completesAt-Date.now())/3600000)} saat kaldı</div>}
+              </div>
+            ))}
             {/* ===== MECLİS AKTİF OYLAMALAR PANELİ ===== */}
             {(()=>{
               const activeProposals = (Array.isArray(lawProposals)?lawProposals:[]).filter(l=>l.status==="Oylamada");
@@ -11317,6 +11892,36 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
               📌 Aile Lideri: Ailenin ekonomisini ve prestijini yükseltmekle görevlidir.<br/>
               📌 Operasyon Yöneticisi: Suikastleri, cephaneliği ve aile araçlarını yönetir.<br/>
               📌 Aile Elçisi: Diğer ailelerle mesaj/iletişim kurar.
+            {/* ═══ AİLE LİDERİ: GİZLİ SPONSORLUK + SEÇİM HİLESİ ═══ */}
+            {families.find(f=>f.leader===cu.username)&&(
+              <div style={{background:"rgba(96,165,250,0.05)",border:"1px solid rgba(96,165,250,0.18)",borderRadius:14,padding:"0.85rem",marginBottom:"0.85rem"}}>
+                <div style={{fontFamily:"Syne,sans-serif",fontWeight:700,color:"#60A5FA",fontSize:"0.88rem",marginBottom:"0.5rem"}}>🤫 Gizli Operasyonlar</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.5rem",marginBottom:"0.6rem"}}>
+                  <button onClick={proposeSecretSponsorship} style={{padding:"0.6rem",background:"rgba(96,165,250,0.08)",border:"1px solid rgba(96,165,250,0.22)",borderRadius:9,color:"#60A5FA",fontSize:"0.75rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                    🤫 Gizli Sponsorluk<br/><span style={{fontSize:"0.62rem",color:"#666",fontWeight:400}}>Partiyi satın al</span>
+                  </button>
+                  <button onClick={attemptElectionFraud} style={{padding:"0.6rem",background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.18)",borderRadius:9,color:"#F87171",fontSize:"0.75rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                    🗳️ Seçim Hilesi<br/><span style={{fontSize:"0.62rem",color:"#666",fontWeight:400}}>2M ₱ · %55 şans</span>
+                  </button>
+                  <button onClick={startLaundering} style={{padding:"0.6rem",background:"rgba(16,185,129,0.06)",border:"1px solid rgba(16,185,129,0.18)",borderRadius:9,color:"#10B981",fontSize:"0.75rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                    🧼 Kara Para Akla<br/><span style={{fontSize:"0.62rem",color:"#666",fontWeight:400}}>%25 komisyon</span>
+                  </button>
+                  <button onClick={postBlackMarketListing} style={{padding:"0.6rem",background:"rgba(139,92,246,0.06)",border:"1px solid rgba(139,92,246,0.18)",borderRadius:9,color:"#8B5CF6",fontSize:"0.75rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                    🏪 Karaborsa<br/><span style={{fontSize:"0.62rem",color:"#666",fontWeight:400}}>Ürün al/sat</span>
+                  </button>
+                </div>
+                {/* Gelen sponsorluk teklifleri */}
+                {secretSponsorships.filter(s=>s.partyLeaderId===cu.id&&s.status==="pending").map(sp=>(
+                  <div key={sp.id} style={{background:"rgba(0,0,0,0.3)",borderRadius:9,padding:"0.55rem",marginBottom:"0.35rem",border:"1px solid rgba(96,165,250,0.15)"}}>
+                    <div style={{fontSize:"0.78rem",color:"#fff",fontWeight:700,marginBottom:"0.15rem"}}>🤫 {sp.familyName} → {fmtMoney(sp.amount)} sponsorluk teklifi</div>
+                    <div style={{display:"flex",gap:"0.4rem",marginTop:"0.35rem"}}>
+                      <button onClick={()=>respondSecretSponsorship(sp.id,true)} style={{flex:1,padding:"0.35rem",background:"rgba(16,185,129,0.15)",border:"1px solid rgba(16,185,129,0.3)",borderRadius:7,color:"#10B981",fontSize:"0.7rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>✅ Kabul</button>
+                      <button onClick={()=>respondSecretSponsorship(sp.id,false)} style={{flex:1,padding:"0.35rem",background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.25)",borderRadius:7,color:"#F87171",fontSize:"0.7rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>❌ Red</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             </div>
           </div>
         )}
@@ -11430,8 +12035,123 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
                   </div>
                 );
               })()}
+      {/* ═══ KONTRAT PAZARI ═══ */}
+              {(()=>{
+                const openContracts = contractMarket.filter(c=>c.status==="open"&&c.expiresAt>Date.now());
+                const myContracts = openContracts.filter(c=>c.posterId===cu.id);
+                const targetableContracts = openContracts.filter(c=>c.targetId!==cu.id&&c.posterId!==cu.id);
+                return(
+                  <div style={{background:"rgba(239,68,68,0.05)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:12,padding:"0.75rem",marginBottom:"0.75rem"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.5rem"}}>
+                      <div style={{fontFamily:"Syne,sans-serif",fontWeight:700,color:"#EF4444",fontSize:"0.88rem"}}>☠️ Kontrat Pazarı</div>
+                      <span style={{background:"rgba(239,68,68,0.12)",borderRadius:6,padding:"0.15rem 0.45rem",fontSize:"0.6rem",color:"#EF4444",fontWeight:700,border:"1px solid rgba(239,68,68,0.25)"}}>{openContracts.length} Açık</span>
+                    </div>
+                    <button onClick={postContract} style={{width:"100%",padding:"0.45rem",background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:8,color:"#F87171",fontSize:"0.78rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginBottom:"0.5rem"}}>☠️ Kontrat Koy</button>
+                    {targetableContracts.slice(0,3).map(c=>(
+                      <div key={c.id} style={{background:"rgba(0,0,0,0.3)",borderRadius:9,padding:"0.55rem",marginBottom:"0.35rem",border:"1px solid rgba(239,68,68,0.15)"}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                          <div>
+                            <div style={{fontSize:"0.78rem",color:"#fff",fontWeight:700}}>🎯 {c.targetName}</div>
+                            <div style={{fontSize:"0.65rem",color:"#888"}}>{Math.ceil((c.expiresAt-Date.now())/3600000)}sa kaldı</div>
+                          </div>
+                          <div style={{textAlign:"right"}}>
+                            <div style={{fontSize:"0.75rem",color:"#10B981",fontWeight:700}}>{fmtMoney(c.reward)}</div>
+                            <button onClick={()=>acceptContract(c.id)} style={{padding:"0.25rem 0.5rem",background:"rgba(239,68,68,0.15)",border:"1px solid rgba(239,68,68,0.35)",borderRadius:6,color:"#F87171",fontSize:"0.65rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginTop:"0.2rem"}}>Kabul Et</button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {targetableContracts.length===0&&<div style={{fontSize:"0.7rem",color:"#555",textAlign:"center"}}>Şu an açık kontrat yok.</div>}
+                  </div>
+                );
+              })()}
+      {/* ═══ ORTAK SOYGUNLAR ═══ */}
+              {(()=>{
+                const myGangHeist = heistPlans.find(h=>h.gangId===userGang.id&&h.status==="recruiting");
+                const myCrewHeist = heistPlans.find(h=>h.status==="recruiting"&&h.crew.find(c=>c.id===cu.id));
+                const recentHeists = heistPlans.filter(h=>h.gangId===userGang.id&&["completed","failed"].includes(h.status)).slice(-2);
+                return(
+                  <div style={{background:"rgba(168,85,247,0.05)",border:"1px solid rgba(168,85,247,0.2)",borderRadius:12,padding:"0.75rem",marginBottom:"0.75rem"}}>
+                    <div style={{fontFamily:"Syne,sans-serif",fontWeight:700,color:"#A855F7",fontSize:"0.88rem",marginBottom:"0.5rem"}}>🎭 Ortak Soygun</div>
+                    {!myGangHeist&&userGang.leader===cu.username&&(
+                      <button onClick={createHeist} style={{width:"100%",padding:"0.45rem",background:"rgba(168,85,247,0.1)",border:"1px solid rgba(168,85,247,0.3)",borderRadius:8,color:"#C084FC",fontSize:"0.78rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginBottom:"0.5rem"}}>🎭 Soygun Planla</button>
+                    )}
+                    {myGangHeist&&(
+                      <div style={{background:"rgba(0,0,0,0.3)",borderRadius:9,padding:"0.6rem",border:"1px solid rgba(168,85,247,0.2)"}}>
+                        <div style={{fontSize:"0.8rem",color:"#A855F7",fontWeight:700,marginBottom:"0.2rem"}}>🎯 Hedef: {myGangHeist.target}</div>
+                        <div style={{fontSize:"0.7rem",color:"#888",marginBottom:"0.4rem"}}>Ödül: {fmtMoney(myGangHeist.reward)} · Ekip: {myGangHeist.crew.length}/{myGangHeist.minCrew} (min)</div>
+                        <div style={{display:"flex",gap:"0.4rem"}}>
+                          {!myGangHeist.crew.find(c=>c.id===cu.id)&&cu.id!==myGangHeist.leaderId&&(
+                            <button onClick={()=>joinHeist(myGangHeist.id)} style={{flex:1,padding:"0.4rem",background:"rgba(168,85,247,0.15)",border:"1px solid rgba(168,85,247,0.3)",borderRadius:7,color:"#C084FC",fontSize:"0.72rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>➕ Katıl</button>
+                          )}
+                          {myGangHeist.leaderId===cu.id&&myGangHeist.crew.length>=myGangHeist.minCrew&&(
+                            <button onClick={()=>executeHeist(myGangHeist.id)} style={{flex:1,padding:"0.4rem",background:"rgba(168,85,247,0.2)",border:"1px solid rgba(168,85,247,0.5)",borderRadius:7,color:"#E879F9",fontSize:"0.72rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🚀 SOYGUNU BAŞLAT</button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {recentHeists.map(h=>(
+                      <div key={h.id} style={{fontSize:"0.68rem",color:h.status==="completed"?"#10B981":"#EF4444",marginTop:"0.3rem"}}>
+                        {h.status==="completed"?"✅":"❌"} {h.target} — {h.status==="completed"?"Başarılı":"Başarısız"}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+      {/* ═══ KAÇAKÇILIK + KARA PARA + RÜTBE + KARABORSA ═══ */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.5rem",marginBottom:"0.75rem"}}>
+                <button onClick={startSmuggling} style={{padding:"0.6rem",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:10,color:"#F59E0B",fontSize:"0.75rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                  🚢 Kaçakçılık<br/><span style={{fontSize:"0.62rem",color:"#888",fontWeight:400}}>Risk/ödül sistemi</span>
+                </button>
+                <button onClick={startLaundering} style={{padding:"0.6rem",background:"rgba(16,185,129,0.07)",border:"1px solid rgba(16,185,129,0.2)",borderRadius:10,color:"#10B981",fontSize:"0.75rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                  🧼 Kara Para Akla<br/><span style={{fontSize:"0.62rem",color:"#888",fontWeight:400}}>%25 komisyon, 6 saat</span>
+                </button>
+                <button onClick={postBlackMarketListing} style={{padding:"0.6rem",background:"rgba(139,92,246,0.07)",border:"1px solid rgba(139,92,246,0.2)",borderRadius:10,color:"#8B5CF6",fontSize:"0.75rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                  🏪 Karaborsa<br/><span style={{fontSize:"0.62rem",color:"#888",fontWeight:400}}>Ürün al / sat</span>
+                </button>
+                {userGang.leader===cu.username&&(
+                  <button onClick={promoteGangMember} style={{padding:"0.6rem",background:"rgba(251,191,36,0.07)",border:"1px solid rgba(251,191,36,0.2)",borderRadius:10,color:"#FBB24",fontSize:"0.75rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                    ⬆️ Üye Terfi<br/><span style={{fontSize:"0.62rem",color:"#888",fontWeight:400}}>Rütbe sistemi</span>
+                  </button>
+                )}
+                <button onClick={sendBribe} style={{padding:"0.6rem",background:"rgba(251,191,36,0.07)",border:"1px solid rgba(251,191,36,0.2)",borderRadius:10,color:"#FBB024",fontSize:"0.75rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                  💼 Rüşvet Teklif Et<br/><span style={{fontSize:"0.62rem",color:"#888",fontWeight:400}}>Yetkilileri satın al</span>
+                </button>
+                <button onClick={attemptElectionFraud} style={{padding:"0.6rem",background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.18)",borderRadius:10,color:"#F87171",fontSize:"0.75rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                  🗳️ Seçim Hilesi<br/><span style={{fontSize:"0.62rem",color:"#888",fontWeight:400}}>2M ₱ · %55 başarı</span>
+                </button>
+                {!cu.isInformant?(
+                  <button onClick={becomeInformant} style={{padding:"0.6rem",background:"rgba(100,116,139,0.07)",border:"1px solid rgba(100,116,139,0.2)",borderRadius:10,color:"#94A3B8",fontSize:"0.75rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                    🕵️ Muhbir Ol<br/><span style={{fontSize:"0.62rem",color:"#888",fontWeight:400}}>100K ₱/hafta polis koruması</span>
+                  </button>
+                ):(
+                  <div style={{padding:"0.6rem",background:"rgba(100,116,139,0.08)",border:"1px solid rgba(100,116,139,0.25)",borderRadius:10}}>
+                    <div style={{fontSize:"0.72rem",color:"#94A3B8",fontWeight:700,marginBottom:"0.3rem"}}>🕵️ Aktif Muhbir</div>
+                    <div style={{display:"flex",gap:"0.3rem"}}>
+                      <button onClick={collectInformantPay} style={{flex:1,padding:"0.3rem",background:"rgba(16,185,129,0.12)",border:"1px solid rgba(16,185,129,0.25)",borderRadius:6,color:"#10B981",fontSize:"0.65rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>💰 Maaş Al</button>
+                      <button onClick={quitInformant} style={{flex:1,padding:"0.3rem",background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:6,color:"#F87171",fontSize:"0.65rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>❌ Bırak</button>
+                    </div>
+                  </div>
+                )}
+                {userGang.leader===cu.username&&(
+                  <button onClick={investigateInformant} style={{padding:"0.6rem",background:"rgba(100,116,139,0.06)",border:"1px solid rgba(100,116,139,0.18)",borderRadius:10,color:"#64748B",fontSize:"0.75rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                    🔍 Muhbir Araştır<br/><span style={{fontSize:"0.62rem",color:"#888",fontWeight:400}}>500K ₱ · ifşa</span>
+                  </button>
+                )}
+              </div>
+              {/* Kara para aklama işlem listesi */}
+              {launderingOps.filter(o=>o.userId===cu.id&&o.status==="processing").map(op=>(
+                <div key={op.id} style={{background:"rgba(16,185,129,0.06)",border:"1px solid rgba(16,185,129,0.18)",borderRadius:9,padding:"0.55rem",marginBottom:"0.35rem",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div>
+                    <div style={{fontSize:"0.72rem",color:"#10B981",fontWeight:700}}>🧼 {fmtMoney(op.cleanAmt)} aklama</div>
+                    <div style={{fontSize:"0.62rem",color:"#888"}}>{Date.now()>=op.completesAt?"✅ Hazır":"⏳ "+Math.ceil((op.completesAt-Date.now())/3600000)+" saat kaldı"}</div>
+                  </div>
+                  {Date.now()>=op.completesAt&&<button onClick={()=>claimLaundering(op.id)} style={{padding:"0.3rem 0.6rem",background:"rgba(16,185,129,0.2)",border:"1px solid rgba(16,185,129,0.4)",borderRadius:7,color:"#10B981",fontSize:"0.68rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Al</button>}
+                </div>
+              ))}
       {/* Court link - report gang to court */}
                 <div style={{background:"rgba(245,158,11,0.05)"
+
 ,border:"1px solid rgba(245,158,11,0.15)",borderRadius:12,padding:"0.65rem",marginBottom:"0.75rem"}}>
                   <div style={{fontFamily:"Syne,sans-serif",fontWeight:700,color:"#F59E0B",fontSize:"0.82rem",marginBottom:"0.35rem"}}>⚖️ Hukuki İşlemler</div>
                   <div style={{display:"flex",gap:"0.4rem",flexWrap:"wrap"}}>
@@ -14329,6 +15049,47 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
           return(
           <div>
             <div className="ministry-header">🔔 Bildirim Merkezi</div>
+             {/* ═══ RÜŞVET TEKLİFLERİ ═══ */}
+             {(()=>{
+               const pending=bribeOffers.filter(o=>o.targetId===cu.id&&o.status==="pending"&&o.expiresAt>Date.now());
+               if(!pending.length) return null;
+               return(
+                 <div style={{background:"linear-gradient(135deg,rgba(245,158,11,0.1),rgba(245,158,11,0.03))",border:"1px solid rgba(245,158,11,0.35)",borderRadius:14,padding:"0.85rem",marginBottom:"0.85rem"}}>
+                   <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,color:"#F59E0B",fontSize:"0.9rem",marginBottom:"0.5rem"}}>💼 Rüşvet Teklifi</div>
+                   {pending.map(offer=>(
+                     <div key={offer.id} style={{background:"rgba(0,0,0,0.3)",borderRadius:10,padding:"0.6rem",marginBottom:"0.4rem",border:"1px solid rgba(245,158,11,0.15)"}}>
+                       <div style={{fontSize:"0.8rem",color:"#fff",fontWeight:700,marginBottom:"0.15rem"}}>💰 {offer.briberName} → {fmtMoney(offer.amount)}</div>
+                       <div style={{fontSize:"0.7rem",color:"#888",marginBottom:"0.4rem"}}>Talep: "{offer.request}"</div>
+                       <div style={{display:"flex",gap:"0.5rem"}}>
+                         <button onClick={()=>respondBribe(offer.id,true)} style={{flex:1,padding:"0.4rem",background:"rgba(16,185,129,0.18)",border:"1px solid rgba(16,185,129,0.4)",borderRadius:8,color:"#10B981",fontSize:"0.75rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>✅ Kabul ({fmtMoney(offer.amount)})</button>
+                         <button onClick={()=>respondBribe(offer.id,false)} style={{flex:1,padding:"0.4rem",background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:8,color:"#F87171",fontSize:"0.75rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>❌ Reddet</button>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               );
+             })()}
+             {/* ═══ GİZLİ SPONSORLUK TEKLİFLERİ (parti lideri) ═══ */}
+             {(()=>{
+               const myParty=(Array.isArray(parties)?parties:[]).find(p=>p.leader===cu.username);
+               if(!myParty) return null;
+               const pending=secretSponsorships.filter(s=>s.partyId===myParty.id&&s.status==="pending");
+               if(!pending.length) return null;
+               return(
+                 <div style={{background:"rgba(96,165,250,0.07)",border:"1px solid rgba(96,165,250,0.3)",borderRadius:14,padding:"0.85rem",marginBottom:"0.85rem"}}>
+                   <div style={{fontFamily:"Syne,sans-serif",fontWeight:800,color:"#60A5FA",fontSize:"0.9rem",marginBottom:"0.5rem"}}>🤫 Gizli Sponsorluk Teklifi</div>
+                   {pending.map(sp=>(
+                     <div key={sp.id} style={{background:"rgba(0,0,0,0.3)",borderRadius:10,padding:"0.6rem",marginBottom:"0.4rem",border:"1px solid rgba(96,165,250,0.12)"}}>
+                       <div style={{fontSize:"0.8rem",color:"#fff",fontWeight:700,marginBottom:"0.15rem"}}>🏦 {sp.familyName} → {fmtMoney(sp.amount)}/ay</div>
+                       <div style={{display:"flex",gap:"0.5rem",marginTop:"0.35rem"}}>
+                         <button onClick={()=>respondSecretSponsorship(sp.id,true)} style={{flex:1,padding:"0.4rem",background:"rgba(16,185,129,0.18)",border:"1px solid rgba(16,185,129,0.4)",borderRadius:8,color:"#10B981",fontSize:"0.75rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>✅ Kabul</button>
+                         <button onClick={()=>respondSecretSponsorship(sp.id,false)} style={{flex:1,padding:"0.4rem",background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:8,color:"#F87171",fontSize:"0.75rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>❌ Red</button>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               );
+             })()}
              {(()=>{
                const pending=haracRequests.filter(r=>r.targetUserId===cu.id&&r.status==="pending"&&r.expiresAt>Date.now());
                if(!pending.length) return null;
@@ -19819,6 +20580,25 @@ ${lawList}`,"Numara","number",{min:1,max:activeLaws.length});
             )}
             {bmTab==="sell"&&(
               <div>
+                {/* Oyuncu ilanları */}
+                {blackMarket.filter(b=>b.status==="available"&&b.expiresAt>Date.now()).length>0&&(
+                  <div style={{marginBottom:"1rem"}}>
+                    <div style={{fontFamily:"Syne,sans-serif",fontWeight:700,color:"#A78BFA",fontSize:"0.88rem",marginBottom:"0.5rem"}}>🏪 Oyuncu İlanları</div>
+                    {blackMarket.filter(b=>b.status==="available"&&b.expiresAt>Date.now()).map(b=>(
+                      <div key={b.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"0.5rem 0.65rem",background:"rgba(139,92,246,0.05)",border:"1px solid rgba(139,92,246,0.15)",borderRadius:9,marginBottom:"0.35rem"}}>
+                        <div>
+                          <div style={{fontSize:"0.8rem",color:"#fff",fontWeight:700}}>{b.item}</div>
+                          <div style={{fontSize:"0.65rem",color:"#888"}}>Satıcı: {b.sellerName} · {Math.ceil((b.expiresAt-Date.now())/3600000)}sa kaldı</div>
+                        </div>
+                        <div style={{textAlign:"right"}}>
+                          <div style={{fontSize:"0.78rem",color:"#10B981",fontWeight:700,marginBottom:"0.2rem"}}>{fmtMoney(b.price)}</div>
+                          {b.sellerId!==cu.id&&<button onClick={()=>buyBlackMarket(b.id)} style={{padding:"0.3rem 0.6rem",background:"rgba(139,92,246,0.15)",border:"1px solid rgba(139,92,246,0.35)",borderRadius:6,color:"#A78BFA",fontSize:"0.68rem",fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Satın Al</button>}
+                          {b.sellerId===cu.id&&<span style={{fontSize:"0.65rem",color:"#555"}}>Senin ilanın</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="card" style={{marginBottom:"1rem"}}>
                   <div className="card-title" style={{color:"#A78BFA"}}>💰 Yasadışı Mal Sat</div>
                   <div style={{fontSize:"0.85rem",color:"#bbb",marginBottom:"0.75rem"}}>Envanterinizdeki yasadışı malları kara borsada satın. Yüksek kâr, yüksek risk.</div>
